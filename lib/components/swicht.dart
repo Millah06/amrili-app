@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../constraints/vendor_theme.dart';
+
 class TinySwitch extends StatelessWidget {
   final bool value;
   final ValueChanged<bool> onChanged;
@@ -10,7 +12,7 @@ class TinySwitch extends StatelessWidget {
     Key? key,
     required this.value,
     required this.onChanged,
-    this.activeColor = Colors.green,
+    this.activeColor =  VendorTheme.primary,
     this.inactiveColor = Colors.grey,
   }) : super(key: key);
 

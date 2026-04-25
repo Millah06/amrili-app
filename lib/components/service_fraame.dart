@@ -70,7 +70,7 @@ class ServiceFrame extends StatelessWidget {
             onTap: onTap,
             child: Card(
               color: backgroundColor ?? Color(0xFF177E85),
-              elevation: 2,
+              elevation: 0,
               child: Container(
                 padding: EdgeInsets.all(12),
                 decoration: BoxDecoration(

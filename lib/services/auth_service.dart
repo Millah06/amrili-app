@@ -31,13 +31,7 @@ class Authentication {
   }
 
 
-  Future<User?> userSignUp(
-      String email,
-      String password,
-      String name,
-      String phoneNumber, {
-        String? referralCodeUsed,
-      }) async {
+  Future<User?> userSignUp(String email, String password, String name, String phoneNumber, {String? referralCodeUsed,}) async {
     try {
       // Normalize phone number
       final normalizedPhone =

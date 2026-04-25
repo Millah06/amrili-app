@@ -11,10 +11,10 @@ class ListOfBanks {
 
   factory ListOfBanks.fromJson(Map<String, dynamic> json) {
     return ListOfBanks(
-        bankName: json['name'],
-        bankCode: json['code'],
-        bankSlug: json['slug'],
-        isActive: json['active']
+        bankName: json['name'] ?? '',
+        bankCode: json['code'] ?? '',
+        bankSlug: json['slug'] ?? '',
+        isActive: json['active'] ?? false
     );
   }
 }

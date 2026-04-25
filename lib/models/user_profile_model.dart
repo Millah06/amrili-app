@@ -6,9 +6,10 @@
 
 class UserProfile {
   final String userId;
-  final String username;
+  final String userName;
   final String displayName;
   final String? bio;
+  final String? buzEmail;
   final String? chatTag;
   final String? transferUID;
   final String? email;
@@ -49,8 +50,9 @@ class UserProfile {
 
   UserProfile({
     required this.userId,
-    required this.username,
+    required this.userName,
     required this.displayName,
+    this.buzEmail,
     this.bio,
     this.chatTag,
     this.transferUID,
@@ -92,8 +94,8 @@ class UserProfile {
 
     return UserProfile(
       userId: json['userId'] ?? '',
-      username: json['username'] ?? 'Anonymous',
-      displayName: json['displayName'] ?? json['username'] ?? 'Anonymous',
+      userName: json['userName'] ?? 'Anonymous',
+      displayName: json['displayName']  ?? 'Anonymous',
       bio: json['bio'],
       chatTag: json['chatTag'],
       transferUID: json['transferUID'],
@@ -103,9 +105,10 @@ class UserProfile {
       coverImage: json['coverImage'],
       website: json['website'],
       location: json['location'],
+      buzEmail: json['businessEmail'],
       isPrivate: json['isPrivate'] ?? false,
       allowFollowersToMessage: json['allowFollowersToMessage'] ?? false,
-      followerCount: json['followerCount'] ?? 0,
+      followerCount: json['followersCount'] ?? 0,
       followingCount: json['followingCount'] ?? 0,
       postCount: json['postCount'] ?? 0,
       repostCount: json['repostCount'] ?? 0,
@@ -131,10 +134,12 @@ class UserProfile {
   UserProfile copyWith({
     bool? isFollowing,
     int? followerCount,
+    bool? isPrivate,
+    bool? allowFollowersToMessage
   }) {
     return UserProfile(
       userId: userId,
-      username: username,
+      userName: userName,
       displayName: displayName,
       bio: bio,
       chatTag: chatTag,
@@ -145,8 +150,9 @@ class UserProfile {
       coverImage: coverImage,
       website: website,
       location: location,
-      isPrivate: isPrivate,
-      allowFollowersToMessage: allowFollowersToMessage,
+      buzEmail: buzEmail,
+      isPrivate: isPrivate ?? this.isPrivate,
+      allowFollowersToMessage: allowFollowersToMessage ?? this.allowFollowersToMessage,
       followerCount: followerCount ?? this.followerCount,
       followingCount: followingCount,
       postCount: postCount,
@@ -164,10 +170,18 @@ class UserProfile {
     );
   }
 
-  bool get hasBlueCheck => badges['kyc_blue']?['awarded'] == true;
-  bool get hasPremium => badges['premium_paid']?['awarded'] == true;
-  bool get isBusiness => badges['business']?['awarded'] == true;
-  bool get isCreator => badges['creator_earnings']?['awarded'] == true;
+
+  //This will be uncommented in production
+  // bool get hasBlueCheck => badges['kycBlue'] == true;
+  // bool get hasPremium => badges['premiumPaid'] == true;
+  // bool get isBusiness => badges['business'] == true;
+  // bool get isCreator => badges['creatorEarnings'] == true;
+
+  //This will be deleted in production
+  bool get hasBlueCheck => true;
+  bool get hasPremium => badges['premiumPaid'] == true;
+  bool get isBusiness => badges['business'] == true;
+  bool get isCreator => badges['creatorEarnings'] == true;
 
   List<String> get activeBadges {
     final List<String> active = [];

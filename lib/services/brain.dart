@@ -5,9 +5,9 @@ import 'dart:math';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dio/dio.dart';
 import 'package:everywhere/constraints/firebase_constant.dart';
-import 'package:everywhere/services/social_api_service.dart';
-import 'package:everywhere/services/user_contact_service.dart';
-import 'package:everywhere/services/user_match_service.dart';
+import 'package:everywhere/features/communication/services/user_contact_service.dart';
+import 'package:everywhere/features/communication/services/user_match_service.dart';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:image_picker/image_picker.dart';
@@ -17,7 +17,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
-import 'contact_service.dart';
+import '../features/communication/services/contact_service.dart';
+import '../features/social/services/social_api_service.dart';
 
 class Brain extends ChangeNotifier {
 
@@ -26,7 +27,7 @@ class Brain extends ChangeNotifier {
 
   List<Map<String, dynamic>> get transactions => _transactions;
 
-  StreamSubscription<DocumentSnapshot>? _transactionsSubscription;
+
 
   String get currentUser => FirebaseAuth.instance.currentUser!.uid;
 
@@ -80,10 +81,10 @@ class Brain extends ChangeNotifier {
     return canAuthenticate;
   }
   String passCode = '';
-  String userName = '';
-  String accountBalance = '0';
-  String phoneNumber = '';
-  String accountReward = '0';
+  // String userName = '';
+  // String accountBalance = '0';
+  // String phoneNumber = '';
+  // String accountReward = '0';
 
   double totalMonthlySpent = 0;
 
@@ -120,7 +121,6 @@ class Brain extends ChangeNotifier {
   String get localPIN => pIN;
   bool get isLoading => _isLoading;
   String get image => imagePath;
-  String get user => userName;
   Map get userAccount => accountData;
 
   Future<String?> getIdToken() async {
@@ -130,105 +130,6 @@ class Brain extends ChangeNotifier {
     }
     return null;
   }
-
-  String generateUserTransferId() {
-    final random = Random.secure();
-    return List.generate(11, (_) => random.nextInt(10)).join();
-  }
-
-  String generateReferralCode() {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    final random = Random.secure();
-    return 'REF-${List.generate(6, (_) => chars[random.nextInt(chars.length)]).join()}';
-  }
-
-  Future<void> migrateUserWallets() async {
-    final users = await FirebaseFirestore.instance.collection('users').get();
-
-    // Generate unique transfer UID
-    String transferUid = '';
-    bool exists = true;
-
-    while (exists) {
-      transferUid = generateUserTransferId();
-      final check = await FirebaseFirestore.instance
-          .collection('users')
-          .where('transferUid', isEqualTo: transferUid)
-          .limit(1)
-          .get();
-      exists = check.docs.isNotEmpty;
-    }
-
-    final referralCode = generateReferralCode();
-
-    for (var doc in users.docs) {
-
-      await createUserProfile(doc.id, {'transferUID' : doc['transferUid'],
-        'email': doc['email'], 'photoURL': doc['userAvatar'], 'displayName': doc['userName']  });
-      final data = doc.data();
-
-      if (data['userName'] != null) continue;
-
-      final oldBalance = (data['balance'] ?? 0).toDouble();
-      final oldReward = (data['reward'] ?? 0).toDouble();
-
-      await doc.reference.update({
-        'transferUid': transferUid,
-        'referralCode': referralCode,
-        'referredBy': null,
-
-        'kyc': {
-          'status': 'not_submitted', // future crypto use
-        },
-
-        'wallet': {
-          'fiat': {
-            'availableBalance': oldBalance,
-            'lockedBalance': 0.0,
-            'rewardBalance' : oldReward
-          },
-          'crypto': {
-            'usdt': {
-              'available': 0.0,
-              'locked': 0.0,
-            },
-            'btc': {
-              'available': 0.0,
-              'locked': 0.0,
-            },
-          }
-        },
-        'userAvatar' : null,
-        'userName' : null,
-        'bio' : null,
-        'chatTag' : null,
-      });
-    }
-  }
-
-  Future<void> createUserProfile(String userId, Map<String, dynamic> userData) async {
-    final docRef = FirebaseFirestore.instance.collection('userProfiles').doc(userId);
-
-    await docRef.set({
-      'userId': userId,
-      'username': userData['displayName'] ?? userData['name'] ?? 'Anonymous',
-      'bio': '',
-      'chatTag': userData['chatTag'] ?? null,
-      'transferUID': userData['transferUID'] ?? null,
-      'email': userData['email'] ?? null,
-      'avatar': userData['photoURL'] ?? userData['photoUrl'] ?? null,
-      'isPrivate': false,
-      'allowFollowersToMessage': false,
-      'followerCount': 0,
-      'followingCount': 0,
-      'postCount': 0,
-      'badges': [],
-      'totalEarned': 0,
-      'weeklyEarned': 0,
-    });
-  }
-
-
 
   Future<void> getData() async {
     final userId = FirebaseAuth.instance.currentUser?.uid;
@@ -279,14 +180,6 @@ class Brain extends ChangeNotifier {
         "https://everywhere-data-app.onrender.com"
       };
 
-
-      if (doc.exists)  {
-        userName = await doc['name'];
-        accountData = await doc['va'];
-        accountBalance = doc['wallet']['fiat'][FirebaseConstant.availableBalance].toString();
-        accountReward = doc['wallet']['fiat'][FirebaseConstant.rewardBalance].toString();
-        phoneNumber = await doc['phoneNumber'];
-      }
 
       notifyListeners();
     }
@@ -391,63 +284,6 @@ class Brain extends ChangeNotifier {
   }
 
 
-
-  Future<void> fetchTransactions() async {
-    final userId = FirebaseAuth.instance.currentUser?.uid;
-    if (userId == null) return;
-
-    // cancel old listener if any
-    if (_transactionsSubscription != null) {
-      await _transactionsSubscription!.cancel();
-      _transactionsSubscription = null;
-    }
-    // start listening to the user document for realtime updates
-    _transactionsSubscription = FirebaseFirestore.instance
-        .collection('users')
-        .doc(userId)
-        .snapshots()
-        .listen((snapshot) {
-      try {
-        if (snapshot.exists) {
-          final data = snapshot.data(); // safe cast
-          List<dynamic> transactions = data?['transactions'] ?? [];
-          _transactions = transactions.cast<Map<String, dynamic>>().toList();
-          final filtered = _transactions.where((tx) {
-            final date = (tx['Date'] as Timestamp).toDate();
-            return date.year == DateTime.now().year && date.month == DateTime.now().month;
-          }).toList();
-          totalMonthlySpent = 0;
-          for (Map item in filtered) {
-             totalMonthlySpent += (item['Paid Amount'] as num).toDouble();
-             print(totalMonthlySpent);
-          }
-
-          accountBalance = data!['balance'].toString();
-          accountReward = data['reward'].toString();
-          accountData = data['va'];
-        } else {
-          _transactions = [];
-        }
-        print("📌 Transactions updated: $_transactions");
-        notifyListeners();
-      } catch (e) {
-        print("❌ Error parsing transactions from snapshot: $e");
-      }
-    }, onError: (error) {
-      print("❌ Error listening to transactions: $error");
-    });
-  }
-
-  Future<void> fetchSecureTransaction() async {
-    FirebaseFirestore.instance
-        .collection("transactions")
-        .where("userId", isEqualTo: currentUser)
-        .orderBy("createdAt", descending: true)
-        .snapshots();
-
-  }
-
-
   Future<void> updateImage() async {
     final picker = ImagePicker();
     final pickedFile = await picker.pickImage(source: ImageSource.gallery);
@@ -469,24 +305,8 @@ class Brain extends ChangeNotifier {
   }
 
   void reset() {
-    accountBalance = '0';
     _transactions = [];
-    phoneNumber = '';
-    userName = '';
-    accountReward = '0';
-
     notifyListeners();
-  }
-
-  @override
-  void dispose() {
-    try {
-      _transactionsSubscription?.cancel(); // returns a Future we can't await here
-    } catch (e) {
-      print('Error cancelling subscription in dispose: $e');
-    }
-    _transactionsSubscription = null;
-    super.dispose();
   }
 
 }

@@ -1,14 +1,17 @@
 // lib/providers/profile_provider.dart - UPDATED WITHOUT FIRESTORE
 
+import 'package:everywhere/services/api_service.dart';
 import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../features/social/models/post_model.dart';
+import '../features/social/services/social_api_service.dart';
 import '../models/user_profile_model.dart';
-import '../models/post_model.dart';
-import '../services/social_api_service.dart';
+
 
 // lib/providers/profile_provider.dart - ADD CACHING
 class ProfileProvider with ChangeNotifier {
   final SocialApiService _apiService = SocialApiService();
+  final ApiService api = ApiService();
 
   UserProfile? _profile;
   List<Post> _userPosts = [];
@@ -68,7 +71,7 @@ class ProfileProvider with ChangeNotifier {
       _cachedUserId = userId;
       _lastProfileLoadTime = DateTime.now();
 
-      print('✅ Profile loaded and cached: ${_profile?.username}');
+      print('✅ Profile loaded and cached: ${_profile?.userName}');
     } catch (e) {
       print('❌ Profile error: $e');
       _error = e.toString();
@@ -209,6 +212,44 @@ class ProfileProvider with ChangeNotifier {
   void removePostFromSaved(String postId) {
     _savedPosts.removeWhere((p) => p.postId == postId);
     notifyListeners();
+  }
+
+  Future<bool> togglePrivateAccount() async {
+
+    // instant UI update
+    final newValue = !_profile!.isPrivate;
+    print(newValue);
+
+    _profile = _profile!.copyWith(isPrivate: newValue);
+
+    notifyListeners();
+
+    try {
+      await api.post('/users/me/toggle-private', {'isPrivate' : newValue});
+      return true;
+    } catch (e) {
+      e.toString();
+      return false;
+    }
+  }
+
+  Future<bool> toggleAllowFollowersToMessage() async {
+
+    // instant UI update
+    final newValue = !_profile!.allowFollowersToMessage;
+    print(newValue);
+
+    _profile = _profile!.copyWith(allowFollowersToMessage: newValue);
+
+    notifyListeners();
+
+    try {
+      await api.post('/users/me/toggle-allow-messages', {'allowFollowersToMessage' : newValue});
+      return true;
+    } catch (e) {
+      e.toString();
+      return false;
+    }
   }
 
   void clear() {

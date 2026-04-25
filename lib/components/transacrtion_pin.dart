@@ -5,14 +5,16 @@ import 'package:provider/provider.dart';
 
 import '../constraints/constants.dart';
 import '../services/brain.dart';
-import 'flush_bar_message.dart';
+import '../shared/utils/flush_bar_message.dart';
 
  class TransactionPin extends StatelessWidget {
 
    final Function(String) onCompleted;
    final Function() onForgotPin;
-   final Function() onCorrect;
-   const TransactionPin({super.key, required this.onCompleted, required this.onForgotPin, required this.onCorrect});
+   // final Function() onCorrect;
+   const TransactionPin({super.key, required this.onCompleted, required this.onForgotPin,
+     // required this.onCorrect
+   });
 
    @override
    Widget build(BuildContext context) {
@@ -31,7 +33,7 @@ import 'flush_bar_message.dart';
                    localizedReason: 'Use Fingerprint  to confirm transaction',
                    options: const AuthenticationOptions(biometricOnly: true),
                );
-               result ?   onCorrect() :
+               result ?   onCompleted :
                FlushBarMessage.showFlushBar(
                  context: context,
                  message: 'Your device does\'nt support this method, use passcode instead.',

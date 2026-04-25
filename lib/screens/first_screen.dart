@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:another_flushbar/flushbar.dart';
 import 'package:everywhere/components/bootom_bar.dart';
 import 'package:everywhere/constraints/constants.dart';
-import 'package:everywhere/screens/passcode_login.dart';
 import 'package:everywhere/screens/welcome_screen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -14,11 +13,12 @@ import 'package:local_auth/local_auth.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../components/flush_bar_message.dart';
+import '../shared/utils/flush_bar_message.dart';
+import '../features/auth/passcode_login.dart';
 import '../models/notification_model.dart';
 import '../services/brain.dart';
 import '../services/session_service.dart';
-import 'login_screen.dart';
+
 
 class FirstScreen extends StatefulWidget {
 
@@ -116,7 +116,7 @@ class _FirstScreenState extends State<FirstScreen> {
                   ),
                 ),
                 SizedBox(height: 20,),
-                Text(pov.user, style: GoogleFonts.inter(fontWeight: FontWeight.w900, fontSize: 15,),),
+                Text('username', style: GoogleFonts.inter(fontWeight: FontWeight.w900, fontSize: 15,),),
                 SizedBox(height: 30,),
                 Icon(Icons.fingerprint, size: 70,),
                 SizedBox(height: 30,),

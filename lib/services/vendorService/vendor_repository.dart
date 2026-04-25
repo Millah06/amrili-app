@@ -1,5 +1,6 @@
 
-import '../../models/vendor_model.dart';
+import '../../features/marketPlace/models/vendor_model.dart';
+
 import '../api_service.dart';
 
 // ─── VENDOR REPOSITORY ────────────────────────────────────────────────────────

@@ -5,7 +5,7 @@ import 'dart:ui' as ui;
 import 'package:another_flushbar/flushbar.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:everywhere/components/dash_line.dart';
-import 'package:everywhere/components/flush_bar_message.dart';
+import 'package:everywhere/shared/utils/flush_bar_message.dart';
 import 'package:everywhere/components/reusable_card.dart';
 import 'package:everywhere/services/receipt_builder.dart';
 import 'package:flutter/material.dart';
@@ -59,7 +59,7 @@ class TransactionService {
         }
 
         if (result?['status'] == true) {
-          await pov.fetchTransactions();
+          // await pov.fetchTransactions();
           // pov.addTransaction(amount, buildData!(result!)!);
           if (context.mounted) {
             isGift ?? false ? airtimeGiftFunction?.call() : Navigator.pushReplacement(context,
@@ -74,7 +74,7 @@ class TransactionService {
         }
 
         else if (result?['status'] == false) {
-          await pov.fetchTransactions();
+          // await pov.fetchTransactions();
 
           // pov.addTransaction(amount, buildData!(result!)!);
 
@@ -128,18 +128,14 @@ class TransactionService {
               showCorrect();
             }
             else {
-              Flushbar(
+              FlushBarMessage.showFlushBar(
+                  context: context,
+                  message: 'Incorrect PIN!, try again.',
                 title: 'Ops',
-                message: 'Incorrect PIN!, try again.',
-                borderRadius: BorderRadius.circular(12),
-                backgroundColor: kErrorBackground,
-                flushbarPosition: FlushbarPosition.TOP,
                 icon: Icon(Icons.error_outline,
                   color: Colors.white, size: 30,),
-                duration: Duration(seconds: 3),
-                margin: EdgeInsets.symmetric(vertical: 15, horizontal: 30),
-                padding: EdgeInsets.symmetric(vertical: 10, horizontal: 15),
-              ).show(context);
+              );
+
             }
           },
           onForgotPin: () async {
@@ -148,7 +144,7 @@ class TransactionService {
             throw Exception('Could not launch');
             }
           },
-          onCorrect: showCorrect
+          // onCorrect: showCorrect
         )
     );
   }
@@ -372,7 +368,7 @@ class TransactionService {
                     print(receiptInformation);
                         Navigator.push(context,
                             MaterialPageRoute(builder: (context) => ViewReceipt(
-                              transactionID: receiptInformation?['transaction_id']!,) ));
+                              transactionId: receiptInformation['transaction_id']!,) ));
                       },
                       child: ReusableCardReceipt(
                         text: 'View Receipt',
@@ -380,8 +376,10 @@ class TransactionService {
                       ),
                     ),
                     GestureDetector(
-                      onTap: () async {
-                        await ReceiptBuilder().exportToPdf(receiptInformation?['transaction_id']!, context);
+                      onTap: () {
+                        Navigator.push(context,
+                            MaterialPageRoute(builder: (context) => ViewReceipt(
+                              transactionId: receiptInformation['transaction_id']!,) ));
                       },
                       child: ReusableCardReceipt(
                         text: 'Share Receipt',

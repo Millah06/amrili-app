@@ -1,664 +1,498 @@
-import 'dart:convert';
 import 'dart:io';
-import 'dart:math';
 
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:everywhere/components/formatters.dart';
+import 'package:everywhere/constraints/constants.dart';
+import 'package:everywhere/models/transaction_model.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
-import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
-import '../components/formatters.dart';
-import '../constraints/constants.dart';
-import 'brain.dart';
-
+/// Generates and shares a PDF receipt for any transaction type.
+/// Type detection is via [TransactionModel.type] — no more key sniffing.
 class ReceiptBuilder {
 
-  Future<void> exportToPdf(String ? transactionID, context, {Map<String, dynamic> ? myData}) async {
+  Future<void> exportToPdf(TransactionModel transaction) async {
+    final meta = transaction.meta;
+    final type = transaction.type;
 
-    final pov = Provider.of<Brain>(context, listen: false);
+    // ── Load assets ──────────────────────────────────────────────────────────
+    final logoBytes  = await rootBundle.load('images/receipt.png');
+    final smallBytes = await rootBundle.load('images/gift.png');
+    final fontBytes  = await rootBundle.load('assets/fonts/DejaVuSans.ttf');
 
-    Map<String, dynamic>? receiptData;
+    final logoWm   = pw.MemoryImage(logoBytes.buffer.asUint8List());
+    final smallLogo = pw.MemoryImage(smallBytes.buffer.asUint8List());
+    final ttf      = pw.Font.ttf(fontBytes.buffer.asByteData());
 
+    // ── Category detection ───────────────────────────────────────────────────
+    final isAirtime   = (type == 'airtime' || type == 'data') &&
+        (meta?.pins?.isNotEmpty ?? false);
+    final isWaecReg   = type == 'waec_reg' &&
+        (meta?.waecRegistrationTokens?.isNotEmpty ?? false);
+    final isWaecResult= type == 'waec_result' &&
+        (meta?.waecResultCards?.isNotEmpty ?? false);
 
+    // ── Shared calculations ──────────────────────────────────────────────────
+    int? numberOfCards;
+    double? pricePerCard;
 
-    receiptData =
-    transactionID == '' ? myData :
-    pov.transactions.firstWhere((currentList) => currentList['Transaction ID'] == transactionID);
-
-
-    List<List<dynamic>> rows = [];
-
-    PdfColor generateColor() {
-      Random random = Random();
-      double pastelStrength = 0.2;
-      return PdfColor(
-          (random.nextDouble() * (1-pastelStrength)),
-          (random.nextDouble() * (1-pastelStrength)),
-          (random.nextDouble() * (1-pastelStrength))
-      );
+    if (isAirtime) {
+      numberOfCards = meta!.pins!.length;
+      final totalStr = meta.actualAmount ?? transaction.amount.toString();
+      final total = double.tryParse(totalStr.split(' ').first) ?? transaction.amount;
+      pricePerCard = total / numberOfCards;
     }
+    if (isWaecReg) {
+      numberOfCards = meta!.waecRegistrationTokens!.length;
+      pricePerCard = transaction.amount / numberOfCards;
+    }
+    if (isWaecResult) {
+      numberOfCards = meta!.waecResultCards!.length;
+      pricePerCard = transaction.amount / numberOfCards;
+    }
+
+    // ── Build PDF ────────────────────────────────────────────────────────────
     final pdf = pw.Document();
 
-    final logoBytes = await rootBundle.load('images/receipt.png');
-
-    final logoWaterMark = pw.MemoryImage(logoBytes.buffer.asUint8List());
-
-    final smallBytes = await rootBundle.load('images/gift.png');
-
-    final smallLogo = pw.MemoryImage(smallBytes.buffer.asUint8List());
-
-    DateTime date = receiptData?['Date'] is Timestamp
-        ? (receiptData?['Date'] as Timestamp).toDate()
-        : (receiptData?['Date'] as DateTime);
-
-    bool isRechargeCard = receiptData?.containsKey('pins') ?? true;
-    bool isWaecRegistrationTokens = receiptData?.containsKey('waec_registration-tokens') ?? true;
-    bool isWaecResultPin = receiptData?.containsKey('waec_result_cards') ?? true;
-
-
-    String ? businessName;
-    List ? rechargePins;
-    List ? rechargeSerial;
-    String ? network;
-    String instruction = 'Dial *555#';
-    int ? numberOfCards;
-    double ? amount;
-
-    List ? waecRegistrationTokens;
-
-    List ? waecResultCards;
-
-    if (isRechargeCard) {
-      businessName = receiptData?['Business Name'];
-      rechargePins = receiptData?['pins'];
-      rechargeSerial = receiptData?['serial'];
-      network = receiptData?['Product Name'].split(' ').first;
-      double totalAmount = double.parse(receiptData?['Actual Amount'].split(' ').first);
-      numberOfCards = int.parse(receiptData?['numberOfCards']);
-      print(totalAmount);
-      amount = totalAmount / numberOfCards;
-
-    }
-
-    if (isWaecRegistrationTokens) {
-      waecRegistrationTokens = List.from(jsonDecode(receiptData?['waec_registration-tokens']));
-      double totalAmount = receiptData?['Paid Amount'];
-      // numberOfCards = int.parse(receiptData?['numberOfCards']);
-      numberOfCards = int.parse(receiptData?['Number Of Student']);
-      print(totalAmount);
-      amount = totalAmount / numberOfCards;
-
-    }
-
-    if (isWaecResultPin) {
-      waecResultCards = jsonDecode(receiptData?['waec_result_cards']);
-      double totalAmount = receiptData?['Paid Amount'];
-      // numberOfCards = int.parse(receiptData?['numberOfCards']);
-      numberOfCards = int.parse(receiptData?['Number Of Student']);
-      print(totalAmount);
-      amount = totalAmount / numberOfCards;
-
-    }
-
-    final font = await rootBundle.load('assets/fonts/DejaVuSans.ttf');
-    final ttf = pw.Font.ttf(font.buffer.asByteData());
     pdf.addPage(
-        pw.MultiPage(
-            pageTheme: pw.PageTheme(
-                buildBackground: (context) => pw.Center(
-                    child: pw.Opacity(
-                        opacity: 0.14,
-                        child: pw.GridView(
-                            crossAxisCount: 3,
-                            childAspectRatio: 1,
-                            children: List.generate(21, (index) => pw.Center(
-                                child: pw.Transform.rotate(
-                                    angle: 0.6,
-                                    child: pw.Container(
-                                      width: 80,
-                                      height: 80,
-                                      child: pw.Container(
-                                        child: pw.Image(logoWaterMark)
-                                      )
-                                    )
-                                )
-                            )
-                             )
-                        )
-                    )
-                )
+      pw.MultiPage(
+        pageTheme: pw.PageTheme(
+          buildBackground: (_) => pw.Center(
+            child: pw.Opacity(
+              opacity: 0.08,
+              child: pw.GridView(
+                crossAxisCount: 3,
+                childAspectRatio: 1,
+                children: List.generate(21, (_) => pw.Center(
+                  child: pw.Transform.rotate(
+                    angle: 0.6,
+                    child: pw.Container(
+                      width: 80, height: 80,
+                      child: pw.Image(logoWm),
+                    ),
+                  ),
+                )),
+              ),
             ),
-            footer: (context) => pw.Container(
-                margin: pw.EdgeInsets.only(top: 10),
-                child: pw.Column(
-                  crossAxisAlignment: pw.CrossAxisAlignment.start,
-                  children: [
-                    if (isWaecRegistrationTokens || isRechargeCard)
-                      pw.Padding(
-                          padding: pw.EdgeInsets.only(top: 10, bottom: 10),
-                        child: pw.Column(
-                            crossAxisAlignment: pw.CrossAxisAlignment.start,
-                          children: [
-                            pw.Text('INSTRUCTION',
-                                style: pw.TextStyle(font: ttf, fontSize: 10, color: PdfColors.grey)),
-                            pw.Text('Go to the official WAEC e-Registration '
-                                'portal:www.waeconline.org.ng — Click on "School Login" '
-                                'or "Private Candidate Registration" '
-                                '(whichever applies). — Enter your Registration '
-                                'Token exactly as shown below. — Follow the on-screen'
-                                ' steps to complete the registration',
-                                style: pw.TextStyle(font: ttf, fontSize: 9, color: PdfColors.grey))
-                          ]
-                        ),
-                      ),
-                    pw.Row(
-                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                      children: [
-                        pw.Text('©️ ${DateTime.now().year} NexPay. All rights reserved',  style: pw.TextStyle(font: ttf, fontSize: 10, color: PdfColors.grey) ),
-                        pw.Text('Generated by NexPay | ${context.pageNumber} of ${context.pagesCount}',
-                            style: pw.TextStyle(font: ttf, fontSize: 10, color: PdfColors.grey)),
-                      ],
-                    )
-                  ]
-                )
-            ),
-            header: (context) {
-              if (context.pageNumber == 1) {
-                return pw.Column(
-                    mainAxisAlignment: pw.MainAxisAlignment.start,
-                    crossAxisAlignment: pw.CrossAxisAlignment.start,
-                    children: [
-                      pw.Row(
-                          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                          children: [
-                            pw.Column(
-                                crossAxisAlignment: pw.CrossAxisAlignment.start,
-                                children: [
-                                  pw.Row(
-                                      children: [
-                                        pw.Image(smallLogo, width: 40, height: 40),
-                                        pw.SizedBox(width: 5),
-                                        pw.Text('NexPay', style: pw.TextStyle(fontSize: 25, fontWeight: pw.FontWeight.bold)),
-                                      ]
-                                  ),
-                                  pw.SizedBox(height: 7),
-                                  pw.Text('Your world of bills and gifts, in one tap.', style: pw.TextStyle(fontWeight: pw.FontWeight.bold))
-                                ]
-                            ),
-                            pw.Text(isRechargeCard ? '$businessName' : 'Transaction Receipt', style: pw.TextStyle(
-                                color: PdfColors.black,
-                                font: ttf,
-                                fontSize: 20,
-                                fontWeight: pw.FontWeight.bold
-                            ),)
-                          ]
-                      ),
-                      pw.Divider(),
-                      pw.SizedBox(height: 15),
-                      pw.Center(
-                          child: pw.Column(
-                              mainAxisAlignment: pw.MainAxisAlignment.center,
-                              children: [
-                                pw.Row(
-                                  mainAxisAlignment: pw.MainAxisAlignment.center,
-                                  crossAxisAlignment: pw.CrossAxisAlignment.center,
-                                  children: [
-                                    pw.Text(
-                                      '$kNaira${kFormatter.format(receiptData?['Paid Amount'])}',
-                                      style: pw.TextStyle(fontSize: 28,
-                                          fontWeight: pw.FontWeight.bold, font: ttf, color:
-                                          PdfColor.fromHex('#1E293B')),),
-                                    pw.SizedBox(width: 2,),
-                                  ],
-                                ),
-                                pw.SizedBox(height: 10),
-                                pw.Text('Successful',
-                                  style: pw.TextStyle(color: PdfColors.black,
-                                      fontWeight: pw.FontWeight.bold),),
-                                pw.SizedBox(height: 10),
-                                pw.Text(DateFormat('MMMM dd, yyyy hh:mm a').
-                                format(date)),
-                              ]
-                          )
-                      ),
-                    ]
-                );
-              }
-              return pw.SizedBox();
-            },
-            build: (context) {
-              if (isRechargeCard) {
-                return  [
-                  pw.Column(
-                      children: List.generate((numberOfCards! / 3).ceil(),
-                              (rowsIndex) {
-                            return pw.Row(
-                                mainAxisAlignment: pw.MainAxisAlignment.start,
-                                children: List.generate(3, (colIndex) {
-                                  final index = rowsIndex * 3 + colIndex;
-                                  print(index);
-                                  String currentPin = rechargePins?[index];
-                                  String currentSerial = rechargeSerial?[index];
-                                  if (index >= numberOfCards!) return pw.SizedBox();
-                                  return pw.Container(
-                                    width: 135,
-                                    padding: const pw.EdgeInsets.all(8),
-                                    margin: pw.EdgeInsets.all(10),
-                                    decoration: pw.BoxDecoration(
-                                      border: pw.Border.all(color: PdfColors.black, width: 1),
-                                    ),
-                                    child: pw.Column(
-                                      crossAxisAlignment: pw.CrossAxisAlignment.center,
-                                      children: [
-                                        pw.Text(
-                                          "$network $kNaira$amount Airtime",
-                                          style: pw.TextStyle(
-                                              fontSize: 10,
-                                              fontWeight: pw.FontWeight.bold,
-                                              font: ttf
-                                          ),
-                                          textAlign: pw.TextAlign.center,
-                                        ),
-                                        pw.SizedBox(height: 4),
-                                        pw.Text(
-                                          "PIN:",
-                                          style: pw.TextStyle(
-                                              fontSize: 7, fontWeight: pw.FontWeight.bold),
-                                        ),
-                                        pw.Text(
-                                          currentPin
-                                              .replaceAllMapped(RegExp(r".{4}"), (m) => "${m.group(0)} "),
-                                          style: pw.TextStyle(
-                                            fontSize: 9,
-                                            fontWeight: pw.FontWeight.bold,
-                                          ),
-                                          textAlign: pw.TextAlign.center,
-                                        ),
-                                        pw.SizedBox(height: 3),
-                                        pw.Text("Serial: $currentSerial", style: pw.TextStyle(fontSize: 6)),
-                                        pw.SizedBox(height: 2),
-                                        pw.Text(
-                                          instruction ?? "",
-                                          style: pw.TextStyle(fontSize: 6),
-                                          textAlign: pw.TextAlign.center,
-                                        ),
-                                        pw.SizedBox(height: 3),
-                                        pw.Divider(),
-                                        pw.Text(
-                                          "Powered by ${businessName ?? ''}",
-                                          style: pw.TextStyle(fontSize: 6, fontStyle: pw.FontStyle.italic),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                })
-                            );
-                          })
-                  )
-                ];
-              }
-              if (isWaecRegistrationTokens) {
-                return  [
-                  pw.SizedBox(height: 15),
-                  pw.Text('Transaction Summary', style: pw.TextStyle(
-                      fontSize: 18, fontWeight: pw.FontWeight.bold)),
-                  pw.SizedBox(height: 20),
-                  pw.Column(
-                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                      children: [
-                        ...List.generate(receiptData!.length, (index)
-                        {
-                          String? key = receiptData?.keys.toList()[index];
-                          dynamic value = receiptData?.values.toList()[index];
-
-                          if (key == 'Status' || key == 'Date' ||
-                              key == 'Paid Amount' ||
-                              key == 'waec_registration-tokens' || key == 'request_id') {
-                            return pw.SizedBox();
-                          }
-
-                          return pw.Column(
-                              children: [
-                                pw.Row(
-                                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    pw.Text(key!,
-                                      style: pw.TextStyle(
-                                          color: PdfColors.black,
-                                          fontSize: 13,
-                                          fontWeight: pw.FontWeight.bold
-                                      ),),
-                                    pw.Text(value,
-                                      style: pw.TextStyle(
-                                          color: PdfColors.black,
-                                          fontSize: 14,
-                                          fontWeight: pw.FontWeight.bold
-                                      ),),
-                                  ],
-                                ),
-                                pw.SizedBox(height: 15)
-                              ]
-                          );
-                        }
-                        ),
-                      ]
-                  ),
-                  pw.SizedBox(height: 15),
-                  pw.Text('Transaction Details', style: pw.TextStyle(
-                      fontSize: 18, fontWeight: pw.FontWeight.bold)),
-                  pw.SizedBox(height: 20),
-                  pw.GridView(
-                    crossAxisCount: 3,
-                    childAspectRatio: 0.6,
-                    children: List.generate(numberOfCards!, (index) {
-                      String currentToken = waecRegistrationTokens?[index];
-                      if (index >= numberOfCards!) return pw.SizedBox();
-                      return pw.Container(
-                        alignment: pw.Alignment.center,
-                        width: 100,
-                        padding: const pw.EdgeInsets.all(5),
-                        margin: pw.EdgeInsets.all(5),
-                        decoration: pw.BoxDecoration(
-                          border: pw.Border.all(color: PdfColors.black, width: 1),
-                        ),
-                        child:  pw.Column(
-                          crossAxisAlignment: pw.CrossAxisAlignment.center,
-                          mainAxisAlignment: pw.MainAxisAlignment.center,
-                          children: [
-                            pw.Row(
-                                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                                children: [
-                                  pw.Text(
-                                    "$kNaira$amount",
-                                    style: pw.TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: pw.FontWeight.bold,
-                                        font: ttf
-                                    ),
-                                    textAlign: pw.TextAlign.center,
-                                  ),
-                                  pw.Text(
-                                    "WAEC REG PIN",
-                                    style: pw.TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: pw.FontWeight.bold,
-                                        font: ttf
-                                    ),
-                                    textAlign: pw.TextAlign.center,
-                                  ),
-                                ]
-                            ),
-                            pw.SizedBox(height: 5),
-                            pw.Row(
-                                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                                children: [
-                                  pw.Text(
-                                    "TOKEN ${index + 1}:",
-                                    style: pw.TextStyle(
-                                        fontSize: 7, fontWeight: pw.FontWeight.bold, font: ttf),
-                                  ),
-                                  pw.Text(
-                                    currentToken
-                                        .replaceAllMapped(RegExp(r".{4}"), (m) => "${m.group(0)} "),
-                                    style: pw.TextStyle(
-                                      fontSize: 8,
-                                      fontWeight: pw.FontWeight.bold,
-                                    ),
-                                    textAlign: pw.TextAlign.center,
-                                  ),
-                                ]
-                            ),
-
-
-                            pw.SizedBox(height: 3),
-                            pw.Text("NOTE: ONCE used can't be reused.",
-                              style: pw.TextStyle(fontSize: 6),
-                              textAlign: pw.TextAlign.center,
-                            ),
-                            pw.SizedBox(height: 2),
-                            pw.Text('Date Issued: ${DateFormat('MMMM dd, yyyy hh:mm a').
-                            format(date)}', style: pw.TextStyle(fontSize: 6),
-                              textAlign: pw.TextAlign.center),
-                            pw.SizedBox(height: 3),
-                            pw.Divider(),
-                            pw.Text(
-                                "Powered by NexPay Issued to ${receiptData?['School Name']}",
-                                style: pw.TextStyle(fontSize: 6, fontStyle: pw.FontStyle.italic), textAlign: pw.TextAlign.center
-                            ),
-                          ],
-                        ),
-                      );
-                    })
-                  ),
-
-                ];
-              }
-              if (isWaecResultPin) {
-                return  [
-                  pw.SizedBox(height: 15),
-                  pw.Text('Transaction Summary', style: pw.TextStyle(
-                      fontSize: 18, fontWeight: pw.FontWeight.bold)),
-                  pw.SizedBox(height: 20),
-                  pw.Column(
-                      mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                      children: [
-                        ...List.generate(receiptData!.length, (index)
-                        {
-                          String? key = receiptData?.keys.toList()[index];
-                          dynamic value = receiptData?.values.toList()[index];
-
-                          if (key == 'Status' || key == 'Date'
-                              || key == 'Paid Amount'
-                              || key == 'waec_registration-tokens' || key == 'request_id') {
-                            return pw.SizedBox();
-                          }
-
-                          return pw.Column(
-                              children: [
-                                pw.Row(
-                                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    pw.Text(key!,
-                                      style: pw.TextStyle(
-                                          color: PdfColors.black,
-                                          fontSize: 13,
-                                          fontWeight: pw.FontWeight.bold
-                                      ),),
-                                    pw.Text(value,
-                                      style: pw.TextStyle(
-                                          color: PdfColors.black,
-                                          fontSize: 14,
-                                          fontWeight: pw.FontWeight.bold
-                                      ),),
-                                  ],
-                                ),
-                                pw.SizedBox(height: 15)
-                              ]
-                          );
-                        }
-                        ),
-                      ]
-                  ),
-                  pw.SizedBox(height: 15),
-                  pw.Text('Transaction Details', style: pw.TextStyle(
-                      fontSize: 18, fontWeight: pw.FontWeight.bold)),
-                  pw.SizedBox(height: 20),
-                  pw.GridView(
-                      crossAxisCount: 3,
-                      childAspectRatio: 0.63,
-                      children: List.generate(numberOfCards!, (index) {
-                        String currentPin = waecResultCards?[index]['Pin'];
-                        String currentSerial = waecResultCards?[index]['Serial'];
-                        if (index >= numberOfCards!) return pw.SizedBox();
-                        return pw.Container(
-                          alignment: pw.Alignment.center,
-                          width: 100,
-                          padding: const pw.EdgeInsets.all(5),
-                          margin: pw.EdgeInsets.all(5),
-                          decoration: pw.BoxDecoration(
-                            border: pw.Border.all(color: PdfColors.black, width: 1),
-                          ),
-                          child:  pw.Column(
-                            crossAxisAlignment: pw.CrossAxisAlignment.center,
-                            mainAxisAlignment: pw.MainAxisAlignment.center,
-                            children: [
-                              pw.Row(
-                                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    pw.Text(
-                                      "$kNaira$amount",
-                                      style: pw.TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: pw.FontWeight.bold,
-                                          font: ttf
-                                      ),
-                                      textAlign: pw.TextAlign.center,
-                                    ),
-                                    pw.Text(
-                                      "WAEC Result",
-                                      style: pw.TextStyle(
-                                          fontSize: 10,
-                                          fontWeight: pw.FontWeight.bold,
-                                          font: ttf
-                                      ),
-                                      textAlign: pw.TextAlign.center,
-                                    ),
-                                  ]
-                              ),
-                              pw.SizedBox(height: 5),
-                              pw.Row(
-                                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    pw.Text(
-                                      "PIN ${index + 1}:",
-                                      style: pw.TextStyle(
-                                          fontSize: 7, fontWeight: pw.FontWeight.bold, font: ttf),
-                                    ),
-                                    pw.Text(
-                                      currentPin
-                                          .replaceAllMapped(RegExp(r".{4}"), (m) => "${m.group(0)} "),
-                                      style: pw.TextStyle(
-                                        fontSize: 8,
-                                        fontWeight: pw.FontWeight.bold,
-                                      ),
-                                      textAlign: pw.TextAlign.center,
-                                    ),
-                                  ]
-                              ),
-                              pw.SizedBox(height: 3),
-                              pw.Row(
-                                  mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    pw.Text(
-                                      "Serial ${index + 1}:",
-                                      style: pw.TextStyle(
-                                          fontSize: 7, fontWeight: pw.FontWeight.bold, font: ttf),
-                                    ),
-                                    pw.Text(
-                                      currentSerial
-                                          .replaceAllMapped(RegExp(r".{4}"), (m) => "${m.group(0)} "),
-                                      style: pw.TextStyle(
-                                        fontSize: 8,
-                                        fontWeight: pw.FontWeight.bold,
-                                      ),
-                                      textAlign: pw.TextAlign.center,
-                                    ),
-                                  ]
-                              ),
-                              pw.SizedBox(height: 3),
-                              pw.Text("NOTE: ONCE used can't be reused.",
-                                style: pw.TextStyle(fontSize: 6),
-                                textAlign: pw.TextAlign.center,
-                              ),
-                              pw.SizedBox(height: 2),
-                              pw.Text('Date Issued: ${DateFormat('MMMM dd, yyyy hh:mm a').
-                              format(date)}', style: pw.TextStyle(fontSize: 6),
-                                  textAlign: pw.TextAlign.center),
-                              pw.SizedBox(height: 3),
-                              pw.Divider(),
-                              pw.Text(
-                                  "Powered by NexPay Issued to ${receiptData?['School Name']}",
-                                  style: pw.TextStyle(fontSize: 6, fontStyle: pw.FontStyle.italic), textAlign: pw.TextAlign.center
-                              ),
-                            ],
-                          ),
-                        );
-                      })
-                  ),
-
-                ];
-              }
-              return [
-                pw.SizedBox(height: 30),
-                pw.Text('Transaction Details', style: pw.TextStyle(
-                    fontSize: 18, fontWeight: pw.FontWeight.bold)),
-                pw.SizedBox(height: 20),
-                pw.Column(
-                    mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                    children: [
-                      ...List.generate(receiptData!.length, (index)
-                      {
-                        String? key = receiptData?.keys.toList()[index];
-                        dynamic value = receiptData?.values.toList()[index];
-
-                        if (key == 'Status' || key == 'Date'
-                            || key == 'Paid Amount'
-                            || key == 'waec_registration-tokens' || key == 'request_id') {
-                          return pw.SizedBox();
-                        }
-
-                        return pw.Column(
-                            children: [
-                              pw.Row(
-                                mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
-                                children: [
-                                  pw.Text(key!,
-                                    style: pw.TextStyle(
-                                        color: PdfColors.black,
-                                        fontSize: 13,
-                                        fontWeight: pw.FontWeight.bold
-                                    ),),
-                                  pw.Text(value,
-                                    style: pw.TextStyle(
-                                        color: PdfColors.black,
-                                        fontSize: 14,
-                                        fontWeight: pw.FontWeight.bold
-                                    ),),
-                                ],
-                              ),
-                              pw.SizedBox(height: 15)
-                            ]
-                        );
-                      }
-                      ),
-                      pw.SizedBox(height: 80,),
-                      // DashedLine(height: 1,),
-                      pw.SizedBox(height: 10,),
-                      pw.Text('Enjoy a better life with ElitePay. Book flight, book hotel, spend in foreign currencies, get '
-                          'virtual foreign cards, pay all your bills',
-                        style: pw.TextStyle(color: PdfColors.black, fontSize: 12),)
-                    ]
-                ),
-              ];
-            }
-        )
-    );
-
-    final directory = await getTemporaryDirectory();
-    final file = File('${directory.path}/nexpay_receipt_${DateTime.now().toLocal().toString().substring(0, 10)}.pdf');
-    await file.writeAsBytes(await pdf.save());
-
-    await SharePlus.instance.share(
-      ShareParams(
-          files:  [XFile(file.path)],
-          title: 'NexPay Transaction Receipt',
-          text: 'Get yours → ${AppLinkHandler.appLink}'
+          ),
+        ),
+        header: (ctx) {
+          if (ctx.pageNumber != 1) return pw.SizedBox();
+          return _buildHeader(
+            ttf: ttf,
+            smallLogo: smallLogo,
+            transaction: transaction,
+            isAirtime: isAirtime,
+          );
+        },
+        footer: (ctx) => _buildFooter(
+          ttf: ttf,
+          ctx: ctx,
+          isWaecReg: isWaecReg,
+        ),
+        build: (ctx) {
+          if (isAirtime) {
+            return _buildAirtimePage(
+              ttf: ttf,
+              meta: meta!,
+              transaction: transaction,
+              pricePerCard: pricePerCard!,
+              numberOfCards: numberOfCards!,
+            );
+          }
+          if (isWaecReg) {
+            return _buildWaecRegPage(
+              ttf: ttf,
+              meta: meta!,
+              transaction: transaction,
+              pricePerCard: pricePerCard!,
+              numberOfCards: numberOfCards!,
+            );
+          }
+          if (isWaecResult) {
+            return _buildWaecResultPage(
+              ttf: ttf,
+              meta: meta!,
+              transaction: transaction,
+              pricePerCard: pricePerCard!,
+              numberOfCards: numberOfCards!,
+            );
+          }
+          return _buildGenericPage(ttf: ttf, transaction: transaction);
+        },
       ),
     );
 
+    // ── Save & share ─────────────────────────────────────────────────────────
+    final dir  = await getTemporaryDirectory();
+    final date = DateFormat('yyyy-MM-dd').format(transaction.createdAt);
+    final file = File('${dir.path}/nexpay_receipt_$date.pdf');
+    await file.writeAsBytes(await pdf.save());
+
+    await SharePlus.instance.share(ShareParams(
+      files: [XFile(file.path)],
+      title: 'NexPay Transaction Receipt',
+      text: 'Get yours → ${AppLinkHandler.appLink}',
+    ));
   }
+
+  // ── Header (page 1 only) ─────────────────────────────────────────────────
+  pw.Widget _buildHeader({
+    required pw.Font ttf,
+    required pw.MemoryImage smallLogo,
+    required TransactionModel transaction,
+    required bool isAirtime,
+  }) {
+    final date = DateFormat('MMMM dd, yyyy hh:mm a').format(transaction.createdAt);
+    final businessName = transaction.meta?.businessName;
+
+    return pw.Column(
+      crossAxisAlignment: pw.CrossAxisAlignment.start,
+      children: [
+        pw.Row(
+          mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+          children: [
+            pw.Row(children: [
+              pw.Image(smallLogo, width: 36, height: 36),
+              pw.SizedBox(width: 6),
+              pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text('NexPay', style: pw.TextStyle(fontSize: 22, fontWeight: pw.FontWeight.bold)),
+                  pw.Text('Your world of bills & gifts.', style: pw.TextStyle(fontSize: 9)),
+                ],
+              ),
+            ]),
+            pw.Text(
+              isAirtime && businessName != null ? businessName : 'Transaction Receipt',
+              style: pw.TextStyle(font: ttf, fontSize: 18, fontWeight: pw.FontWeight.bold),
+            ),
+          ],
+        ),
+        pw.Divider(),
+        pw.SizedBox(height: 12),
+        pw.Center(
+          child: pw.Column(
+            children: [
+              pw.Text(
+                '$kNaira${kFormatter.format(transaction.amount)}',
+                style: pw.TextStyle(
+                  font: ttf,
+                  fontSize: 28,
+                  fontWeight: pw.FontWeight.bold,
+                  color: PdfColor.fromHex('#0F172A'),
+                ),
+              ),
+              pw.SizedBox(height: 6),
+              pw.Text(transaction.statusLabel, style: pw.TextStyle(fontWeight: pw.FontWeight.bold)),
+              pw.SizedBox(height: 4),
+              pw.Text(date, style: pw.TextStyle(fontSize: 10)),
+            ],
+          ),
+        ),
+        pw.SizedBox(height: 16),
+      ],
+    );
+  }
+
+  // ── Footer ───────────────────────────────────────────────────────────────
+  pw.Widget _buildFooter({
+    required pw.Font ttf,
+    required pw.Context ctx,
+    required bool isWaecReg,
+  }) {
+    return pw.Container(
+      margin: const pw.EdgeInsets.only(top: 10),
+      child: pw.Column(
+        crossAxisAlignment: pw.CrossAxisAlignment.start,
+        children: [
+          if (isWaecReg)
+            pw.Padding(
+              padding: const pw.EdgeInsets.only(bottom: 8),
+              child: pw.Column(
+                crossAxisAlignment: pw.CrossAxisAlignment.start,
+                children: [
+                  pw.Text('INSTRUCTION', style: pw.TextStyle(font: ttf, fontSize: 9, color: PdfColors.grey)),
+                  pw.Text(
+                    'Go to the official WAEC e-Registration portal: waeconline.org.ng — '
+                        'Click on "School Login" or "Private Candidate Registration" — '
+                        'Enter your Registration Token exactly as shown — '
+                        'Follow on-screen steps to complete registration.',
+                    style: pw.TextStyle(font: ttf, fontSize: 8, color: PdfColors.grey),
+                  ),
+                ],
+              ),
+            ),
+          pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+            children: [
+              pw.Text(
+                '©️ ${DateTime.now().year} NexPay. All rights reserved.',
+                style: pw.TextStyle(font: ttf, fontSize: 9, color: PdfColors.grey),
+              ),
+              pw.Text(
+                'Generated by NexPay | ${ctx.pageNumber} of ${ctx.pagesCount}',
+                style: pw.TextStyle(font: ttf, fontSize: 9, color: PdfColors.grey),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ── Page builders ────────────────────────────────────────────────────────
+
+  List<pw.Widget> _buildAirtimePage({
+    required pw.Font ttf,
+    required TransactionMeta meta,
+    required TransactionModel transaction,
+    required double pricePerCard,
+    required int numberOfCards,
+  }) {
+    final pins = meta.pins!;
+    final serials = meta.serial ?? [];
+    final network = meta.network ?? transaction.displayLabel;
+    final businessName = meta.businessName ?? 'NexPay';
+
+    return [
+      pw.Column(
+        children: List.generate(
+          (numberOfCards / 3).ceil(),
+              (row) => pw.Row(
+            mainAxisAlignment: pw.MainAxisAlignment.start,
+            children: List.generate(3, (col) {
+              final i = row * 3 + col;
+              if (i >= numberOfCards) return pw.SizedBox(width: 135);
+              final pin = pins[i];
+              final serial = i < serials.length ? serials[i] : null;
+              return pw.Container(
+                width: 135,
+                padding: const pw.EdgeInsets.all(8),
+                margin: const pw.EdgeInsets.all(6),
+                decoration: pw.BoxDecoration(
+                  border: pw.Border.all(color: PdfColors.black, width: 0.8),
+                  borderRadius: pw.BorderRadius.circular(4),
+                ),
+                child: pw.Column(
+                  crossAxisAlignment: pw.CrossAxisAlignment.center,
+                  children: [
+                    pw.Text(
+                      '$network $kNaira${kFormatterNo.format(pricePerCard)} Airtime',
+                      style: pw.TextStyle(font: ttf, fontSize: 9, fontWeight: pw.FontWeight.bold),
+                      textAlign: pw.TextAlign.center,
+                    ),
+                    pw.SizedBox(height: 5),
+                    pw.Text('PIN:', style: pw.TextStyle(fontSize: 7, fontWeight: pw.FontWeight.bold)),
+                    pw.Text(
+                      pin.replaceAllMapped(RegExp(r'.{4}'), (m) => '${m[0]} ').trim(),
+                      style: pw.TextStyle(font: ttf, fontSize: 9, fontWeight: pw.FontWeight.bold),
+                      textAlign: pw.TextAlign.center,
+                    ),
+                    if (serial != null) ...[
+                      pw.SizedBox(height: 3),
+                      pw.Text('S/N: $serial', style: pw.TextStyle(font: ttf, fontSize: 6)),
+                    ],
+                    pw.SizedBox(height: 3),
+                    pw.Divider(),
+                    pw.Text(
+                      'Powered by $businessName',
+                      style: pw.TextStyle(font: ttf, fontSize: 6, fontStyle: pw.FontStyle.italic),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          ),
+        ),
+      ),
+    ];
+  }
+
+  List<pw.Widget> _buildWaecRegPage({
+    required pw.Font ttf,
+    required TransactionMeta meta,
+    required TransactionModel transaction,
+    required double pricePerCard,
+    required int numberOfCards,
+  }) {
+    final tokens = meta.waecRegistrationTokens!;
+    final schoolName = meta.schoolName ?? '';
+    final date = DateFormat('MMMM dd, yyyy hh:mm a').format(transaction.createdAt);
+
+    return [
+      pw.SizedBox(height: 10),
+      pw.Text('Transaction Summary', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+      pw.SizedBox(height: 12),
+      ..._genericKvRows(transaction, ttf),
+      pw.SizedBox(height: 16),
+      pw.Text('Registration Tokens', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+      pw.SizedBox(height: 12),
+      pw.GridView(
+        crossAxisCount: 3,
+        childAspectRatio: 0.6,
+        children: List.generate(numberOfCards, (i) {
+          final token = tokens[i];
+          return pw.Container(
+            alignment: pw.Alignment.center,
+            padding: const pw.EdgeInsets.all(6),
+            margin: const pw.EdgeInsets.all(4),
+            decoration: pw.BoxDecoration(
+              border: pw.Border.all(color: PdfColors.black, width: 0.8),
+              borderRadius: pw.BorderRadius.circular(4),
+            ),
+            child: pw.Column(
+              mainAxisAlignment: pw.MainAxisAlignment.center,
+              children: [
+                pw.Text('$kNaira${kFormatterNo.format(pricePerCard)} WAEC REG',
+                  style: pw.TextStyle(font: ttf, fontSize: 7, fontWeight: pw.FontWeight.bold),
+                  textAlign: pw.TextAlign.center,
+                ),
+                pw.SizedBox(height: 4),
+                pw.Text('TOKEN ${i + 1}:', style: pw.TextStyle(font: ttf, fontSize: 6, fontWeight: pw.FontWeight.bold)),
+                pw.Text(
+                  token.replaceAllMapped(RegExp(r'.{4}'), (m) => '${m[0]} ').trim(),
+                  style: pw.TextStyle(font: ttf, fontSize: 7, fontWeight: pw.FontWeight.bold),
+                  textAlign: pw.TextAlign.center,
+                ),
+                pw.SizedBox(height: 3),
+                pw.Text("NOTE: Once used can't be reused.", style: pw.TextStyle(font: ttf, fontSize: 5)),
+                pw.Text('Issued: $date', style: pw.TextStyle(font: ttf, fontSize: 5), textAlign: pw.TextAlign.center),
+                pw.Divider(),
+                pw.Text(
+                  'Powered by NexPay${schoolName.isNotEmpty ? ' — $schoolName' : ''}',
+                  style: pw.TextStyle(font: ttf, fontSize: 5, fontStyle: pw.FontStyle.italic),
+                  textAlign: pw.TextAlign.center,
+                ),
+              ],
+            ),
+          );
+        }),
+      ),
+    ];
+  }
+
+  List<pw.Widget> _buildWaecResultPage({
+    required pw.Font ttf,
+    required TransactionMeta meta,
+    required TransactionModel transaction,
+    required double pricePerCard,
+    required int numberOfCards,
+  }) {
+    final cards = meta.waecResultCards!;
+    final schoolName = meta.schoolName ?? '';
+    final date = DateFormat('MMMM dd, yyyy hh:mm a').format(transaction.createdAt);
+
+    return [
+      pw.SizedBox(height: 10),
+      pw.Text('Transaction Summary', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+      pw.SizedBox(height: 12),
+      ..._genericKvRows(transaction, ttf),
+      pw.SizedBox(height: 16),
+      pw.Text('Result Checker Cards', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+      pw.SizedBox(height: 12),
+      pw.GridView(
+        crossAxisCount: 3,
+        childAspectRatio: 0.6,
+        children: List.generate(numberOfCards, (i) {
+          final pin    = cards[i]['Pin']?.toString() ?? '';
+          final serial = cards[i]['Serial']?.toString() ?? '';
+          return pw.Container(
+            alignment: pw.Alignment.center,
+            padding: const pw.EdgeInsets.all(6),
+            margin: const pw.EdgeInsets.all(4),
+            decoration: pw.BoxDecoration(
+              border: pw.Border.all(color: PdfColors.black, width: 0.8),
+              borderRadius: pw.BorderRadius.circular(4),
+            ),
+            child: pw.Column(
+              mainAxisAlignment: pw.MainAxisAlignment.center,
+              children: [
+                pw.Text('$kNaira${kFormatterNo.format(pricePerCard)} WAEC Result',
+                  style: pw.TextStyle(font: ttf, fontSize: 7, fontWeight: pw.FontWeight.bold),
+                  textAlign: pw.TextAlign.center,
+                ),
+                pw.SizedBox(height: 4),
+                pw.Text('PIN ${i + 1}:', style: pw.TextStyle(font: ttf, fontSize: 6, fontWeight: pw.FontWeight.bold)),
+                pw.Text(
+                  pin.replaceAllMapped(RegExp(r'.{4}'), (m) => '${m[0]} ').trim(),
+                  style: pw.TextStyle(font: ttf, fontSize: 7, fontWeight: pw.FontWeight.bold),
+                  textAlign: pw.TextAlign.center,
+                ),
+                pw.SizedBox(height: 2),
+                pw.Text('Serial ${i + 1}:', style: pw.TextStyle(font: ttf, fontSize: 6, fontWeight: pw.FontWeight.bold)),
+                pw.Text(serial, style: pw.TextStyle(font: ttf, fontSize: 6), textAlign: pw.TextAlign.center),
+                pw.SizedBox(height: 3),
+                pw.Text("NOTE: Once used can't be reused.", style: pw.TextStyle(font: ttf, fontSize: 5)),
+                pw.Text('Issued: $date', style: pw.TextStyle(font: ttf, fontSize: 5), textAlign: pw.TextAlign.center),
+                pw.Divider(),
+                pw.Text(
+                  'Powered by NexPay${schoolName.isNotEmpty ? ' — $schoolName' : ''}',
+                  style: pw.TextStyle(font: ttf, fontSize: 5, fontStyle: pw.FontStyle.italic),
+                  textAlign: pw.TextAlign.center,
+                ),
+              ],
+            ),
+          );
+        }),
+      ),
+    ];
+  }
+
+  List<pw.Widget> _buildGenericPage({
+    required pw.Font ttf,
+    required TransactionModel transaction,
+  }) {
+    return [
+      pw.SizedBox(height: 24),
+      pw.Text('Transaction Details', style: pw.TextStyle(fontSize: 16, fontWeight: pw.FontWeight.bold)),
+      pw.SizedBox(height: 16),
+      ..._genericKvRows(transaction, ttf),
+      pw.SizedBox(height: 60),
+      pw.Text(
+        'Enjoy a better life with NexPay. Book flights, hotels, spend in foreign currencies, '
+            'get virtual foreign cards, pay all your bills.',
+        style: pw.TextStyle(font: ttf, fontSize: 10, color: PdfColors.grey),
+      ),
+    ];
+  }
+
+  /// Generic key-value rows for the PDF — works for any category.
+  List<pw.Widget> _genericKvRows(TransactionModel transaction, pw.Font ttf) {
+    final rows = <pw.Widget>[];
+
+    // Always include reference
+    rows.add(_kvRow('Reference', transaction.displayRef, ttf));
+    rows.add(_kvRow('Category', transaction.displayLabel, ttf));
+
+    // Dynamic metaData fields
+    final fields = transaction.meta?.displayFields ?? {};
+    for (final e in fields.entries) {
+      final key = e.key
+          .replaceAllMapped(RegExp(r'([a-z])([A-Z])'), (m) => '${m[1]} ${m[2]}')
+          .replaceAll('_', ' ')
+          .split(' ')
+          .map((w) => w.isEmpty ? '' : '${w[0].toUpperCase()}${w.substring(1)}')
+          .join(' ');
+      rows.add(_kvRow(key, e.value, ttf));
+    }
+
+    return rows;
+  }
+
+  pw.Widget _kvRow(String key, String value, pw.Font ttf) => pw.Column(
+    children: [
+      pw.Row(
+        mainAxisAlignment: pw.MainAxisAlignment.spaceBetween,
+        children: [
+          pw.Text(key, style: pw.TextStyle(font: ttf, fontSize: 11, fontWeight: pw.FontWeight.bold)),
+          pw.Text(value, style: pw.TextStyle(font: ttf, fontSize: 11)),
+        ],
+      ),
+      pw.SizedBox(height: 10),
+    ],
+  );
 }

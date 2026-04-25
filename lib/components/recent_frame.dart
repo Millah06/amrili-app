@@ -7,93 +7,192 @@ import 'package:intl/intl.dart';
 import 'formatters.dart';
 
 class RecentFrame extends StatelessWidget {
-
   final String beneficiary;
-  final Function() onTap;
+  final VoidCallback onTap;
   final DateTime date;
   final String status;
   final String amount;
-  const RecentFrame({super.key, required this.beneficiary, required this.date,
-    required this.amount, required this.status, required this.onTap});
+
+  /// Transaction type string from [TransactionModel.type].
+  /// Used for icon mapping. Defaults to 'unknown'.
+  final String transactionType;
+
+  /// When true, amount is shown in green with a '+' prefix.
+  final bool isCredit;
+
+  const RecentFrame({
+    super.key,
+    required this.beneficiary,
+    required this.date,
+    required this.amount,
+    required this.status,
+    required this.onTap,
+    this.transactionType = 'unknown',
+    this.isCredit = false,
+  });
+
+  // ── Icon mapping ───────────────────────────────────────────────────────────
+  static IconData iconForType(String type) {
+    switch (type.toLowerCase()) {
+      case 'airtime':           return Icons.phone_android_rounded;
+      case 'data':              return Icons.wifi_rounded;
+      case 'electricity':       return Icons.bolt_rounded;
+      case 'cable':             return Icons.tv_rounded;
+      case 'waec_reg':          return FontAwesomeIcons.graduationCap;
+      case 'waec_result':       return FontAwesomeIcons.graduationCap;
+      case 'transfer_debit':    return Icons.arrow_upward_rounded;
+      case 'transfer_credit':   return Icons.arrow_downward_rounded;
+      case 'wallet_funding':    return Icons.account_balance_wallet_rounded;
+      case 'order_payment':     return Icons.shopping_bag_rounded;
+      case 'gift':              return Icons.card_giftcard_rounded;
+      default:                  return Icons.receipt_rounded;
+    }
+  }
+
+  static Color _iconBgForType(String type) {
+    switch (type.toLowerCase()) {
+      case 'transfer_credit':
+      case 'wallet_funding':    return const Color(0xFF22C55E).withOpacity(0.12);
+      case 'transfer_debit':    return const Color(0xFFEF4444).withOpacity(0.12);
+      case 'electricity':       return const Color(0xFFF59E0B).withOpacity(0.12);
+      case 'gift':              return const Color(0xFFEC4899).withOpacity(0.12);
+      default:                  return const Color(0xFF177E85).withOpacity(0.12);
+    }
+  }
+
+  static Color _iconColorForType(String type) {
+    switch (type.toLowerCase()) {
+      case 'transfer_credit':
+      case 'wallet_funding':    return const Color(0xFF22C55E);
+      case 'transfer_debit':    return const Color(0xFFEF4444);
+      case 'electricity':       return const Color(0xFFF59E0B);
+      case 'gift':              return const Color(0xFFEC4899);
+      default:                  return const Color(0xFF21D3ED);
+    }
+  }
+
+  Color _statusColor() {
+    switch (status.toLowerCase()) {
+      case 'success': return const Color(0xFF22C55E);
+      case 'failed':  return const Color(0xFFEF4444);
+      default:        return const Color(0xFFF59E0B);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-
-    IconData _getTransactionIcon() {
-      switch (beneficiary) {
-        case 'airtime' : return Icons.phone;
-        case 'data' : return Icons.wifi;
-        case 'electricity unit': return Icons.bolt_outlined;
-        default: return Icons.receipt;
-      }
-    }
-
-    IconData getIcon() {
-      IconData theIcon;
-      beneficiary.contains('Airtime') ? theIcon = Icons.phone :
-      beneficiary.contains('Data') ? theIcon = Icons.wifi :
-      beneficiary.contains('Candidates') ? theIcon = FontAwesomeIcons.graduationCap :
-      beneficiary.contains('Electricity') ? theIcon = Icons.bolt_outlined :
-       theIcon = Icons.receipt;
-      return theIcon;
-    }
-
+    final icon       = iconForType(transactionType);
+    final iconBg     = _iconBgForType(transactionType);
+    final iconColor  = _iconColorForType(transactionType);
+    final statusC    = _statusColor();
+    final amtColor   = isCredit ? const Color(0xFF22C55E) : Colors.white;
+    final amtPrefix  = isCredit ? '+' : '';
+    final parsedAmt  = double.tryParse(amount.split(' ').first) ?? 0;
 
     return GestureDetector(
       onTap: onTap,
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Transform.scale(
-                scale: 0.9,
-                child: CircleAvatar(
-                    backgroundColor: Color(0xFF177E85),
-                    child: Icon(getIcon(), color: Colors.white,)),
-              ),
-              SizedBox(width: 5,),
-              Expanded(
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Flexible(
-                          child: Text(beneficiary, style: GoogleFonts.roboto(
-                              fontWeight: FontWeight.w700, fontSize: 10), softWrap: false,),
-                        ),
-                        Text('₦${kFormatter.format(double.tryParse(amount.split(' ').first))}',
-                          style: GoogleFonts.inter(
-                            fontWeight: FontWeight.w400, fontSize: 12),)
-                      ],
-                    ),
-                    SizedBox(height: 3,),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(MyFormatManager.formatMyDate(date, 'MMMM d, yyyy hh:mm a'),
-                          style: GoogleFonts.roboto(fontWeight: FontWeight.w400, fontSize: 10),),
-                        Container(
-                          padding: EdgeInsets.symmetric(vertical: 2, horizontal: 5),
-                            decoration: BoxDecoration(
-                                color: Color(0xFF177E85),
-                                borderRadius: BorderRadius.circular(10)
-                          ),
-                          child: Text(status, style:
-                          GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 6),),
-                        )
-                      ],
-                    )
-                  ],
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        child: Row(
+          children: [
+            // ── Icon avatar ──────────────────────────────────────────────────
+            Container(
+              width: 44,
+              height: 44,
+              decoration: BoxDecoration(
+                color: iconBg,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(
+                  color: iconColor.withOpacity(0.25),
+                  width: 1,
                 ),
-              )
-            ],
-          ),
-          Divider(color: Colors.white54,)
-        ],
+              ),
+              child: Icon(icon, color: iconColor, size: 20),
+            ),
+            const SizedBox(width: 12),
+
+            // ── Details ──────────────────────────────────────────────────────
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Top row: name + amount
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          beneficiary,
+                          style: GoogleFonts.inter(
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13.5,
+                            color: Colors.white,
+                          ),
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        '$amtPrefix₦${kFormatter.format(parsedAmt)}',
+                        style: GoogleFonts.inter(
+                          fontWeight: FontWeight.w700,
+                          fontSize: 13.5,
+                          color: amtColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 5),
+
+                  // Bottom row: date + status chip
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        DateFormat('MMM d, yyyy · hh:mm a').format(date),
+                        style: GoogleFonts.inter(
+                          fontWeight: FontWeight.w400,
+                          fontSize: 11,
+                          color: Colors.white38,
+                        ),
+                      ),
+                      _StatusChip(label: status, color: statusC),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
+class _StatusChip extends StatelessWidget {
+  final String label;
+  final Color color;
+  const _StatusChip({required this.label, required this.color});
 
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 3, horizontal: 9),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.12),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: color.withOpacity(0.35), width: 0.8),
+      ),
+      child: Text(
+        label.toUpperCase(),
+        style: GoogleFonts.inter(
+          color: color,
+          fontWeight: FontWeight.w700,
+          fontSize: 9,
+          letterSpacing: 0.4,
+        ),
+      ),
+    );
+  }
+}

@@ -2,11 +2,6 @@
 import 'package:everywhere/models/list_of_banks.dart';
 import 'package:everywhere/services/external_withdrawal_services.dart';
 import 'package:flutter/foundation.dart';
-import '../models/post_model.dart';
-import '../services/social_api_service.dart';
-import '../services/firestore_service.dart';
-
-enum FeedType { forYou, following }
 
 class WithdrawalProvider with ChangeNotifier {
 

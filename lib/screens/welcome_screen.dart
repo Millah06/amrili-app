@@ -1,11 +1,13 @@
 
-import 'package:everywhere/screens/signup_screen.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../constraints/constants.dart';
-import 'login_screen.dart';
+import '../features/auth/login_screen.dart';
+import '../features/auth/signup_screen.dart';
+
 
 class WelcomeScreen extends StatelessWidget {
 

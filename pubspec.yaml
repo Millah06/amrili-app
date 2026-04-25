@@ -78,6 +78,8 @@ dependencies:
   timeago: ^3.7.1
   http: ^1.6.0
   gal: ^2.3.2
+  pull_to_reveal_flutter: ^0.1.2
+  pro_image_editor: ^11.3.0
 
 dev_dependencies:
   flutter_test:

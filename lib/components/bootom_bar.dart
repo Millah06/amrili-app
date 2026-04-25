@@ -1,18 +1,17 @@
 
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:everywhere/constraints/constants.dart';
-import 'package:everywhere/screens/bottom_navigation/profile_settings_screen.dart';
-import 'package:everywhere/screens/bottom_navigation/promotion.dart';
-import 'package:everywhere/screens/bottom_navigation/social_feature/feed.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:pull_to_reveal_flutter/pull_to_reveal_flutter.dart';
 
-import '../screens/bottom_navigation/chats/chat_screen.dart';
-import '../screens/bottom_navigation/profile/profile_screen.dart';
-import '../screens/bottom_navigation/profile/user_profile_screen.dart';
-import '../screens/bottom_navigation/wallet_screen.dart';
-import '../screens/bottom_navigation/services_screen.dart';
+import '../features/bottom_navigation/chats/chat_screen.dart';
+import '../features/bottom_navigation/profile/profile_screen.dart';
+import '../features/bottom_navigation/services_screen.dart';
+import '../features/bottom_navigation/socialFeature/feed_screen.dart';
+import '../features/bottom_navigation/wallet/wallet_screen.dart';
+import '../shared/widgets/pull_to_reveal.dart';
 
 
 class BottomBar extends StatefulWidget {
@@ -25,6 +24,7 @@ class BottomBar extends StatefulWidget {
 class _BottomBarState extends State<BottomBar> {
 
   final PageController _pageController = PageController();
+  final PullToRevealController _pullToRevealController = PullToRevealController();
 
   int selectedIndex = 0;
   final List<Widget> screens = [

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:dio/dio.dart';
 import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:path/path.dart' as path;
@@ -50,7 +51,7 @@ class ApiService {
   }
 
   Future<String> upload(String urlPath, File imageFile, String fileCategory) async {
-    print('last ineer is also called');
+
     try {
       // Create multipart request
       final request = http.MultipartRequest(
@@ -69,16 +70,13 @@ class ApiService {
         filename: path.basename(imageFile.path), // Original filename
       );
       request.files.add(multipartFile);
-      print('pass this');
 
       // Send request
       final streamedResponse = await request.send();
       final response = await http.Response.fromStream(streamedResponse);
-      print('pass this also ${response.body}');
 
       // Parse response (same as your createPost!)
       final responseData = jsonDecode(response.body);
-      print('finally here is the response: $responseData');
 
       if (response.statusCode == 200 && responseData['success']) {
         return responseData['imageUrl']; // Returns URL string
