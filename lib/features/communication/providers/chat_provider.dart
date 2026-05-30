@@ -10,7 +10,10 @@ class ChatsProvider extends ChangeNotifier {
 
   List<ChatModel> get chats => _allChats;
 
-  Stream<QuerySnapshot> chatStream(currentUserUid) {
+  Stream<QuerySnapshot>? chatStream(currentUserUid) {
+    if (currentUserUid == null) {
+      return null;
+    }
     return FirebaseFirestore.instance
         .collection('chat_room')
         .where('participants', arrayContains: currentUserUid)

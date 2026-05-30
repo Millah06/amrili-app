@@ -9,8 +9,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hive_flutter/adapters.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'app.dart';
 import 'core/auth/auth_provider.dart';
+import 'features/communication/providers/sync_contact_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -22,6 +24,9 @@ void main() async {
   
   await Hive.initFlutter();
 
+  final prefs = await SharedPreferences.getInstance();
+  final isGuest = prefs.getBool('isGuest') ?? false;
+
   await AppLinkHandler.init();
 
   Hive.registerAdapter(AppNotificationAdapter());
@@ -30,17 +35,19 @@ void main() async {
   SystemChrome.setSystemUIOverlayStyle(
       SystemUiOverlayStyle(
         statusBarColor: Colors.transparent
-      )
-  );
+      ));
   runApp(
       MultiProvider(
         providers: [
           ChangeNotifierProvider(
               create: (_) => SessionProvider()),
           ChangeNotifierProvider(
-              create: (_) => AuthProvider(api: ApiService())),
+              create: (_) => SyncContactProvider()),
           ChangeNotifierProvider(
-              create: (_) => UserProvider(api: ApiService())..getUserId()..loadUser()),
+              create: (_) => AuthProvider(api: ApiService(), initialGuest: isGuest,)),
+          ChangeNotifierProvider(
+            create: (_) => UserProvider(api: ApiService())..initIfAuthenticated(),
+          ),
 
         ],
         child: MyApp(),)

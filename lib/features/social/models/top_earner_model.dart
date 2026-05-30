@@ -4,18 +4,18 @@ class TopEarner {
   final String userId;
   final String userName;
   final String? userAvatar;
-  final double totalRewardPoints;
-  final double weeklyPoints;
-  final double totalEarnedNaira;
+  final int totalCoins;     // CHANGED from totalRewardPoints
+  final int weeklyCoins;    // CHANGED from weeklyPoints
+  final double totalNaira;  // CHANGED from totalEarnedNaira
   final int level;
 
   TopEarner({
     required this.userId,
     required this.userName,
     this.userAvatar,
-    required this.totalRewardPoints,
-    required this.weeklyPoints,
-    required this.totalEarnedNaira,
+    required this.totalCoins,
+    required this.weeklyCoins,
+    required this.totalNaira,
     required this.level,
   });
 
@@ -24,9 +24,9 @@ class TopEarner {
       userId: json['userId'] ?? '',
       userName: json['userName'] ?? 'Anonymous',
       userAvatar: json['userAvatar'],
-      totalRewardPoints: (json['totalRewardPoints'] ?? 0).toDouble(),
-      weeklyPoints: (json['weeklyPoints'] ?? 0).toDouble(),
-      totalEarnedNaira: (json['totalEarnedNaira'] ?? 0).toDouble(),
+      totalCoins: (json['totalCoins'] ?? 0),
+      weeklyCoins: (json['weeklyCoins'] ?? 0),
+      totalNaira: (json['totalNaira'] ?? 0).toDouble(),
       level: json['level'] ?? 1,
     );
   }

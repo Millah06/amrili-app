@@ -1,5 +1,4 @@
-// lib/screens/feed_screen.dart - MAJOR UPDATE
-import 'dart:io';
+import 'package:everywhere/core/auth/guest_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -11,15 +10,21 @@ import '../../../providers/profile_provider.dart';
 import '../../../features/social/providers/reward_provider.dart';
 import '../../../services/brain.dart';
 import '../../../shared/widgets/pull_to_reveal.dart';
+import '../../auth/security_step1_screen.dart';
+import '../../auth/security_step2_screen.dart';
+import '../../search/screens/search_screen.dart';
 import '../../social/widgets/compact_leaderboard.dart';
 import '../../social/widgets/loader_widget.dart';
 import '../../social/widgets/post_card.dart';
 import '../../social/widgets/search_widget.dart';
-import 'create_post_screen.dart';
+import '../../social/screens/create_post_screen.dart';
 import 'package:pull_to_reveal_flutter/pull_to_reveal_flutter.dart';
 
 class FeedScreen extends StatefulWidget {
-  const FeedScreen({super.key});
+
+  final Function(bool isScrollingDown)? onScrollDirectionChanged;
+
+  const FeedScreen({super.key, required this.onScrollDirectionChanged});
 
   @override
   State<FeedScreen> createState() => _FeedScreenState();
@@ -29,6 +34,9 @@ class _FeedScreenState extends State<FeedScreen> with AutomaticKeepAliveClientMi
 
   @override
   bool get wantKeepAlive => true;
+
+  double _lastOffset = 0;
+  bool _showToggle = true;
 
   final ScrollController _scrollController = ScrollController();
 
@@ -177,10 +185,34 @@ class _FeedScreenState extends State<FeedScreen> with AutomaticKeepAliveClientMi
   }
 
   void _onScroll() {
+
+    final offset = _scrollController.offset;
+
+    // ===== SCROLL DIRECTION (with threshold) =====
+    if (offset > _lastOffset + 10) {
+      // scrolling DOWN
+      if (_showToggle) {
+        setState(() => _showToggle = false);
+        widget.onScrollDirectionChanged?.call(true); // 🔥 notify parent
+      }
+    } else if (offset < _lastOffset - 10) {
+      // scrolling UP
+      if (!_showToggle) {
+        setState(() => _showToggle = true);
+        widget.onScrollDirectionChanged?.call(false); // 🔥 notify parent
+      }
+    }
+
+    _lastOffset = offset;
+
+    // ===== PAGINATION =====
+    final maxScroll = _scrollController.position.maxScrollExtent;
+
     if (_scrollController.position.pixels >=
         _scrollController.position.maxScrollExtent - 200) {
       context.read<FeedProvider>().loadFeed();
     }
+
   }
 
   @override
@@ -207,11 +239,12 @@ class _FeedScreenState extends State<FeedScreen> with AutomaticKeepAliveClientMi
           ),
           actions: [
             IconButton(onPressed: ( ) {
-              Navigator.push(context, MaterialPageRoute(builder: (_) => SearchWidget()));
+              Navigator.push(context, MaterialPageRoute(builder: (_) => SearchScreen()));
             }, icon: Icon(Icons.search)),
             IconButton(
               icon: const Icon( FontAwesomeIcons.plusCircle, color: Colors.white),
               onPressed: () async {
+
                 final result = await Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -229,7 +262,10 @@ class _FeedScreenState extends State<FeedScreen> with AutomaticKeepAliveClientMi
         body: Column(
           children: [
             // Feed Type Toggle
-            _FeedTypeToggle(),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 250),
+              child: _showToggle ? _FeedTypeToggle() : const SizedBox(),
+            ),
 
             // Feed Content
             Expanded(
@@ -247,24 +283,14 @@ class _FeedScreenState extends State<FeedScreen> with AutomaticKeepAliveClientMi
                     const SliverToBoxAdapter(
                       child: CompactLeaderboard(),
                     ),
-
                     // Posts List
                     Consumer<FeedProvider>(
                       builder: (context, feedProvider, _) {
                         if (feedProvider.isLoading && feedProvider.posts.isEmpty) {
-                          // return const SliverFillRemaining(
-                          //   child: Center(
-                          //     child: CircularProgressIndicator(
-                          //       color: Color(0xFF177E85),
-                          //     ),
-                          //   ),
-                          // );
-
                           return const SliverToBoxAdapter(
                               child: PostFeedShimmer(itemCount: 4),
                             );
                         }
-
                         if (feedProvider.error != null && feedProvider.posts.isEmpty) {
                           return SliverFillRemaining(
                             child: Center(
@@ -397,7 +423,8 @@ class _FeedTypeToggle extends StatelessWidget {
                 child: _ToggleButton(
                   label: 'Following',
                   isSelected: feedProvider.currentFeedType == FeedType.following,
-                  onTap: () => feedProvider.switchFeedType(FeedType.following),
+                  onTap: () => GuestHelper.guardAction(context, action: () => feedProvider.switchFeedType(FeedType.following),
+                      reason: 'see post\'s of following users'),
                 ),
               ),
             ],

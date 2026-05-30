@@ -1,4 +1,4 @@
-// lib/providers/profile_provider.dart - UPDATED WITHOUT FIRESTORE
+
 
 import 'package:everywhere/services/api_service.dart';
 import 'package:flutter/foundation.dart';
@@ -7,8 +7,6 @@ import '../features/social/models/post_model.dart';
 import '../features/social/services/social_api_service.dart';
 import '../models/user_profile_model.dart';
 
-
-// lib/providers/profile_provider.dart - ADD CACHING
 class ProfileProvider with ChangeNotifier {
   final SocialApiService _apiService = SocialApiService();
   final ApiService api = ApiService();
@@ -96,12 +94,6 @@ class ProfileProvider with ChangeNotifier {
       final posts = await _apiService.getUserPosts(userId);
 
       _userPosts = posts.map((json) => Post.fromJson(json)).toList();
-
-      // Check save status
-      for (var i = 0; i < _userPosts.length; i++) {
-        final isSaved = await _apiService.isPostSaved(_userPosts[i].postId);
-        _userPosts[i] = _userPosts[i].copyWith(isSaved: isSaved);
-      }
 
       _lastPostsLoadTime = DateTime.now();
       print('✅ Posts loaded and cached: ${_userPosts.length} posts');

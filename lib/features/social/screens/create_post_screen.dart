@@ -6,8 +6,9 @@ import 'package:everywhere/shared/widgets/image_editor.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../constraints/vendor_theme.dart';
+import '../../../core/auth/guest_helper.dart';
 import '../../../services/storage_service.dart';
-import '../../social/services/social_api_service.dart';
+import '../services/social_api_service.dart';
 
 class CreatePostScreen extends StatefulWidget {
   const CreatePostScreen({super.key});
@@ -20,10 +21,6 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
   final TextEditingController _textController = TextEditingController();
   final TextEditingController _titleController = TextEditingController();
   final SocialApiService _apiService = SocialApiService();
-  final StorageService _storageService = StorageService();
-  final ImagePicker _picker = ImagePicker();
-
-  File? _selectedImage;
   bool _isPosting = false;
   List<XFile> _pickedImages = [];
 
@@ -95,7 +92,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.green,
+        backgroundColor: kSnackSuccess,
       ),
     );
   }
@@ -122,7 +119,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: ElevatedButton(
-              onPressed: _isPosting || isOverLimit ? null : _createPost,
+              onPressed: _isPosting || isOverLimit ? null : () => GuestHelper.guardAction(
+                  context, action: _createPost, reason: 'create post'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: kButtonColor,
                 disabledBackgroundColor: Colors.grey[300],
@@ -162,6 +160,7 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                     maxLines: 1,
                     maxLength: 500,
                     cursorColor: Colors.white,
+                    textCapitalization: TextCapitalization.words,
                     decoration: const InputDecoration(
                       hintText: "Add title",
                       hintStyle: TextStyle(
@@ -185,7 +184,10 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
                     maxLines: 10,
                     maxLength: 500,
                     cursorColor: Colors.white,
+                    textCapitalization: TextCapitalization.sentences,
                     decoration: const InputDecoration(
+                        filled: true,
+                        fillColor: VendorTheme.surface,
                         hintText: "What's on your mind?",
                         hintStyle: TextStyle(
                           fontSize: 18,

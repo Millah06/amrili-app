@@ -9,6 +9,25 @@ class ApiService {
 
   static const String baseUrl = 'https://everywhere-data-app.onrender.com';
 
+  Future<String> _getAuthTokenOptional() async {
+    final user = FirebaseAuth.instance.currentUser;
+    return await user?.getIdToken() ?? '';
+  }
+
+  Future<Map<String, String>> _getOptionalHeaders() async {
+    final token = await _getAuthTokenOptional();
+
+    final headers = {
+      'Content-Type': 'application/json',
+    };
+
+    if (token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+
+    return headers;
+  }
+
   Future<Map<String, String>> get _headers async {
     final token = await FirebaseAuth.instance.currentUser?.getIdToken();
     return {
@@ -17,17 +36,17 @@ class ApiService {
     };
   }
 
-  Future<dynamic> get(String path, {Map<String, String>? query}) async {
+  Future<dynamic> get(String path, {Map<String, String>? query, optionalHeader = false}) async {
     final uri = Uri.parse('$baseUrl$path').replace(queryParameters: query);
-    final res = await http.get(uri, headers: await _headers);
+    final res = await http.get(uri, headers:  optionalHeader ? await _getOptionalHeaders() : await _headers);
     print(res.body);
     return _handle(res);
   }
 
-  Future<dynamic> post(String path, Map<String, dynamic> body) async {
+  Future<dynamic> post(String path, Map<String, dynamic> body, {bool optionalHeader = false}) async {
     final res = await http.post(
       Uri.parse('$baseUrl$path'),
-      headers: await _headers,
+      headers: optionalHeader ? await _getOptionalHeaders() : await _headers,
       body: jsonEncode(body),
     );
     print(res.body);
@@ -37,7 +56,7 @@ class ApiService {
   Future<dynamic> put(String path, Map<String, dynamic> body) async {
     final res = await http.put(
       Uri.parse('$baseUrl$path'),
-      headers: await _headers,
+      headers:  await _headers,
       body: jsonEncode(body),
     );
     print(res.body);

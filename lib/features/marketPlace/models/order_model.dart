@@ -1,46 +1,90 @@
-
-
-// ─── order_model.dart ─────────────────────────────────────────────────────────
-
-
-
 import 'package:everywhere/features/marketPlace/models/vendor_model.dart';
 
+// ─── OrderStatus ──────────────────────────────────────────────────────────────
+
 enum OrderStatus {
-  pending, confirmed, preparing, outForDelivery,
-  delivered, pendingFundRelease, completed, cancelled, appealed
+  pending,
+  confirmed,
+  preparing,
+  outForDelivery,
+  delivered,
+  pendingFundRelease,
+  completed,
+  cancelled,
+  appealed,
 }
 
 extension OrderStatusX on OrderStatus {
   String get label {
     switch (this) {
-      case OrderStatus.pending:        return 'Pending';
-      case OrderStatus.confirmed:      return 'Confirmed';
-      case OrderStatus.preparing:      return 'Preparing';
-      case OrderStatus.outForDelivery: return 'Out for Delivery';
-      case OrderStatus.delivered:      return 'Delivered';
-      case OrderStatus.completed:      return 'Completed';
-      case OrderStatus.cancelled:      return 'Cancelled';
-      case OrderStatus.appealed:       return 'Appealed';
+      case OrderStatus.pending:            return 'Pending';
+      case OrderStatus.confirmed:          return 'Confirmed';
+      case OrderStatus.preparing:          return 'Preparing';
+      case OrderStatus.outForDelivery:     return 'Out for Delivery';
+      case OrderStatus.delivered:          return 'Delivered';
       case OrderStatus.pendingFundRelease: return 'Pending Release';
+      case OrderStatus.completed:          return 'Completed';
+      case OrderStatus.cancelled:          return 'Cancelled';
+      case OrderStatus.appealed:           return 'Appealed';
     }
   }
 
-  bool get isOngoing => [
-    OrderStatus.pending, OrderStatus.confirmed,
-    OrderStatus.preparing, OrderStatus.outForDelivery,
-    OrderStatus.delivered, OrderStatus.pendingFundRelease
+  /// 0-based step for the progress stepper. -1 = cancelled, -2 = appealed.
+  int get stepIndex {
+    switch (this) {
+      case OrderStatus.pending:            return 0;
+      case OrderStatus.confirmed:          return 1;
+      case OrderStatus.preparing:          return 2;
+      case OrderStatus.outForDelivery:     return 3;
+      case OrderStatus.delivered:          return 4;
+      case OrderStatus.pendingFundRelease: return 4;
+      case OrderStatus.completed:          return 5;
+      case OrderStatus.cancelled:          return -1;
+      case OrderStatus.appealed:           return -2;
+    }
+  }
+
+  bool get isOngoing => const [
+    OrderStatus.pending,
+    OrderStatus.confirmed,
+    OrderStatus.preparing,
+    OrderStatus.outForDelivery,
+    OrderStatus.delivered,
+    OrderStatus.pendingFundRelease,
   ].contains(this);
 
-  bool get canConfirm  => this == OrderStatus.delivered;
-  bool get canAppeal   => this == OrderStatus.delivered ||
-      this == OrderStatus.outForDelivery ||
-      this == OrderStatus.preparing ||
-      this == OrderStatus.confirmed;
+  /// Buyer can release funds / confirm delivery.
+  bool get canConfirm => this == OrderStatus.delivered;
+
+  /// Either party can raise an appeal.
+  bool get canAppeal => const [
+    OrderStatus.delivered,
+    OrderStatus.outForDelivery,
+    OrderStatus.preparing,
+    OrderStatus.confirmed,
+  ].contains(this);
+
+  bool get canAppealForVendor => const [
+    OrderStatus.delivered,
+  ].contains(this);
+
+  bool get canCancelForVendor => const [
+    OrderStatus.outForDelivery,
+    OrderStatus.preparing,
+    OrderStatus.confirmed,
+    OrderStatus.pending,
+  ].contains(this);
+
+  bool get isFinal =>
+      this == OrderStatus.completed ||
+          this == OrderStatus.cancelled;
 
   static OrderStatus from(String v) =>
-      OrderStatus.values.firstWhere((e) => e.name == v, orElse: () => OrderStatus.pending);
+      OrderStatus.values.firstWhere((e) => e.name == v,
+          orElse: () => OrderStatus.pending);
 }
+
+// ─── OrderItemModel ───────────────────────────────────────────────────────────
 
 class OrderItemModel {
   final String menuItemId;
@@ -49,21 +93,23 @@ class OrderItemModel {
   final int quantity;
 
   const OrderItemModel({
-    required this.menuItemId, required this.name,
-    required this.price, required this.quantity,
+    required this.menuItemId,
+    required this.name,
+    required this.price,
+    required this.quantity,
   });
 
   double get total => price * quantity;
 
   factory OrderItemModel.fromJson(Map<String, dynamic> j) => OrderItemModel(
-    menuItemId: j['menuItemId'], name: j['name'],
-    price: (j['price'] as num).toDouble(), quantity: j['quantity'],
+    menuItemId: j['menuItemId'],
+    name: j['name'],
+    price: (j['price'] as num).toDouble(),
+    quantity: j['quantity'],
   );
-
-  Map<String, dynamic> toJson() => {
-    'menuItemId': menuItemId, 'name': name, 'price': price, 'quantity': quantity,
-  };
 }
+
+// ─── DeliveryAddress ──────────────────────────────────────────────────────────
 
 class DeliveryAddress {
   final String state;
@@ -78,24 +124,23 @@ class DeliveryAddress {
     required this.street,
   });
 
-  String get full => '$street, $area, $lga, $state';
+  String get full {
+    final parts = [street, area, lga, state];
 
-  factory DeliveryAddress.fromJson(Map<String, dynamic> json) =>
-      DeliveryAddress(
-        state: json['state'],
-        lga: json['lga'],
-        area: json['area'],
-        street: json['street'],
-      );
+    return parts
+        .where((e) => e.trim().isNotEmpty)
+        .join(', ');
+  }
 
-  Map<String, dynamic> toJson() => {
-    'state': state,
-    'lga': lga,
-    'area': area,
-    'street': street,
-  };
+  factory DeliveryAddress.fromJson(Map<String, dynamic> j) => DeliveryAddress(
+    state: j['state'],
+    lga: j['lga'],
+    area: j['area'],
+    street: j['street'],
+  );
 }
 
+// ─── OrderModel ───────────────────────────────────────────────────────────────
 
 class OrderModel {
   final String id;
@@ -116,10 +161,7 @@ class OrderModel {
   final DeliveryAddress deliveryAddress;
   final String paymentMethod;
   final bool podConfirmed;
-  // final String deliveryState;
-  // final String deliveryLga;
-  // final String deliveryArea;
-  // final String deliveryStreet;
+  final String? appealedBy; // userId of whoever filed the appeal
   final DateTime createdAt;
 
   const OrderModel({
@@ -142,32 +184,91 @@ class OrderModel {
     required this.paymentMethod,
     required this.podConfirmed,
     required this.createdAt,
+    this.appealedBy,
   });
 
+  /// Pay-on-delivery — no escrow involved.
+  bool get isPod => paymentMethod == 'pay_on_delivery';
+
+  /// Deadline before auto-cancel (30 min from creation while pending).
+  DateTime get autoCancelAt => createdAt.add(const Duration(minutes: 30));
 
   factory OrderModel.fromJson(Map<String, dynamic> j) => OrderModel(
     id: j['id'],
     userId: j['userId'],
     userName: j['userName'] ?? 'Customer',
     vendorId: j['vendorId'],
-    vendorName: j['vendorName'] ?? '', vendorLogo: j['vendorLogo'] ?? '',
-    branchId: j['branchId'], branchName: j['branchName'] ?? '',
-    items: (j['items'] as List).map((i) => OrderItemModel.fromJson(i)).toList(),
+    vendorName: j['vendorName'] ?? '',
+    vendorLogo: j['vendorLogo'] ?? '',
+    branchId: j['branchId'],
+    branchName: j['branchName'] ?? '',
+    items: (j['items'] as List)
+        .map((i) => OrderItemModel.fromJson(i))
+        .toList(),
     subtotal: (j['subtotal'] as num).toDouble(),
     deliveryFee: (j['deliveryFee'] as num).toDouble(),
     transactionFee: (j['transactionFee'] as num).toDouble(),
     totalAmount: (j['totalAmount'] as num).toDouble(),
     status: OrderStatusX.from(j['status']),
-    escrowStatus: j['escrowStatus'],
+    escrowStatus: j['escrowStatus'] ?? 'held',
     paymentMethod: j['paymentMethod'] ?? 'escrow',
     podConfirmed: j['podConfirmed'] ?? false,
-    deliveryAddress: DeliveryAddress(state: j['deliveryState'] ?? '', lga: j['deliveryLga'] ?? '',
-        area: j['deliveryArea'] ?? '', street: j['deliveryStreet'] ?? ''),
-    // deliveryAddress: DeliveryAddress.fromJson(j['deliveryAddress']),
-    
+    appealedBy: j['appealedBy'],
+    deliveryAddress: DeliveryAddress(
+      state: j['deliveryState'] ?? '',
+      lga: j['deliveryLga'] ?? '',
+      area: j['deliveryArea'] ?? '',
+      street: j['deliveryStreet'] ?? '',
+    ),
     createdAt: DateTime.parse(j['createdAt']),
   );
 }
+
+// ─── ChatMessageModel ─────────────────────────────────────────────────────────
+
+class ChatMessageModel {
+  final String id;
+  final String orderId;
+  final String senderId;
+  final String senderName;
+  final String message;
+  final String? imageUrl; // optional — proof images, appeal evidence, etc.
+  final bool isAdmin;
+  final DateTime? createdAt;
+
+  const ChatMessageModel({
+    required this.id,
+    required this.orderId,
+    required this.senderId,
+    required this.senderName,
+    required this.message,
+    required this.isAdmin,
+    this.imageUrl,
+    this.createdAt,
+  });
+
+  bool get hasImage => imageUrl != null && imageUrl!.isNotEmpty;
+
+  factory ChatMessageModel.fromFirestore(
+      Map<String, dynamic> json,
+      String id,
+      String orderId,
+      ) =>
+      ChatMessageModel(
+        id: id,
+        orderId: orderId,
+        senderId: json['senderId'] ?? '',
+        senderName: json['senderName'] ?? '',
+        message: json['message'] ?? '',
+        imageUrl: json['imageUrl'],
+        isAdmin: json['isAdmin'] ?? false,
+        createdAt: json['createdAt'] != null
+            ? (json['createdAt'] as dynamic).toDate()
+            : null,
+      );
+}
+
+// ─── CartItem ─────────────────────────────────────────────────────────────────
 
 class CartItem {
   final MenuItemModel menuItem;
@@ -183,33 +284,7 @@ class CartItem {
   };
 }
 
-class ChatMessageModel {
-  final String id;
-  final String orderId;
-  final String senderId;
-  final String senderName;
-  final String message;
-  final bool isAdmin;
-  final DateTime? createdAt;
-
-  const ChatMessageModel({
-    required this.id, required this.orderId, required this.senderId,
-    required this.senderName, required this.message,
-    required this.isAdmin, this.createdAt,
-  });
-
-  factory ChatMessageModel.fromFirestore(Map<String, dynamic> json, String id, String orderId) =>
-      ChatMessageModel(
-        id: id, orderId: orderId,
-        senderId: json['senderId'] ?? '',
-        senderName: json['senderName'] ?? '',
-        message: json['message'] ?? '',
-        isAdmin: json['isAdmin'] ?? false,
-        createdAt: json['createdAt'] != null
-            ? (json['createdAt'] as dynamic).toDate()
-            : null,
-      );
-}
+// ─── VendorMetrics ────────────────────────────────────────────────────────────
 
 class VendorMetrics {
   final int totalCompletedOrders;
@@ -220,9 +295,12 @@ class VendorMetrics {
   final double rating;
 
   const VendorMetrics({
-    required this.totalCompletedOrders, required this.completionRate,
-    required this.totalRevenue, required this.pendingEscrow,
-    required this.releasedEarnings, required this.rating,
+    required this.totalCompletedOrders,
+    required this.completionRate,
+    required this.totalRevenue,
+    required this.pendingEscrow,
+    required this.releasedEarnings,
+    required this.rating,
   });
 
   factory VendorMetrics.fromJson(Map<String, dynamic> j) => VendorMetrics(
@@ -235,30 +313,36 @@ class VendorMetrics {
   );
 }
 
+// ─── Location Models ──────────────────────────────────────────────────────────
+
 class LocationState {
   final String id;
   final String name;
   const LocationState({required this.id, required this.name});
-  factory LocationState.fromJson(Map<String, dynamic> j) => LocationState(id: j['id'], name: j['name']);
+  factory LocationState.fromJson(Map<String, dynamic> j) =>
+      LocationState(id: j['id'], name: j['name']);
 }
 
 class LocationLga {
   final String id;
   final String name;
   const LocationLga({required this.id, required this.name});
-  factory LocationLga.fromJson(Map<String, dynamic> j) => LocationLga(id: j['id'], name: j['name']);
+  factory LocationLga.fromJson(Map<String, dynamic> j) =>
+      LocationLga(id: j['id'], name: j['name']);
 }
 
 class LocationArea {
   final String id;
   final String name;
   const LocationArea({required this.id, required this.name});
-  factory LocationArea.fromJson(Map<String, dynamic> j) => LocationArea(id: j['id'], name: j['name']);
+  factory LocationArea.fromJson(Map<String, dynamic> j) =>
+      LocationArea(id: j['id'], name: j['name']);
 }
 
 class LocationStreet {
   final String id;
   final String name;
   const LocationStreet({required this.id, required this.name});
-  factory LocationStreet.fromJson(Map<String, dynamic> j) => LocationStreet(id: j['id'], name: j['name']);
+  factory LocationStreet.fromJson(Map<String, dynamic> j) =>
+      LocationStreet(id: j['id'], name: j['name']);
 }

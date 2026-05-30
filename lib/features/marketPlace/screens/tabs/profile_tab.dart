@@ -37,6 +37,11 @@ class ProfileTab extends StatelessWidget {
             Center(
               child: Column(
                 children: [
+                  user.myVendor == null ? CircleAvatar(
+              radius: 36,
+                backgroundColor: VendorTheme.surfaceVariant,
+                backgroundImage: null,
+                child: const Icon(Icons.person, color: VendorTheme.textMuted, size: 50),) :
                   CircleAvatar(
                     radius: 36,
                     backgroundColor: VendorTheme.surfaceVariant,
@@ -177,12 +182,12 @@ class ProfileTab extends StatelessWidget {
               Navigator.push(context, MaterialPageRoute(builder: (context) => PrivacyPolicyPage()));
             }),
             const SizedBox(height: 8),
+            if (user.myVendor != null && user.myVendor!.isOwner(context.read<UserProvider>().user!.userId))
             _tile(
               Icons.logout,
               'Deleted Store',
                   () => _signOut(context),
-              color: VendorTheme.error,
-            ),
+              color: VendorTheme.error,),
             const SizedBox(height: 40),
           ],
         ),

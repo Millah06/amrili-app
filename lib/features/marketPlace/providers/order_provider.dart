@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 
@@ -179,10 +181,14 @@ class OrderListProvider extends ChangeNotifier {
   bool loading = false;
   String? error;
 
-  List<OrderModel> get ongoing   => orders.where((o) => o.status.isOngoing).toList();
-  List<OrderModel> get completed => orders.where((o) => o.status == OrderStatus.completed).toList();
-  List<OrderModel> get cancelled => orders.where((o) => o.status == OrderStatus.cancelled).toList();
-  List<OrderModel> get appealed  => orders.where((o) => o.status == OrderStatus.appealed).toList();
+  List<OrderModel> get ongoing =>
+      orders.where((o) => o.status.isOngoing).toList();
+  List<OrderModel> get completed =>
+      orders.where((o) => o.status == OrderStatus.completed).toList();
+  List<OrderModel> get cancelled =>
+      orders.where((o) => o.status == OrderStatus.cancelled).toList();
+  List<OrderModel> get appealed =>
+      orders.where((o) => o.status == OrderStatus.appealed).toList();
 
   Future<void> fetchOrders() async {
     loading = true;
@@ -191,10 +197,8 @@ class OrderListProvider extends ChangeNotifier {
     try {
       final data = await api.get('/order/mine') as List;
       orders = data.map((o) => OrderModel.fromJson(o)).toList();
-
     } catch (e) {
       error = e.toString();
-      print(e);
     } finally {
       loading = false;
       notifyListeners();
@@ -207,7 +211,7 @@ class OrderListProvider extends ChangeNotifier {
       _replace(OrderModel.fromJson(data));
       return true;
     } catch (e) {
-      error = e.toString();
+      error = e.toString().replaceAll('Exception: ', '');
       notifyListeners();
       return false;
     }
@@ -219,7 +223,7 @@ class OrderListProvider extends ChangeNotifier {
       _replace(OrderModel.fromJson(data));
       return true;
     } catch (e) {
-      error = e.toString();
+      error = e.toString().replaceAll('Exception: ', '');
       notifyListeners();
       return false;
     }
@@ -237,30 +241,61 @@ class OrderListProvider extends ChangeNotifier {
     }
   }
 
+  /// Called by the counterparty (not the appellant) to concede the appeal.
+  /// Backend resolves fund direction based on who originally appealed.
+  Future<bool> concedeAppeal(String orderId) async {
+    try {
+      await api.post('/order/$orderId/concede-appeal', {});
+      await fetchOrders();
+      return true;
+    } catch (e) {
+      error = e.toString().replaceAll('Exception: ', '');
+      notifyListeners();
+      return false;
+    }
+  }
+
   void _replace(OrderModel updated) {
     final i = orders.indexWhere((o) => o.id == updated.id);
-    if (i != -1) { orders[i] = updated; notifyListeners(); }
+    if (i != -1) {
+      orders[i] = updated;
+      notifyListeners();
+    }
   }
+
+  StreamSubscription<DocumentSnapshot>? _pingSubscription;
+
+  /// Call once after login, passing the current user's backend userId.
+  void watchRealtime(String userId) {
+    _pingSubscription?.cancel();
+    _pingSubscription = FirebaseFirestore.instance
+        .doc('orderPings/$userId')
+        .snapshots()
+        .skip(1) // skip the initial snapshot so we don't double-fetch on startup
+        .listen((_) => fetchOrders());
+  }
+
+  @override
+  void dispose() {
+    _pingSubscription?.cancel();
+    super.dispose();
+  }
+
 }
 
-// ─── ChatProvider ─────────────────────────────────────────────────────────────
-// Uses Firestore for realtime — no HTTP polling needed.
+// ─── OrderChatProvider ────────────────────────────────────────────────────────
 
 class OrderChatProvider extends ChangeNotifier {
   final ApiService api;
   OrderChatProvider({required this.api});
 
-  String? _orderId;
   bool sending = false;
   String? error;
 
   static final _phonePattern = RegExp(r'(\+?\d[\d\s\-]{8,}\d)');
-
   bool containsPhone(String msg) => _phonePattern.hasMatch(msg);
 
-  // Returns a Firestore stream — plug directly into StreamBuilder in Flutter
   Stream<List<ChatMessageModel>> messageStream(String orderId) {
-    _orderId = orderId;
     return FirebaseFirestore.instance
         .collection('orderChats')
         .doc(orderId)
@@ -268,17 +303,25 @@ class OrderChatProvider extends ChangeNotifier {
         .orderBy('createdAt', descending: false)
         .snapshots()
         .map((snap) => snap.docs
-        .map((d) => ChatMessageModel.fromFirestore(d.data(), d.id, orderId))
+        .map((d) =>
+        ChatMessageModel.fromFirestore(d.data(), d.id, orderId))
         .toList());
   }
 
-  Future<bool> sendMessage(String orderId, String message) async {
-    if (containsPhone(message)) { error = 'Phone numbers not allowed'; notifyListeners(); return false; }
+  Future<bool> sendMessage(String orderId, String message,
+      {String? imageUrl}) async {
+    if (containsPhone(message)) {
+      error = 'Phone numbers not allowed';
+      notifyListeners();
+      return false;
+    }
     sending = true;
     error = null;
     notifyListeners();
     try {
-      await api.post('/chat/$orderId/send', {'message': message});
+      final body = <String, dynamic>{'message': message};
+      if (imageUrl != null) body['imageUrl'] = imageUrl;
+      await api.post('/chat/$orderId/send', body);
       return true;
     } catch (e) {
       error = e.toString();
@@ -288,4 +331,10 @@ class OrderChatProvider extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  /// Convenience: send a bare image with an empty or caption text.
+  Future<bool> sendImage(String orderId, String imageUrl,
+      {String caption = ''}) =>
+      sendMessage(orderId, caption, imageUrl: imageUrl);
 }
+

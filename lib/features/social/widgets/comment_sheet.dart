@@ -1,5 +1,7 @@
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:everywhere/constraints/constants.dart';
+import 'package:everywhere/core/auth/guest_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/comment_model.dart';
@@ -204,7 +206,7 @@ class _CommentSheetState extends State<CommentSheet> {
                 controller: _scrollController,
                 padding: const EdgeInsets.all(16),
                 itemCount: feed.comments[widget.post.postId]!.length + 1,
-                separatorBuilder: (_, __) => const Divider(color: Colors.white38,),
+                separatorBuilder: (_, __) => const Divider(color: Colors.white24,),
                 itemBuilder: (context, index) {
                   if (index < feed.comments[widget.post.postId]!.length) {
                     return _CommentItem(comment: feed.comments[widget.post.postId]![index]);
@@ -239,10 +241,15 @@ class _CommentSheetState extends State<CommentSheet> {
                   child: TextField(
                     controller: _commentController,
                     maxLength: 300,
+                    cursorColor: Colors.white,
                     style: TextStyle(color: Colors.white),
                     decoration: InputDecoration(
                       hintText: 'Write a comment...',
                       border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(24),
+                        borderSide: BorderSide.none,
+                      ),
+                      focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(24),
                         borderSide: BorderSide.none,
                       ),
@@ -268,7 +275,9 @@ class _CommentSheetState extends State<CommentSheet> {
                       ),
                     )
                         : const Icon(Icons.send, color: Colors.black, size: 20),
-                    onPressed: _isPosting ? null : _postComment,
+                    onPressed: () => GuestHelper.guardAction(context, action: () {
+                      _isPosting ? null : _postComment();
+                    }, reason: 'comment on a post'),
                   ),
                 ),
               ],
@@ -294,11 +303,20 @@ class _CommentItem extends StatelessWidget {
         children: [
           CircleAvatar(
             radius: 16,
-            backgroundColor: Colors.grey[300],
-            child: Text(
+            backgroundColor: Colors.grey[700],
+            backgroundImage: comment.userAvatar != null
+                ? CachedNetworkImageProvider(comment.userAvatar!)
+                : null,
+            child:  comment.userAvatar == null
+                ? Text(
               comment.userName[0].toUpperCase(),
-              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold),
-            ),
+              style: const TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+                fontSize: 14
+              ),
+            )
+                : null,
           ),
           const SizedBox(width: 12),
           Expanded(

@@ -1,4 +1,6 @@
 
+import 'dart:async';
+
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
 import 'package:everywhere/constraints/constants.dart';
 import 'package:flutter/material.dart';
@@ -6,16 +8,21 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:pull_to_reveal_flutter/pull_to_reveal_flutter.dart';
 
+import '../core/auth/guest_helper.dart';
 import '../features/bottom_navigation/chats/chat_screen.dart';
 import '../features/bottom_navigation/profile/profile_screen.dart';
 import '../features/bottom_navigation/services_screen.dart';
 import '../features/bottom_navigation/socialFeature/feed_screen.dart';
 import '../features/bottom_navigation/wallet/wallet_screen.dart';
+import '../shared/widgets/auth_gate_bottom_sheet.dart';
 import '../shared/widgets/pull_to_reveal.dart';
 
 
 class BottomBar extends StatefulWidget {
-  const BottomBar({super.key});
+
+  final Function(bool isScrollingDown)? onScrollDirectionChanged;
+
+  const BottomBar({super.key, this.onScrollDirectionChanged});
 
   @override
   State<BottomBar> createState() => _BottomBarState();
@@ -23,55 +30,166 @@ class BottomBar extends StatefulWidget {
 
 class _BottomBarState extends State<BottomBar> {
 
+  late List<Widget> screens;
+
+  Key _bottomNavKey = UniqueKey();
+
   final PageController _pageController = PageController();
-  final PullToRevealController _pullToRevealController = PullToRevealController();
+
+  bool _isBottomBarVisible = true;
+
+  void _hideBottomBar() {
+    if (_isBottomBarVisible) {
+      setState(() => _isBottomBarVisible = false);
+    }
+  }
+
+  void _showBottomBar() {
+    if (!_isBottomBarVisible) {
+      setState(() => _isBottomBarVisible = true);
+    }
+  }
+
 
   int selectedIndex = 0;
-  final List<Widget> screens = [
-    const FeedScreen(),
-    const Messages(),
-    const HomeScreen(),
-    const WalletScreen(),
-    const  ProfileScreen()
-  ];
+  int lastAllowedIndex = 0;
+
 
   void _onPageChange(int index) {
+
+    if (index > 2  && GuestHelper.isGuest) {
+
+      // instantly move back
+      _pageController.jumpToPage(lastAllowedIndex);
+
+      // reset selected tab
+      setState(() {
+        selectedIndex = lastAllowedIndex;
+        _bottomNavKey = UniqueKey();
+      });
+
+      AuthGateBottomSheet.show(
+        context,
+        reason: 'access ${buildReason(index)}',
+      );
+
+      return;
+    }
+
     setState(() {
       selectedIndex = index;
+      lastAllowedIndex = index;
+      if (!_isBottomBarVisible) {
+        _isBottomBarVisible = true;
+      }
     });
   }
 
+  String buildReason(int index) {
+    switch (index) {
+      case 1:
+       return 'messages';
+
+      case 2:
+         return 'services';
+
+      case 3:
+        return 'wallet';
+
+      case 4:
+        return 'profile';
+
+      default:
+        return 'marketplace';
+    }
+  }
+
   void _onItemTapped(int indexSelected) {
+
+    if (indexSelected > 2  && GuestHelper.isGuest) {
+
+      // rebuild navbar back to original state
+      setState(() {
+        selectedIndex = lastAllowedIndex;
+        _bottomNavKey = UniqueKey();
+      });
+
+      AuthGateBottomSheet.show(
+        context,
+        reason: 'access ${buildReason(indexSelected)}',
+      );
+
+      return;
+    }
+
+    setState(() {
+      selectedIndex = indexSelected;
+      lastAllowedIndex = indexSelected;
+    });
+
     _pageController.jumpToPage(indexSelected);
   }
 
+
   Color selectedColor = Color(0xFF6F7E90);
+
+  @override
+  void initState() {
+    super.initState();
+
+    screens = [
+      FeedScreen(
+        onScrollDirectionChanged: _onScrollChange
+      ),
+      const Messages(),
+      const HomeScreen(),
+      const WalletScreen(),
+      const ProfileScreen(),
+    ];
+  }
+
+  Timer? _scrollDebounce;
+
+  void _onScrollChange(bool isScrollingDown) {
+    _scrollDebounce?.cancel();
+    _scrollDebounce = Timer(const Duration(milliseconds: 100), () {
+      if (isScrollingDown) {
+        _hideBottomBar();
+      } else {
+        _showBottomBar();
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body:  PageView(
         controller: _pageController,
         onPageChanged: _onPageChange,
+        physics: const BouncingScrollPhysics(),
         children: screens,
       ),
-      bottomNavigationBar: _bottomNavigationBar(),
+      bottomNavigationBar: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        height: _isBottomBarVisible ? 60 : 0,
+        child: Wrap(
+          children: [
+            if (_isBottomBarVisible) _bottomNavigationBar(),
+          ],
+        ),
+      ),
     );
   }
 
   CurvedNavigationBar _bottomNavigationBar () {
     return CurvedNavigationBar(
         color: Color(0xFF334155),
-
+        key: _bottomNavKey,
         backgroundColor: Color(0xFF0F172A),
         animationCurve: Curves.decelerate,
         height: 60,
         index: selectedIndex,
-        // currentIndex: selectedIndex,
-        // // selectedItemColor: Color(0xFFF45F1A) ,
-        // selectedItemColor: Colors.white,
-        // unselectedItemColor: Color(0xFF6F7E90) ,
-        // selectedLabelStyle: TextStyle(color: Colors.white),
-        // selectedIconTheme: IconThemeData(size: 25),
         onTap: _onItemTapped,
         items:
         [

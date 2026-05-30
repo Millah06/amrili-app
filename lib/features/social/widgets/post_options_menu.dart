@@ -1,3 +1,4 @@
+import 'package:everywhere/core/auth/guest_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -26,8 +27,9 @@ class _PostOptionsMenuState extends State<PostOptionsMenu> {
   @override
   Widget build(BuildContext context) {
     final pov = context.read<UserProvider>();
-    final currentUserId =  pov.user!.userId;
-    final isOwnPost = currentUserId == widget.post.userId;
+    final currentUserId =  pov.user?.userId;
+
+    final isOwnPost = currentUserId == null ? false : currentUserId == widget.post.userId;
 
     return Container(
       decoration: const BoxDecoration(
@@ -76,10 +78,10 @@ class _PostOptionsMenuState extends State<PostOptionsMenu> {
                 widget.post.isSaved ? 'Unsave' : 'Save',
                 style: const TextStyle(color: Colors.white),
               ),
-              onTap: () {
+              onTap: () => GuestHelper.guardAction(context, action: () {
                 Navigator.pop(context);
                 _toggleSave();
-              },
+              }, reason: 'start saving posts')
             ),
 
             // Repost
@@ -90,10 +92,10 @@ class _PostOptionsMenuState extends State<PostOptionsMenu> {
                   'Repost',
                   style: TextStyle(color: Colors.white),
                 ),
-                onTap: () {
+                onTap: () => GuestHelper.guardAction(context, action:  () {
                   Navigator.pop(context);
                   _showRepostDialog();
-                },
+                }, reason: 'repost a post')
               ),
 
             // Share
@@ -407,28 +409,15 @@ View on Everywhere: https://everywhere.app/post/${widget.post.postId}
     try {
       final apiService = SocialApiService();
 
-      if (widget.post.isSaved) {
-        await apiService.unsavePost(widget.post.postId);
-        if (mounted) {
+      String message = await apiService.toggleSave(widget.post.postId);
+      if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Post removed from saved'),
+            SnackBar(
+              content: Text(message),
               backgroundColor: Color(0xFF177E85),
             ),
           );
         }
-      } else {
-        await apiService.savePost(widget.post.postId);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Post saved'),
-              backgroundColor: Color(0xFF177E85),
-            ),
-          );
-        }
-      }
-
       // Update post state
       final updatedPost = widget.post.copyWith(isSaved: !widget.post.isSaved);
       widget.onPostUpdated?.call(updatedPost);

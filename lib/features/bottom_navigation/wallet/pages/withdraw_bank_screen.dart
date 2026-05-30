@@ -68,47 +68,6 @@ class _WithdrawBankScreenState extends State<WithdrawBankScreen> {
                   color: Colors.white70,
                 ),
               ),
-              // const SizedBox(height: 20),
-              // DropdownButtonFormField<String>(
-              //   isExpanded: true,
-              //   value: _bankController.text.isEmpty ? null : _bankController.text,
-              //   dropdownColor: const Color(0xFF1E293B),
-              //   decoration: const InputDecoration(
-              //     labelText: 'Select Bank',
-              //   ),
-              //   items: _banks
-              //       ?.map((b) => DropdownMenuItem<String>(
-              //             value: b.bankName,
-              //             child: Text(
-              //               b.bankName,
-              //               style: const TextStyle(color: Colors.white),
-              //             ),
-              //           ))
-              //       .toList(),
-              //   onTap: () {
-              //     print('start loading');
-              //     loadBanks();
-              //     if (withdrawalProvider.isLoading) {
-              //       showDialog(context: context, builder: (context) {
-              //         return CircularProgressIndicator();
-              //       });
-              //     }
-              //   },
-              //   onChanged: (val) {
-              //
-              //     if (val != null) {
-              //       setState(() {
-              //         _bankController.text = val;
-              //       });
-              //     }
-              //   },
-              //   validator: (value) {
-              //     if (value == null || value.trim().isEmpty) {
-              //       return 'Please choose a bank';
-              //     }
-              //     return null;
-              //   },
-              // ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _accountNumberController,
@@ -160,7 +119,7 @@ class _WithdrawBankScreenState extends State<WithdrawBankScreen> {
               ),
               const SizedBox(height: 16),
               if (selectedBank != null)
-                withdrawalProvider.isResolving ? CircularProgressIndicator() : Container(
+                withdrawalProvider.isResolving ? CircularProgressIndicator(color: kCircularProgressColor,) : Container(
                   margin: EdgeInsets.only(bottom: 16),
                   padding: EdgeInsets.all(10),
                   width: double.infinity,
@@ -202,30 +161,8 @@ class _WithdrawBankScreenState extends State<WithdrawBankScreen> {
                   labelText: 'Note (optional)',
                 ),
               ),
-              const SizedBox(height: 24),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1E293B),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.lock_outline, color: Colors.white70, size: 18),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        'This is a preview flow. Actual processing and security checks will run on your backend.',
-                        style: GoogleFonts.inter(
-                          fontSize: 11,
-                          color: Colors.white70,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
+
+
               const SizedBox(height: 24),
               SizedBox(
                 width: double.infinity,

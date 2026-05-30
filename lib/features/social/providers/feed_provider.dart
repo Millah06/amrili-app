@@ -13,6 +13,20 @@ class FeedProvider with ChangeNotifier {
 
   final SocialApiService _apiService = SocialApiService();
 
+  bool _disposed = false;
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+
+  void safeNotify() {
+    if (!_disposed) {
+      notifyListeners();
+    }
+  }
+
 
   FeedType _currentFeedType = FeedType.forYou;
   List<Post> _posts = [];
@@ -72,7 +86,7 @@ class FeedProvider with ChangeNotifier {
 
     _isLoading = true;
     _error = null;
-    notifyListeners();
+    safeNotify();
 
     try {
       final response = _currentFeedType == FeedType.forYou
@@ -112,7 +126,7 @@ class FeedProvider with ChangeNotifier {
       debugPrint('Feed load error: $e');
     } finally {
       _isLoading = false;
-      notifyListeners();
+      safeNotify();
     }
   }
 
@@ -221,13 +235,6 @@ class FeedProvider with ChangeNotifier {
       // Optimistic update
       _posts[postIndex] = post.copyWith(isSaved: !wasSaved);
       notifyListeners();
-
-      // Call API
-      if (wasSaved) {
-        await _apiService.unsavePost(postId);
-      } else {
-        await _apiService.savePost(postId);
-      }
     } catch (e) {
       // Revert on error
       final postIndex = _posts.indexWhere((p) => p.postId == postId);
@@ -245,9 +252,9 @@ class FeedProvider with ChangeNotifier {
 
   // State
   Map<String, List<Comment>> comments = {};
-  Map<String, String?> _nextCursors = {};
-  Map<String, bool> _loadingComments = {};
-  Map<String, bool> _hasMoreComments = {};
+  final Map<String, String?> _nextCursors = {};
+  final Map<String, bool> _loadingComments = {};
+  final Map<String, bool> _hasMoreComments = {};
   String? commentError;
 
 // Accessors (used by the sheet)
@@ -313,12 +320,25 @@ class FeedProvider with ChangeNotifier {
     }
   }
 
-  void updatePostAfterReward(String postId, int newRewardCount, double newTotal) {
+  // void updatePostAfterReward(String postId, int newRewardCount, double newTotal) {
+  //   final postIndex = _posts.indexWhere((p) => p.postId == postId);
+  //   if (postIndex != -1) {
+  //     _posts[postIndex] = _posts[postIndex].copyWith(
+  //       rewardCount: newRewardCount,
+  //       rewardPointsTotal: newTotal,
+  //     );
+  //     notifyListeners();
+  //   }
+  // }
+
+  // lib/providers/feed_provider.dart - ADD THIS METHOD
+
+  void updatePostAfterGift(String postId, int newGiftCount, int newCoinTotal) {
     final postIndex = _posts.indexWhere((p) => p.postId == postId);
     if (postIndex != -1) {
       _posts[postIndex] = _posts[postIndex].copyWith(
-        rewardCount: newRewardCount,
-        rewardPointsTotal: newTotal,
+        giftCount: newGiftCount,
+        coinTotal: newCoinTotal,
       );
       notifyListeners();
     }

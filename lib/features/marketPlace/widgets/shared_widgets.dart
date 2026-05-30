@@ -212,6 +212,7 @@ class VTextField extends StatelessWidget {
   final Function()? onTap;
   final FormFieldValidator<String>? validator;
   final Widget? prefix;
+  final TextCapitalization capitalization;
 
   const VTextField({
     super.key,
@@ -225,7 +226,7 @@ class VTextField extends StatelessWidget {
     this.suffixIcon,
     this.onChange,
     this.onTap,
-    this.validator, this.prefix
+    this.validator, this.prefix, this.capitalization = TextCapitalization.none
   });
 
   @override
@@ -237,6 +238,7 @@ class VTextField extends StatelessWidget {
       obscureText: obscure,
       style: const TextStyle(color: VendorTheme.textPrimary, fontSize: 14),
       cursorColor: Colors.white,
+      textCapitalization: capitalization,
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,

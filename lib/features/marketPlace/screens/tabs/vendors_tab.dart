@@ -72,6 +72,7 @@ class _VendorsTabState extends State<VendorsTab> {
           const SizedBox(height: 12),
           TextField(
             controller: _searchCtrl,
+            cursorColor: Colors.white,
             style: const TextStyle(color: VendorTheme.textPrimary, fontSize: 14),
             onChanged: (S) {
               p.setSearch(S);

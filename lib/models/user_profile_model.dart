@@ -1,8 +1,3 @@
-// lib/models/user_profile_model.dart - NEW
-
-// lib/models/user_profile_model.dart - COMPLETE VERSION
-
-// lib/models/user_profile_model.dart - FIX BADGES PARSING
 
 class UserProfile {
   final String userId;
@@ -18,6 +13,7 @@ class UserProfile {
   final String? coverImage;
   final String? website;
   final String? location;
+  final String? country;
 
   // Privacy
   final bool isPrivate;
@@ -62,6 +58,7 @@ class UserProfile {
     this.coverImage,
     this.website,
     this.location,
+    this.country,
     required this.isPrivate,
     required this.allowFollowersToMessage,
     required this.followerCount,
@@ -105,6 +102,7 @@ class UserProfile {
       coverImage: json['coverImage'],
       website: json['website'],
       location: json['location'],
+      country: json['country'],
       buzEmail: json['businessEmail'],
       isPrivate: json['isPrivate'] ?? false,
       allowFollowersToMessage: json['allowFollowersToMessage'] ?? false,
@@ -132,6 +130,11 @@ class UserProfile {
   }
 
   UserProfile copyWith({
+    String? bio,
+    String ? location,
+    String ? website,
+    String ? buzEmail,
+    String ? displayName,
     bool? isFollowing,
     int? followerCount,
     bool? isPrivate,
@@ -140,17 +143,17 @@ class UserProfile {
     return UserProfile(
       userId: userId,
       userName: userName,
-      displayName: displayName,
-      bio: bio,
+      displayName: displayName ?? this.displayName,
+      bio: bio ?? this.bio,
       chatTag: chatTag,
       transferUID: transferUID,
       email: email,
       phoneNumber: phoneNumber,
       avatar: avatar,
       coverImage: coverImage,
-      website: website,
-      location: location,
-      buzEmail: buzEmail,
+      website: website ?? this.website,
+      location: location ?? this.location,
+      buzEmail: buzEmail ?? this.buzEmail,
       isPrivate: isPrivate ?? this.isPrivate,
       allowFollowersToMessage: allowFollowersToMessage ?? this.allowFollowersToMessage,
       followerCount: followerCount ?? this.followerCount,

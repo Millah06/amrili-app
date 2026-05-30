@@ -5,7 +5,6 @@ import 'package:everywhere/providers/user_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import '../../../constraints/vendor_theme.dart';
 import '../../../features/marketPlace/providers/vendor_center_provider.dart';
 import '../../../shared/widgets/image_editor.dart';
@@ -124,13 +123,14 @@ class _AddMenuItemPageState extends State<AddMenuItemPage> {
                       fontSize: 13,
                       fontWeight: FontWeight.w600)),
               const SizedBox(height: 10),
-              VTextField(controller: _name, label: 'Item Name'),
+              VTextField(controller: _name, label: 'Item Name', capitalization: TextCapitalization.words,),
               const SizedBox(height: 10),
               VTextField(
                 controller: _desc,
                 label: 'Description',
                 hint: 'What is it made of? Any highlights?',
                 maxLines: 5,
+                capitalization: TextCapitalization.sentences,
               ),
               const SizedBox(height: 10),
               VTextField(

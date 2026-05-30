@@ -53,6 +53,18 @@ class UserProvider extends ChangeNotifier {
     }
   }
 
+  // Add to UserProvider class:
+
+  /// Safely initialises user data only if a Firebase session already exists.
+  /// Called at app startup. Returns immediately for logged-out / first-launch users,
+  /// shows SplashScreen (via loadingUser flag) for returning authenticated users.
+  Future<void> initIfAuthenticated() async {
+    final firebaseUser = FirebaseAuth.instance.currentUser;
+    if (firebaseUser == null) return; // first launch / logged out — skip
+    getUserId();
+    await loadUser(silent: false); // silent: false → shows SplashScreen while loading
+  }
+
   Future<void> loadUser({bool silent = true}) async {
     silent == false ? loadingUser = true : null;
     notifyListeners();
@@ -85,4 +97,20 @@ class UserProvider extends ChangeNotifier {
       rethrow;
     }
   }
+
+  void seedFromAuth(Map<String, dynamic> json) {
+    user = User.fromJson(json);
+    notifyListeners();
+  }
+
+  void updatePhone(String phone) {
+    user = user?.copyWith(phone: phone);
+    notifyListeners();
+  }
+
+  void updateAvatar(String avatarUrl) {
+
+  }
+
+
 }

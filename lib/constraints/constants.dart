@@ -8,6 +8,9 @@ import 'package:google_fonts/google_fonts.dart';
 /// =======================
 /// COLORS
 /// =======================
+const Color kSnackSuccess = Color(0xFF177E85);
+
+const Color kCircularProgressColor = Color(0xFF177E85);
 
 /// Scaffold background
 const Color scaffoldBgColor = Color(0xFF0F172A);

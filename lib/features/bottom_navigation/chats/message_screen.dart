@@ -95,7 +95,8 @@ class _Peer2PeerChatState extends State<Peer2PeerChat> {
             ),
           ),
 
-          MessagesStream(otherUserId: widget.otherUid, roomId: widget.roomId, currentUserId: pov.currentUser,),
+          MessagesStream(otherUserId: widget.otherUid,
+            roomId: widget.roomId, currentUserId: pov.currentUser,),
           Container(
             decoration: BoxDecoration(
               color:  Color(0xFF1E293B),
@@ -129,6 +130,7 @@ class _Peer2PeerChatState extends State<Peer2PeerChat> {
                         child: TextFormField(
                           controller: messageTextController,
                           focusNode: _focusNode,
+                          textCapitalization: TextCapitalization.sentences,
                           onChanged: (value) {
                             setState(() {
                               messageText = value;
@@ -197,35 +199,33 @@ class _Peer2PeerChatState extends State<Peer2PeerChat> {
                 ),
                 Visibility(
                   visible: !hasTouched,
-                    child: Container(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          ...List.generate(4, (index) {
-                            Map<String, IconData> cardDetails = {
-                              'Send Airtime' : FontAwesomeIcons.simCard,
-                              'Send AirtimeGift' : FontAwesomeIcons.gift,
-                              'Transfer Money' : FontAwesomeIcons.moneyBillTransfer,
-                              'Emoji' : FontAwesomeIcons.faceSmileBeam
-                            };
-                            return ServiceFrame(
-                              title: cardDetails.keys.elementAt(index),
-                              icon: cardDetails.values.elementAt(index),
-                              onTap: () {
-                                // Ensure the chat TextField does not gain focus or move up
-                                FocusScope.of(context).unfocus();
-                                  showModalBottomSheet(
-                                      context: context,
-                                      isScrollControlled: true,
-                                      builder:  (context)  {
-                                    return ShortCutAction(roomId: widget.roomId, shortcutName: cardDetails.keys.elementAt(index), otherUserId: widget.otherUid,);
-                                  });
-                              },
-                              isNew: false,
-                            );
-                          })
-                        ],
-                      ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        ...List.generate(4, (index) {
+                          Map<String, IconData> cardDetails = {
+                            'Send Airtime' : FontAwesomeIcons.simCard,
+                            'Send AirtimeGift' : FontAwesomeIcons.gift,
+                            'Transfer Money' : FontAwesomeIcons.moneyBillTransfer,
+                            'Emoji' : FontAwesomeIcons.faceSmileBeam
+                          };
+                          return ServiceFrame(
+                            title: cardDetails.keys.elementAt(index),
+                            icon: cardDetails.values.elementAt(index),
+                            onTap: () {
+                              // Ensure the chat TextField does not gain focus or move up
+                              FocusScope.of(context).unfocus();
+                                showModalBottomSheet(
+                                    context: context,
+                                    isScrollControlled: true,
+                                    builder:  (context)  {
+                                  return ShortCutAction(roomId: widget.roomId, shortcutName: cardDetails.keys.elementAt(index), otherUserId: widget.otherUid,);
+                                });
+                            },
+                            isNew: false,
+                          );
+                        })
+                      ],
                     ),
                 )
               ],

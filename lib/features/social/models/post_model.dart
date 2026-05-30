@@ -14,8 +14,13 @@ class Post {
   final int likeCount;
   final int commentCount;
   final int viewCount;
-  final int rewardCount;
-  final double rewardPointsTotal;
+
+  // final int rewardCount;
+  // final double rewardPointsTotal;
+
+  final int giftCount;      // Total gifts received
+  final int coinTotal;
+
   final bool isBoosted;
   final DateTime? boostExpiresAt;
   final bool isRepost;
@@ -43,8 +48,8 @@ class Post {
     required this.likeCount,
     required this.commentCount,
     this.viewCount = 0,
-    required this.rewardCount,
-    required this.rewardPointsTotal,
+    required this.giftCount,
+    required this.coinTotal,
     required this.isBoosted,
     this.boostExpiresAt,
     this.isRepost = false,
@@ -76,8 +81,8 @@ class Post {
       likeCount: json['likeCount'] ?? 0,
       commentCount: json['commentCount'] ?? 0,
       viewCount: json['viewCount'] ?? 0,
-      rewardCount: json['rewardCount'] ?? 0,
-      rewardPointsTotal: (json['rewardPointsTotal'] ?? 0).toDouble(),
+      giftCount: json['giftCount'] ?? 0,
+      coinTotal: json['coinTotal'] ?? 0,
       isBoosted: json['isBoosted'] ?? false,
       boostExpiresAt: _parseDateTime(json['boostExpiresAt']),
       isRepost: json['isRepost'] ?? false,
@@ -113,8 +118,8 @@ class Post {
     int? likeCount,
     int? commentCount,
     int? viewCount,
-    int? rewardCount,
-    double? rewardPointsTotal,
+    int? giftCount,
+    int? coinTotal,
     bool? isLikedByCurrentUser,
     bool? isBoosted,
     bool? isFollowing,
@@ -135,8 +140,8 @@ class Post {
       likeCount: likeCount ?? this.likeCount,
       commentCount: commentCount ?? this.commentCount,
       viewCount: viewCount ?? this.viewCount,
-      rewardCount: rewardCount ?? this.rewardCount,
-      rewardPointsTotal: rewardPointsTotal ?? this.rewardPointsTotal,
+      giftCount: giftCount ?? this.giftCount,
+      coinTotal: coinTotal ?? this.coinTotal,
       isBoosted: isBoosted ?? this.isBoosted,
       boostExpiresAt: boostExpiresAt,
       isRepost: isRepost,

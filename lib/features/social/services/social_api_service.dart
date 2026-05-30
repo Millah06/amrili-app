@@ -10,13 +10,18 @@ import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as path;
 
 class SocialApiService {
-  static const String baseUrl = 'https://everywhere-data-app.onrender.com'; // Replace with your Render URL
+  static const String baseUrl = 'https://everywhere-data-app.onrender.com';
 
 
   Future<String> _getAuthToken() async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) throw Exception('User not authenticated');
     return await user.getIdToken() ?? '';
+  }
+
+  Future<String> _getAuthTokenOptional() async {
+    final user = FirebaseAuth.instance.currentUser;
+    return await user?.getIdToken() ?? '';
   }
 
   Future<Map<String, String>> _getHeaders() async {
@@ -27,13 +32,23 @@ class SocialApiService {
     };
   }
 
+  Future<Map<String, String>> _getOptionalHeaders() async {
+    final token = await _getAuthTokenOptional();
+
+    final headers = {
+      'Content-Type': 'application/json',
+    };
+
+    if (token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+
+    return headers;
+  }
+
   // Feed endpoints
-  Future<Map<String, dynamic>> getForYouFeed({
-    int limit = 20,
-    String? lastPostId,
-    double? lastScore,
-  }) async {
-    final headers = await _getHeaders();
+  Future<Map<String, dynamic>> getForYouFeed({int limit = 20, String? lastPostId, double? lastScore,}) async {
+    final headers = await _getOptionalHeaders();
     final queryParams = {
       'limit': limit.toString(),
       if (lastPostId != null) 'lastPostId': lastPostId,
@@ -52,10 +67,7 @@ class SocialApiService {
     }
   }
 
-  Future<Map<String, dynamic>> getFollowingFeed({
-    int limit = 20,
-    String? lastPostId,
-  }) async {
+  Future<Map<String, dynamic>> getFollowingFeed({int limit = 20, String? lastPostId,}) async {
     final headers = await _getHeaders();
     final queryParams = {
       'limit': limit.toString(),
@@ -76,7 +88,7 @@ class SocialApiService {
 
   // View counting
   Future<Map<String, dynamic>> incrementPostView(String postId) async {
-    final headers = await _getHeaders();
+    final headers = await _getOptionalHeaders();
     final response = await http.post(
       Uri.parse('$baseUrl/social/posts/view'),
       headers: headers,
@@ -91,12 +103,8 @@ class SocialApiService {
   }
 
   // Reporting
-  Future<void> reportPost({
-    required String postId,
-    required String reason,
-    String? details,
-  }) async {
-    final headers = await _getHeaders();
+  Future<void> reportPost({required String postId, required String reason, String? details,}) async {
+    final headers = await _getOptionalHeaders();
     final response = await http.post(
       Uri.parse('$baseUrl/social/reports'),
       headers: headers,
@@ -134,22 +142,7 @@ class SocialApiService {
     }
   }
 
-  Future<int> getRepostCount(String postId) async {
-    final headers = await _getHeaders();
-    final response = await http.get(
-      Uri.parse('$baseUrl/social/posts/$postId/reposts'),
-      headers: headers,
-    );
 
-    print('This is the post id $postId ');
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return data['count'] ?? 0;
-    } else {
-      return 0;
-    }
-  }
 
   // // Download
   // Future<String> generatePostDownload(String postId) async {
@@ -204,48 +197,6 @@ class SocialApiService {
     }
   }
 
-  // Save/Unsave post
-  Future<void> savePost(String postId) async {
-    final userId = FirebaseAuth.instance.currentUser?.uid;
-    if (userId == null) throw Exception('Not authenticated');
-
-    await FirebaseFirestore.instance
-        .collection('savedPosts')
-        .doc(userId)
-        .collection('posts')
-        .doc(postId)
-        .set({
-      'postId': postId,
-      'savedAt': FieldValue.serverTimestamp(),
-    });
-  }
-
-  Future<void> unsavePost(String postId) async {
-    final userId = FirebaseAuth.instance.currentUser?.uid;
-    if (userId == null) throw Exception('Not authenticated');
-
-    await FirebaseFirestore.instance
-        .collection('savedPosts')
-        .doc(userId)
-        .collection('posts')
-        .doc(postId)
-        .delete();
-  }
-
-  Future<bool> isPostSaved(String postId) async {
-    final userId = FirebaseAuth.instance.currentUser?.uid;
-    if (userId == null) return false;
-
-    final doc = await FirebaseFirestore.instance
-        .collection('savedPosts')
-        .doc(userId)
-        .collection('posts')
-        .doc(postId)
-        .get();
-
-    return doc.exists;
-  }
-
   // Badges
   Future<Map<String, dynamic>> getUserBadges(String userId) async {
     final headers = await _getHeaders();
@@ -262,9 +213,8 @@ class SocialApiService {
     }
   }
 
-  // Profile
   Future<Map<String, dynamic>> getUserProfile(String userId) async {
-    final headers = await _getHeaders();
+    final headers = await _getOptionalHeaders();
     final response = await http.get(
       Uri.parse('$baseUrl/social/profile/$userId'),
       headers: headers,
@@ -277,22 +227,73 @@ class SocialApiService {
     }
   }
 
-  Future<List<dynamic>> getUserPosts(String userId, {int limit = 20}) async {
-    final headers = await _getHeaders();
-    final uri = Uri.parse('$baseUrl/social/profile/$userId/posts')
-        .replace(queryParameters: {'limit': limit.toString()});
+  // Future<List<dynamic>> getUserPosts(String userId, {int limit = 20}) async {
+  //   final headers = await _getOptionalHeaders();
+  //   final uri = Uri.parse('$baseUrl/social/profile/$userId/posts')
+  //       .replace(queryParameters: {'limit': limit.toString()});
+  //
+  //   final response = await http.get(uri, headers: headers);
+  //
+  //   if (response.statusCode == 200) {
+  //     final data = jsonDecode(response.body);
+  //     return data['posts'] ?? [];
+  //   } else {
+  //     throw Exception('Failed to fetch user posts: ${response.body}');
+  //   }
+  // }
 
-    final response = await http.get(uri, headers: headers);
+  // Add this method to your existing SocialApiService class:
+
+  /// Paginated user posts. Returns { posts: [...], hasMore: bool }
+  Future<Map<String, dynamic>> getUserPostsPaginated(
+      String userId, {
+        String? lastPostId,
+        int limit = 15,
+      }) async {
+    final queryParams = <String, String>{
+      'limit': limit.toString(),
+      if (lastPostId != null) 'lastPostId': lastPostId,
+    };
+
+    final uri =
+    Uri.parse('$baseUrl/social/profile/$userId/posts').replace(queryParameters: queryParams);
+
+    final response = await http.get(uri, headers: await _getOptionalHeaders());
+    final body = jsonDecode(response.body);
+
+    if (response.statusCode == 200 && body['success'] == true) {
+      return {
+        'posts': body['posts'] as List,
+        'hasMore': body['hasMore'] ?? false,
+      };
+    }
+    throw Exception(body['error'] ?? 'Failed to load posts');
+  }
+
+  /// Keep the old getUserPosts for any callers not yet migrated
+  Future<List<dynamic>> getUserPosts(String userId) async {
+    final result = await getUserPostsPaginated(userId);
+    return result['posts'] as List<dynamic>;
+  }
+
+  Future<String> toggleSave(String postId) async {
+    print('save😭');
+    final headers = await _getOptionalHeaders();
+    final response = await http.post(
+      Uri.parse('$baseUrl/social/posts/$postId/save'),
+      headers: headers,
+    );
 
     if (response.statusCode == 200) {
       final data = jsonDecode(response.body);
-      return data['posts'] ?? [];
+      print(data);
+      return data['message'];
     } else {
-      throw Exception('Failed to fetch user posts: ${response.body}');
+      print(response.body);
+      throw Exception('Failed to fetch profile: ${response.body}');
     }
   }
 
-  // lib/services/social_api_service.dart - REPLACE getSavedPosts
 
   Future<List<dynamic>> getSavedPosts({int limit = 20}) async {
     final headers = await _getHeaders();
@@ -365,12 +366,6 @@ class SocialApiService {
       throw Exception('Failed to delete post: ${response.body}');
     }
   }
-
-// Keep existing methods (createPost, likePost, commentOnPost, etc.)
-// ... (from previous implementation)
-
-
-
 
   Future<String> uploadPostImage(File imageFile) async {
     try {
@@ -446,11 +441,7 @@ class SocialApiService {
     }
   }
 
-  Future<Map<String, dynamic>> createPost({
-    required String text,
-    List<String>? imageUrls,
-    String? title
-  }) async {
+  Future<Map<String, dynamic>> createPost({required String text, List<String>? imageUrls, String? title}) async {
     final headers = await _getHeaders();
     final response = await http.post(
       Uri.parse('$baseUrl/social/posts'),
@@ -483,10 +474,7 @@ class SocialApiService {
     }
   }
 
-  Future<Map<String, dynamic>> commentOnPost({
-    required String postId,
-    required String text,
-  }) async {
+  Future<Map<String, dynamic>> commentOnPost({required String postId, required String text,}) async {
     final headers = await _getHeaders();
     final response = await http.post(
       Uri.parse('$baseUrl/social/comment'),
@@ -505,7 +493,7 @@ class SocialApiService {
   }
 
   Future<Map<String, dynamic>> fetchComments(String postId, {int limit = 20, String? cursor}) async {
-    final headers = await _getHeaders();
+    final headers = await _getOptionalHeaders();
     final uri = Uri.parse('$baseUrl/social/posts/$postId/comments')
         .replace(queryParameters: {'limit': limit.toString(), 'cursor' : cursor });
 
@@ -520,10 +508,7 @@ class SocialApiService {
     }
   }
 
-  Future<Map<String, dynamic>> rewardPost({
-    required String postId,
-    required double amount,
-  }) async {
+  Future<Map<String, dynamic>> rewardPost({required String postId, required double amount,}) async {
     final headers = await _getHeaders();
     final response = await http.post(
       Uri.parse('$baseUrl/rewards/reward'),
@@ -571,22 +556,8 @@ class SocialApiService {
     }
   }
 
-  Future<Map<String, dynamic>> getCreatorStats() async {
-    final headers = await _getHeaders();
-    final response = await http.get(
-      Uri.parse('$baseUrl/rewards/stats'),
-      headers: headers,
-    );
-
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else {
-      throw Exception('Failed to fetch stats: ${response.body}');
-    }
-  }
-
   Future<List<dynamic>> getTopEarners() async {
-    final headers = await _getHeaders();
+    final headers = await _getOptionalHeaders();
     final response = await http.get(
       Uri.parse('$baseUrl/social/leaderboard'),
       headers: headers,
@@ -620,6 +591,85 @@ class SocialApiService {
     } catch (e) {
       print('Check like status error: $e');
       return {};
+    }
+  }
+
+
+  Future<Map<String, dynamic>> sendGift({required String postId, required String giftType,}) async {
+    final headers = await _getHeaders();
+
+    print('🎁 Sending gift: $giftType to post: $postId');
+
+    final response = await http.post(
+      Uri.parse('$baseUrl/gifts/send'),
+      headers: headers,
+      body: jsonEncode({
+        'postId': postId,
+        'giftType': giftType,
+      }),
+    );
+
+    print('📥 Gift response: ${response.statusCode}');
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      final error = jsonDecode(response.body);
+      throw Exception(error['error'] ?? 'Failed to send gift');
+    }
+  }
+
+// Get user coin balance
+  Future<Map<String, dynamic>> getCoinBalance() async {
+    final headers = await _getHeaders();
+
+    final response = await http.get(
+      Uri.parse('$baseUrl/coins/balance'),
+      headers: headers,
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to fetch coin balance');
+    }
+  }
+
+// Convert coins to naira
+  Future<Map<String, dynamic>> convertCoins(int coinAmount) async {
+    final headers = await _getHeaders();
+
+    print('💰 Converting $coinAmount coins');
+
+    final response = await http.post(
+      Uri.parse('$baseUrl/coins/convert'),
+      headers: headers,
+      body: jsonEncode({'coinAmount': coinAmount}),
+    );
+
+    print('📥 Conversion response: ${response.statusCode}');
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      final error = jsonDecode(response.body);
+      throw Exception(error['error'] ?? 'Failed to convert coins');
+    }
+  }
+
+// Get creator stats (already exists - just update the endpoint)
+  Future<Map<String, dynamic>> getCreatorStats() async {
+    final headers = await _getHeaders();
+
+    final response = await http.get(
+      Uri.parse('$baseUrl/creator/stats'),
+      headers: headers,
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception('Failed to fetch creator stats');
     }
   }
 

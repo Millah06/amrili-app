@@ -1,4 +1,5 @@
 
+import 'package:everywhere/features/social/services/social_api_service.dart';
 import 'package:everywhere/services/brain.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -9,6 +10,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../../components/bootom_bar.dart';
 import '../../constraints/constants.dart';
 import '../../screens/community_screen.dart';
+import '../../services/api_service.dart';
 import '../../shared/utils/info_box.dart';
 
 
@@ -36,11 +38,15 @@ class _SecurityScreenState extends State<SecurityScreen> {
 
   Future<void> _saveData() async {
     final prefs = await SharedPreferences.getInstance();
+    // Keep loginPassCode locally if it's an app-open lock (not financial PIN)
     await prefs.setString('loginPassCode', _passcode1controller.text);
-    await prefs.setString('transactionPIN', _pin1controller.text);
     await prefs.setBool('isSetupDone', true);
-    // Navigator.pushAndRemoveUntil(
-    //   context, MaterialPageRoute(builder: (_) => BottomBar()), (route) => false,);
+
+    final ApiService api = ApiService();
+
+    // Send transaction PIN to backend — never store locally
+    await api.post('/auth/set-pin', {'pin': _pin1controller.text},
+    );
   }
 
   @override

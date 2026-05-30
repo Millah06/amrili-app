@@ -1,21 +1,27 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:country_currency_pickers/country_picker_dropdown.dart';
+import 'package:everywhere/core/auth/guest_helper.dart';
 import 'package:everywhere/features/bottom_navigation/chats/widgets/chat_bubble.dart';
+import 'package:everywhere/features/communication/providers/sync_contact_provider.dart';
+import 'package:everywhere/features/communication/widgets/sync_contact_sheet.dart';
 import 'package:everywhere/screens/pages/transaction_history_screen.dart';
+import 'package:everywhere/services/api_service.dart';
 import 'package:everywhere/shared/widgets/pull_to_reveal.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_contacts/flutter_contacts.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:iconify_flutter/iconify_flutter.dart';
 import 'package:iconify_flutter/icons/ph.dart';
 import 'package:provider/provider.dart';
 import 'package:pull_to_reveal_flutter/pull_to_reveal_flutter.dart';
-
 import '../../../constraints/constants.dart';
 import '../../../constraints/vendor_theme.dart';
 import '../../../features/communication/providers/chat_provider.dart';
 import '../../../services/brain.dart';
+import '../../../shared/widgets/country_code_picker_field.dart';
 import '../../communication/services/chat_room_service.dart';
-import '../../communication/models/chat_model.dart';
+import '../../communication/widgets/add_by_phone_sheet.dart';
+import '../../communication/widgets/add_by_username_sheet.dart';
 import 'message_screen.dart';
 
 
@@ -72,10 +78,8 @@ class _MessagesState extends State<Messages> {
              ),
              IconButton(
                icon: const Icon( FontAwesomeIcons.plusCircle, color: Colors.white),
-               onPressed: () async {
-
-
-
+               onPressed: () {
+                 showAddFriendsSheet(context, pov);
                },
              ),
 
@@ -96,87 +100,96 @@ class _MessagesState extends State<Messages> {
                },
              ),
              const SizedBox(height: 10),
-             Expanded(
-               child: StreamBuilder<QuerySnapshot>(
-                 stream: chatsProvider.chatStream(pov.currentUser),
-                 builder: (context, snapshot) {
+             if (GuestHelper.isGuest)
+               Expanded(
+                 child: EmptyChatView(
+                   onAddFriends: () {
+                     showAddFriendsSheet(context, pov);
+                   },
+                 ),
+               ),
+             if (!GuestHelper.isGuest) ...[
+               Expanded(
+                 child: StreamBuilder<QuerySnapshot>(
+                   stream: chatsProvider.chatStream(pov.currentUser),
+                   builder: (context, snapshot) {
 
-                   if (!snapshot.hasData) {
-                     return const Center(
-                       child: CircularProgressIndicator(),
-                     );
-                   }
+                     if (!snapshot.hasData) {
+                       return const Center(
+                         child: CircularProgressIndicator(),
+                       );
+                     }
 
-                   final docs = snapshot.data!.docs;
+                     final docs = snapshot.data!.docs;
 
-                   if (docs.isEmpty) {
-                     return EmptyChatView(
-                       onAddFriends: () {
-                         showAddFriendsSheet(context, pov);
-                       },
-                     );
-                   }
+                     if (docs.isEmpty) {
+                       return EmptyChatView(
+                         onAddFriends: () {
+                           showAddFriendsSheet(context, pov);
+                         },
+                       );
+                     }
 
-                   chatsProvider.updateFromSnapshot(snapshot.data!, pov.currentUser);
+                     chatsProvider.updateFromSnapshot(snapshot.data!, pov.currentUser);
 
-                   return ValueListenableBuilder(valueListenable: filter,
-                       builder: (_, value, _) {
-                     final chats = chatsProvider.filtered(value);
-                     return ListView.separated(
-                       separatorBuilder: (_, __) => Divider(
-                         indent: 16,
-                         endIndent: 16,
-                         color: Colors.white.withOpacity(0.05),
-                         height: 1,
-                       ),
-                       itemCount: chats.length + 1,
-                       itemBuilder: (context, index) {
+                     return ValueListenableBuilder(valueListenable: filter,
+                         builder: (_, value, _) {
+                           final chats = chatsProvider.filtered(value);
+                           return ListView.separated(
+                             separatorBuilder: (_, __) => Divider(
+                               indent: 16,
+                               endIndent: 16,
+                               color: Colors.white.withOpacity(0.05),
+                               height: 1,
+                             ),
+                             itemCount: chats.length + 1,
+                             itemBuilder: (context, index) {
 
-                         if (index == chats.length) {
-                           return ChatListFooter(
-                             onAddFriends: () {
-                               showAddFriendsSheet(context, pov);
+                               if (index == chats.length) {
+                                 return ChatListFooter(
+                                   onAddFriends: () {
+                                     showAddFriendsSheet(context, pov);
+                                   },
+                                 );
+                               }
+
+                               final data = docs[index];
+
+                               final participantInfo = data['participantInfo'] as Map;
+
+                               final otherUser =
+                               participantInfo.entries.firstWhere(
+                                     (e) => e.key != pov.currentUser,
+                               );
+
+                               final name = otherUser.value['name'];
+
+                               final chat = chats[index];
+
+                               return ChatCard(
+                                 chat: chat,
+                                 onTap: () {
+                                   Navigator.push(
+                                     context,
+                                     MaterialPageRoute(
+                                       builder: (_) => Peer2PeerChat(
+                                         roomId: data.id,
+                                         otherUserName: name,
+                                         currentUserUid: pov.currentUser,
+                                         otherUid: otherUser.key,
+                                       ),
+                                     ),
+                                   );
+                                 },
+                               );
                              },
                            );
-                         }
+                         });
 
-                         final data = docs[index];
-
-                         final participantInfo =
-                         data['participantInfo'] as Map;
-
-                         final otherUser =
-                         participantInfo.entries.firstWhere(
-                               (e) => e.key != pov.currentUser,
-                         );
-
-                         final name = otherUser.value['name'];
-
-                         final chat = chats[index];
-
-                         return ChatCard(
-                           chat: chat,
-                           onTap: () {
-                             Navigator.push(
-                               context,
-                               MaterialPageRoute(
-                                 builder: (_) => Peer2PeerChat(
-                                   roomId: data.id,
-                                   otherUserName: name,
-                                   currentUserUid: pov.currentUser,
-                                   otherUid: otherUser.key,
-                                 ),
-                               ),
-                             );
-                           },
-                         );
-                       },
-                     );
-                   });
-
-                 },
-               ),
-             )
+                   },
+                 ),
+               )
+             ]
            ],
          ),
        ),
@@ -184,183 +197,88 @@ class _MessagesState extends State<Messages> {
   }
 
   void showAddFriendsSheet(BuildContext context, Brain pov) {
-
     showModalBottomSheet(
       context: context,
-      backgroundColor: const Color(0xFF1E293B),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(20),
-        ),
-      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (_) {
-
-        return Padding(
-          padding: const EdgeInsets.all(20),
+        return Container(
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 28),
+          decoration: const BoxDecoration(
+            color: Color(0xFF111827),
+            borderRadius: BorderRadius.vertical(
+              top: Radius.circular(28),
+            ),
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
 
-              ListTile(
-                leading: const Icon(Icons.person_search, color: Colors.white),
-                title: const Text("Add by username", style: TextStyle(color: Colors.white),),
-                onTap: () {},
+              Center(
+                child: Container(
+                  width: 38,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.white12,
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                ),
               ),
 
-              ListTile(
-                leading: const Icon(Icons.phone, color: Colors.white),
-                title: const Text("Add by phone number", style: TextStyle(color: Colors.white),),
-                onTap: () {},
+              const SizedBox(height: 24),
+
+              Text(
+                'Add people',
+                style: GoogleFonts.inter(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
 
-              ListTile(
-                leading: const Icon(Icons.contacts, color: Colors.white),
-                title: const Text("Add from contacts", style: TextStyle(color: Colors.white),),
-                onTap: () async {
+              const SizedBox(height: 6),
+
+              Text(
+                'Start conversations with friends and contacts.',
+                style: GoogleFonts.inter(
+                  color: Colors.white38,
+                  fontSize: 13,
+                  height: 1.4,
+                ),
+              ),
+
+              const SizedBox(height: 24),
+
+              _MinimalActionTile(
+                icon: Icons.alternate_email_rounded,
+                title: 'Username',
+                subtitle: 'Find by unique username',
+                onTap: () {
+                  Navigator.pop(context);
+                  _showAddByUsername(context, pov);
+                },
+              ),
+
+              _MinimalActionTile(
+                icon: Icons.phone_outlined,
+                title: 'Phone number',
+                subtitle: 'Search registered numbers',
+                onTap: () {
+                  Navigator.pop(context);
+                  _showAddByPhone(context, pov);
+                },
+              ),
+
+              _MinimalActionTile(
+                icon: Icons.contacts_outlined,
+                title: 'Contacts',
+                subtitle: 'People from your phonebook',
+                onTap: () {
                   Navigator.pop(context);
                   // show your contacts list
-                  if (mounted)  {
-                    await context.read<Brain>().loadContactsOnce();
-                    showModalBottomSheet(context: context, isScrollControlled: false, builder: (context) {
-                      if (pov.contactsPermissionDenied)
-                       { return Padding(
-                          padding: const EdgeInsets.only(top: 40.0, left: 16, right: 16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              Text(
-                                'Turn on contacts access to automatically find people you already know who are using Everywhere.',
-                                textAlign: TextAlign.center,
-                                style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
-                              ),
-                              const SizedBox(height: 12),
-                              SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF177E85),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    padding: const EdgeInsets.symmetric(vertical: 10),
-                                  ),
-                                  onPressed: () async {
-                                    final granted = await FlutterContacts.requestPermission(readonly: true);
-                                    if (granted && mounted) {
-                                      await pov.loadContactsOnce();
-                                    }
-                                  },
-                                  child: const Text(
-                                    'Enable contacts access',
-                                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        );}
-                      // Show a clear loading state while contacts are being fetched/matched
-                      else if (pov.contactsLoading && !pov.contactsLoaded)
-                        {return Center(
-                          child: Padding(
-                            padding: const EdgeInsets.only(top: 40.0),
-                            child: CircularProgressIndicator(color: VendorTheme.circularProgressColor,),
-                          ),
-                        );}
-                      return SingleChildScrollView(
-                        child: StreamBuilder(
-                            stream: FirebaseFirestore.instance
-                                .collection('user_contacts')
-                                .doc(pov.currentUser)
-                                .snapshots(),
-                            builder: (context, snapshot) {
-                              if (snapshot.connectionState == ConnectionState.waiting) {
-                                print('In awaiting stage');
-                                return Center(child: CircularProgressIndicator());
-                              }
+                  _showSyncFromContact(context, pov);
 
-                              if (!snapshot.hasData || !snapshot.data!.exists) {
-                                // Contacts not saved yet or document missing
-                                return Padding(
-                                  padding: const EdgeInsets.only(top: 40.0),
-                                  child: Center(
-                                    child: Text(
-                                      'No matched contacts yet.\nWe will show people from your phonebook here once scanning finishes.',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(color: Colors.white60, fontSize: 12),
-                                    ),
-                                  ),
-                                );
-                              }
-
-                              final data = snapshot.data!.data();
-                              if (data == null || data['contacts'] == null) {
-                                return Padding(
-                                  padding: const EdgeInsets.only(top: 40.0),
-                                  child: Center(
-                                    child: Text(
-                                      'No matched contacts found from your phonebook.',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(color: Colors.white60, fontSize: 12),
-                                    ),
-                                  ),
-                                );
-                              }
-
-                              final contacts = List.from(data['contacts'] as List);
-                              if (contacts.isEmpty) {
-                                return Padding(
-                                  padding: const EdgeInsets.only(top: 40.0),
-                                  child: Center(
-                                    child: Text(
-                                      'No matched contacts found from your phonebook.',
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(color: Colors.white60, fontSize: 12),
-                                    ),
-                                  ),
-                                );
-                              }
-                              return Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: contacts.map((c) {
-                                  ChatModel chat = ChatModel(id: c['uid'], name: c['name']);
-                                  return ChatCard(
-                                    chat: chat,
-                                    onTap: () async {
-                                      final myUid = pov.currentUser;
-                                      final otherUid = c['uid']; // from user_contacts
-                                      final otherUserName = c['name'];
-                                      final chatService = ChatRoomService();
-                                      final roomId = await chatService.createOrGetP2PRoom(
-                                        myUid: myUid,
-                                        otherUid: otherUid,
-                                      );
-                                      Navigator.pop(context);
-                                      Navigator.push(
-                                        context,
-                                        MaterialPageRoute(
-                                          builder: (_) => Peer2PeerChat(
-                                            roomId: roomId,
-                                            otherUid: otherUid,
-                                            otherUserName: otherUserName,
-                                            currentUserUid: pov.currentUser,
-                                          ),
-                                        ),
-                                      );
-
-                                    },
-                                    onArchive: () {},
-                                    onPin: () {},
-                                    onViewPicture: () {},
-                                    onViewProfile: () {},
-                                  );
-                                }).toList(),
-                              );
-                            },
-                          ),
-                      );
-                    });
-                  }
                 },
               ),
             ],
@@ -370,6 +288,223 @@ class _MessagesState extends State<Messages> {
     );
   }
 
+  // ─────────────────────────────────────────────────────────────
+// ADD THESE METHODS INSIDE _MessagesState
+// ─────────────────────────────────────────────────────────────
+
+  void _showSyncFromContact(BuildContext context, Brain pov) {
+    showModalBottomSheet(
+      context: context,
+      showDragHandle: false,
+      isScrollControlled: true,
+      useRootNavigator: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => ChangeNotifierProvider.value(
+        value: context.read<SyncContactProvider>(),
+        child: SyncContactsSheet(pov: pov),
+      ),
+    );
+  }
+
+  void _showAddByUsername(BuildContext context, Brain pov) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: false,
+      backgroundColor: Colors.transparent,
+      builder: (_) => AddByUsernameSheet(pov: pov),
+    );
+  }
+
+  void _showAddByPhone(BuildContext context, Brain pov) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      showDragHandle: false,
+      backgroundColor: Colors.transparent,
+      builder: (_) => AddByPhoneNumber(pov: pov),
+    );
+  }
+
+}
+
+class _MinimalActionTile extends StatelessWidget {
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _MinimalActionTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: 2,
+            vertical: 14,
+          ),
+          child: Row(
+            children: [
+
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.04),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(
+                  icon,
+                  color: Colors.white70,
+                  size: 20,
+                ),
+              ),
+
+              const SizedBox(width: 14),
+
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+
+                    Text(
+                      title,
+                      style: GoogleFonts.inter(
+                        color: Colors.white,
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+
+                    const SizedBox(height: 3),
+
+                    Text(
+                      subtitle,
+                      style: GoogleFonts.inter(
+                        color: Colors.white38,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: Colors.white24,
+                size: 14,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ActionTile extends StatelessWidget {
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final List<Color> gradient;
+  final VoidCallback onTap;
+
+  const _ActionTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.gradient,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(22),
+        onTap: onTap,
+        child: Ink(
+          padding: const EdgeInsets.all(18),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E293B),
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.05),
+            ),
+          ),
+          child: Row(
+            children: [
+
+              Container(
+                width: 54,
+                height: 54,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(colors: gradient),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Icon(
+                  icon,
+                  color: Colors.white,
+                  size: 24,
+                ),
+              ),
+
+              const SizedBox(width: 16),
+
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+
+                    Text(
+                      title,
+                      style: GoogleFonts.inter(
+                        color: Colors.white,
+                        fontSize: 15.5,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+
+                    const SizedBox(height: 4),
+
+                    Text(
+                      subtitle,
+                      style: GoogleFonts.inter(
+                        color: Colors.white54,
+                        fontSize: 12.5,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: Colors.white24,
+                size: 16,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class EmptyChatView extends StatelessWidget {
@@ -466,3 +601,16 @@ class ChatListFooter extends StatelessWidget {
     );
   }
 }
+
+// ─────────────────────────────────────────────────────────────
+// ADD THIS ENTIRE WIDGET
+// PREMIUM USERNAME SEARCH
+// ─────────────────────────────────────────────────────────────
+
+
+
+// ─────────────────────────────────────────────────────────────
+// REPLACE YOUR _AddByPhoneNumber WITH THIS
+// ─────────────────────────────────────────────────────────────
+
+

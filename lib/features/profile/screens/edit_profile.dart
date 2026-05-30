@@ -4,14 +4,13 @@ import 'dart:io';
 import 'package:everywhere/providers/user_provider.dart';
 import 'package:everywhere/services/api_service.dart';
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import '../../../constraints/constants.dart';
 import '../../../constraints/vendor_theme.dart';
-import '../../../features/marketPlace/providers/vendor_center_provider.dart';
 import '../../../shared/widgets/cover_photo_picker.dart';
 import '../../../shared/widgets/logo_picker.dart';
 import '../../marketPlace/widgets/shared_widgets.dart';
+import '../providers/my_profile_provider.dart';
 
 class EditProfilePage extends StatefulWidget {
   const EditProfilePage({super.key});
@@ -39,13 +38,13 @@ class _EditVendorProfilePageState extends State<EditProfilePage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final user = context.read<UserProvider>().user;
+      final user = context.read<MyProfileProvider>().cached;
       if (user != null) {
-        _bio.text  = user.userProfile.bio;
-        _website.text = user.userProfile.website;
-        _userName.text = user.userProfile.userName;
-        _buzEmail.text = user.userProfile.buzEmail;
-        _location.text = user.userProfile.location;
+        _bio.text  = user.bio!;
+        _website.text = user.website!;
+        _userName.text = user.userName;
+        _buzEmail.text = user.buzEmail!;
+        _location.text = user.location!;
       }
     });
   }
@@ -258,7 +257,7 @@ class _EditVendorProfilePageState extends State<EditProfilePage> {
               VButton(
                 label: 'Save Changes',
                 loading: _loading,
-                onTap: isAvailable == true ? () => _save(u) : null,
+                onTap: isAvailable == false  ? null : () => _save(u) ,
               ),
               const SizedBox(height: 40),
             ],
@@ -268,50 +267,121 @@ class _EditVendorProfilePageState extends State<EditProfilePage> {
     );
   }
 
-  void _save(UserProvider u) async {
+  // void _save(UserProvider u) async {
+  //
+  //   setState(() { _loading = true; _error = null; });
+  //   try {
+  //     final api = ApiService();
+  //     String? handle = _userName.text.toLowerCase().replaceAll(RegExp(r'\s+'), '_');
+  //     // Update text fields
+  //     await api.put('/users/me/profile', {
+  //       'bio': _bio.text.trim(),
+  //       'location': _location.text.trim(),
+  //       'website': _website.text.trim(),
+  //       'businessEmail': _buzEmail.text.trim(),
+  //       'userName' : handle,
+  //     });
+  //
+  //     // Upload cover if changed
+  //     if (_pendingCoverImage!= null) {
+  //       await api.upload(
+  //         'users/me/upload/cover-photo',
+  //         _pendingCoverImage!,
+  //         _pendingCoverName!,
+  //       );
+  //     }
+  //
+  //     // Upload logo if changed
+  //     if (_pendingLogoImage != null) {
+  //       await api.upload(
+  //           'users/me/upload/profile-picture',
+  //           _pendingLogoImage!,
+  //           _pendingLogoName!
+  //       );
+  //     }
+  //
+  //     // await p.init();
+  //
+  //     if (mounted) {
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         const SnackBar(
+  //           content: Text('Profile updated!'),
+  //           backgroundColor: VendorTheme.primary,
+  //         ),
+  //       );
+  //       Navigator.pop(context, true);
+  //     }
+  //   } catch (e) {
+  //     setState(() => _error = e.toString().replaceAll('Exception: ', ''));
+  //   } finally {
+  //     if (mounted) setState(() => _loading = false);
+  //   }
+  // }
 
-    setState(() { _loading = true; _error = null; });
+  void _save(UserProvider u) async {
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
     try {
       final api = ApiService();
-      String? handle = _userName.text.toLowerCase().replaceAll(RegExp(r'\s+'), '_');
-      // Update text fields
+      final handle =
+      _userName.text.toLowerCase().trim().replaceAll(RegExp(r'\s+'), '_');
+
+      // 1. Save text fields
       await api.put('/users/me/profile', {
         'bio': _bio.text.trim(),
         'location': _location.text.trim(),
         'website': _website.text.trim(),
         'businessEmail': _buzEmail.text.trim(),
-        'userName' : handle,
+        'userName': handle,
       });
 
-      // Upload cover if changed
-      if (_pendingCoverImage!= null) {
+      // 2. Upload images if changed
+      if (_pendingCoverImage != null) {
         await api.upload(
           'users/me/upload/cover-photo',
           _pendingCoverImage!,
           _pendingCoverName!,
         );
       }
-
-      // Upload logo if changed
       if (_pendingLogoImage != null) {
         await api.upload(
-            'users/me/upload/profile-picture',
-            _pendingLogoImage!,
-            _pendingLogoName!
+          'users/me/upload/profile-picture',
+          _pendingLogoImage!,
+          _pendingLogoName!,
         );
       }
 
-      // await p.init();
+      if (!mounted) return;
 
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Profile updated!'),
-            backgroundColor: VendorTheme.primary,
-          ),
-        );
-        Navigator.pop(context, true);
+      // 3. ✅ Immediately patch memory + SharedPreferences with known text values.
+      //    The profile screen will reflect this the moment you pop — no flicker,
+      //    no second API call, no cache blocking.
+      context.read<MyProfileProvider>().applyProfileEdit(
+        bio: _bio.text.trim(),
+        location: _location.text.trim(),
+        website: _website.text.trim(),
+        buzEmail: _buzEmail.text.trim(),
+        displayName: handle,
+      );
+
+      // 4. ✅ Silent background refresh to pick up new avatar/cover URLs.
+      //    This runs AFTER pop — the user never sees a loading state for this.
+      final userId = u.user?.userId;
+      if (userId != null) {
+        context.read<MyProfileProvider>().handleProfileSaved(userId);
       }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Profile updated!'),
+          backgroundColor: kSnackSuccess,
+        ),
+      );
+
+      Navigator.pop(context, true);
     } catch (e) {
       setState(() => _error = e.toString().replaceAll('Exception: ', ''));
     } finally {

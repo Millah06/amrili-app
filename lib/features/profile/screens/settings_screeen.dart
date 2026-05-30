@@ -1,6 +1,6 @@
 // lib/screens/settings_screen.dart - NEW
 
-import 'package:everywhere/features/bottom_navigation/profile/edit_profile.dart';
+import 'package:everywhere/features/profile/screens/edit_profile.dart';
 import 'package:everywhere/providers/user_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -74,7 +74,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
             icon: Icons.person,
             title: 'Edit Profile',
             onTap: ()  async {
-               Navigator.push(context, MaterialPageRoute(builder: (context) => EditProfilePage()));
                final result = await Navigator.push(context,
                    MaterialPageRoute(builder: (context) => EditProfilePage()));
 
@@ -290,9 +289,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     if (confirm == true) {
       Navigator.pop(context);
+      // context.read<MyProfileProvider>().invalidate();
       final prefs = await SharedPreferences.getInstance();
       await FirebaseAuth.instance.signOut();
+
       await prefs.setBool('isSetupDone', false);
+      await prefs.remove('isGuest');
       await Hive.box<AppNotification>('notifications').clear();
       Provider.of<Brain>(context, listen: false).reset();
       Provider.of<SessionProvider>(context, listen: false).logout();

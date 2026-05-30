@@ -18,7 +18,7 @@ class OrderRepository {
       'vendorId': vendorId,
       'branchId': branchId,
       'items': items.map((i) => i.toOrderPayload()).toList(),
-      'deliveryAddress': deliveryAddress.toJson(),
+      'deliveryAddress': deliveryAddress,
     };
     final data = await api.post('/orders', body);
     return OrderModel.fromJson(data);

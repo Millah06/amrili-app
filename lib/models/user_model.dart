@@ -51,11 +51,11 @@ class User {
     );
   }
 
-  User copyWith({String? userId}) {
+  User copyWith({String? userId, String? phone, String? avatar}) {
     return User(userId: userId  ?? this.userId,
         name: name,
         email: email,
-        phone: phone,
+        phone: phone ?? this.phone,
         role: role,
         active: active,
         referralCode: referralCode,

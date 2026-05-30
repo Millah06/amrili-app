@@ -45,6 +45,8 @@ class RecentFrame extends StatelessWidget {
       case 'wallet_funding':    return Icons.account_balance_wallet_rounded;
       case 'order_payment':     return Icons.shopping_bag_rounded;
       case 'gift':              return Icons.card_giftcard_rounded;
+      case 'wallet_withdrawal': return Icons.account_balance_rounded;
+      case 'order_refund':      return Icons.replay_rounded;
       default:                  return Icons.receipt_rounded;
     }
   }
@@ -56,6 +58,8 @@ class RecentFrame extends StatelessWidget {
       case 'transfer_debit':    return const Color(0xFFEF4444).withOpacity(0.12);
       case 'electricity':       return const Color(0xFFF59E0B).withOpacity(0.12);
       case 'gift':              return const Color(0xFFEC4899).withOpacity(0.12);
+      case 'wallet_withdrawal': return const Color(0xFFEF4444).withOpacity(0.12);
+      case 'order_refund':      return const Color(0xFF22C55E).withOpacity(0.12);
       default:                  return const Color(0xFF177E85).withOpacity(0.12);
     }
   }
@@ -67,6 +71,8 @@ class RecentFrame extends StatelessWidget {
       case 'transfer_debit':    return const Color(0xFFEF4444);
       case 'electricity':       return const Color(0xFFF59E0B);
       case 'gift':              return const Color(0xFFEC4899);
+      case 'wallet_withdrawal': return const Color(0xFFEF4444);
+      case 'order_refund':      return const Color(0xFF22C55E);
       default:                  return const Color(0xFF21D3ED);
     }
   }

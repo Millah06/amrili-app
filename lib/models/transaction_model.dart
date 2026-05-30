@@ -155,6 +155,8 @@ class TransactionModel {
       case 'transfer_credit':   return 'Transfer Received';
       case 'wallet_funding':    return 'Wallet Funded';
       case 'order_payment':     return 'Order Payment';
+      case 'wallet_withdrawal': return 'Wallet Withdrawal';
+      case 'order_refund':      return 'Order Refund';
       case 'gift':              return 'Gift Card';
       default:
         return type.replaceAll('_', ' ').split(' ').map((w) =>
@@ -163,7 +165,9 @@ class TransactionModel {
     }
   }
 
-  bool get isCredit  => type == 'transfer_credit' || type == 'wallet_funding';
+  bool get isCredit => type == 'transfer_credit' ||
+      type == 'wallet_funding'   ||
+      type == 'order_refund';
   bool get isSuccess => status == 'success';
   bool get isFailed  => status == 'failed';
   bool get isPending => status == 'pending';

@@ -36,7 +36,6 @@ class TransactionService {
     final pov = Provider.of<Brain>(context, listen: false);
 
     void showCorrect() async {
-      Navigator.pop(context);
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -123,27 +122,7 @@ class TransactionService {
         isDismissible: false,
         builder: (_) =>
         TransactionPin(
-          onCompleted: (pin ) async {
-            if (pin == pov.localPIN) {
-              showCorrect();
-            }
-            else {
-              FlushBarMessage.showFlushBar(
-                  context: context,
-                  message: 'Incorrect PIN!, try again.',
-                title: 'Ops',
-                icon: Icon(Icons.error_outline,
-                  color: Colors.white, size: 30,),
-              );
-
-            }
-          },
-          onForgotPin: () async {
-            final Uri uri = Uri.parse('https://wa.me/message/BZ5RBPJYF7PHE1');
-            if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-            throw Exception('Could not launch');
-            }
-          },
+          onSuccess: () => showCorrect()
           // onCorrect: showCorrect
         )
     );

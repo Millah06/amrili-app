@@ -1,23 +1,19 @@
 
+import 'package:everywhere/core/constant/app_constants.dart';
 import 'package:everywhere/features/communication/providers/chat_provider.dart';
 import 'package:everywhere/features/social/providers/feed_provider.dart';
-
 import 'package:everywhere/providers/profile_provider.dart';
 import 'package:everywhere/features/social/providers/reward_provider.dart';
 import 'package:everywhere/providers/transaction_provider.dart';
 import 'package:everywhere/providers/user_provider.dart';
-
 import 'package:everywhere/providers/withdrawal_provider.dart';
-
 import 'package:everywhere/screens/first_screen.dart';
 import 'package:everywhere/screens/welcome_screen.dart';
-
 import 'package:everywhere/services/brain.dart';
 import 'package:everywhere/services/notification_service.dart';
 import 'package:everywhere/services/session_service.dart';
-
+import 'package:everywhere/shared/widgets/splash_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -26,6 +22,7 @@ import 'constraints/constants.dart';
 import 'constraints/vendor_theme.dart';
 import 'features/bottom_navigation/services_screen.dart';
 import 'features/bottom_navigation/wallet/wallet_screen.dart';
+import 'features/profile/providers/my_profile_provider.dart';
 import 'features/support/provider.dart';
 import 'features/utility/screens/utility_screens/airtime_gift.dart';
 import 'features/utility/screens/utility_screens/airtime_screen.dart';
@@ -51,6 +48,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   AppLifecycleState? _appLifecycleState;
   // Key _key = UniqueKey();
   bool  hasDone = false;
+  bool _isGuest = false;   // ← add this
   bool _isLoading = true;
 
   @override
@@ -67,6 +65,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     if (mounted) {
       setState(() {
         hasDone  = prefs.getBool('isSetupDone') ?? false;
+        _isGuest  = prefs.getBool('isGuest')     ?? false;
         _isLoading = false;
       });
     }
@@ -86,12 +85,6 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
     setState(() {
       _appLifecycleState = state;
     });
-    // if (state == AppLifecycleState.paused) {
-    //  hasDone ?  Navigator.of(context).pushAndRemoveUntil(
-    //       MaterialPageRoute(builder: (context) => FirstScreen()), (route) => false) : Navigator.of(context)
-    //      .pushAndRemoveUntil(
-    //      MaterialPageRoute(builder: (context) => WelcomeScreen()), (route) => false);
-    // }
     if (state == AppLifecycleState.resumed) {
       WidgetsBinding.instance.addPostFrameCallback((_) async {
         if (mounted) {
@@ -119,40 +112,15 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     final session = Provider.of<SessionProvider>(context);
     final pov = Provider.of<UserProvider>(context);
-    if (_isLoading) {
-      return MaterialApp(
-        debugShowCheckedModeBanner: false,
-        home: const Scaffold(
-          backgroundColor: Color(0xFF0F172A),
-          body: Center(
-            child: CircularProgressIndicator(
-              value: 20,
-              backgroundColor: kCardColor,
-              color: kButtonColor,
-            ),
-          ),
-        ),
-      );
-    }
-    if (pov.loadingUser) {
-      return MaterialApp(
-        debugShowCheckedModeBanner: false,
-        home: const Scaffold(
-          backgroundColor: Color(0xFF0F172A),
-          body: Center(
-            child: CircularProgressIndicator(
-              value: 20,
-              backgroundColor: kCardColor,
-              color: kButtonColor,
-            ),
-          ),
-        ),
-      );
-    }
+    // In _MyAppState.build()
+    if (_isLoading) return const SplashScreen();
+    if (pov.loadingUser) return const SplashScreen();
+
     return MultiProvider(
       key: ValueKey(session.currentUserId),
       providers: [
         ChangeNotifierProvider(create: (_) => ProfileProvider()),
+        ChangeNotifierProvider(create: (_) => MyProfileProvider()..initialize(pov.user!.userId)),
         ChangeNotifierProvider(create: (_) => FeedProvider()),
         ChangeNotifierProvider(create: (_) => RewardProvider()),
         ChangeNotifierProvider(create: (_) => WithdrawalProvider()),
@@ -170,7 +138,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         navigatorKey: navigatorKey,
-        title: 'Amril',
+        title: AppConstants.appName,
         // key: _key,
         theme: ThemeData(
           scaffoldBackgroundColor: Color(0xFF0F172A),
@@ -212,10 +180,8 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                   borderRadius: BorderRadius.circular(10)
               )
           ),
-
           textTheme: TextTheme(
             bodyMedium: TextStyle(color: Colors.white,),
-
           ),
           iconTheme: IconThemeData(
             // color: Color(0xFF21D3ED)
@@ -239,9 +205,9 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           ),
           elevatedButtonTheme: ElevatedButtonThemeData(
             style: ElevatedButton.styleFrom(
-                side: BorderSide(
-                    color: kButtonColor
-                ),
+                // side: BorderSide(
+                //     color: kButtonColor
+                // ),
                 shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12)
                 ),
@@ -251,7 +217,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         ),
         // this will be implemented in the second phase
         // home: hasDone ? const FirstScreen() : const WelcomeScreen(),
-        home : hasDone ? const BottomBar() : const WelcomeScreen(),
+        // After:
+        home: hasDone ? const BottomBar()
+            : _isGuest ? const BottomBar()   // ← guest persists to feed
+            : const WelcomeScreen(),
         routes: {
           HomeScreen.id : (context) => HomeScreen(),
           WalletScreen.id: (context) => WalletScreen(),

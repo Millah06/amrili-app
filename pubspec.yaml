@@ -73,13 +73,18 @@ dependencies:
   package_info_plus: ^8.3.1
   mobile_scanner: ^7.1.4
   iconify_flutter: ^0.0.7
-  flutter_contacts: ^1.1.9+2
   firebase_app_check: ^0.3.2+10
   timeago: ^3.7.1
   http: ^1.6.0
   gal: ^2.3.2
   pull_to_reveal_flutter: ^0.1.2
   pro_image_editor: ^11.3.0
+  world_countries: ^3.6.0
+  country_currency_pickers:
+  sign_in_with_apple: ^7.0.1
+  google_sign_in: ^7.2.0
+  fast_contacts: ^5.0.1
+  permission_handler: ^12.0.1
 
 dev_dependencies:
   flutter_test:

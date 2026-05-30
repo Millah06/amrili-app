@@ -1,3 +1,4 @@
+import 'package:everywhere/core/auth/guest_helper.dart';
 import 'package:everywhere/features/support/help_center.dart';
 import 'package:everywhere/features/marketPlace/widgets/shared_widgets.dart';
 import 'package:everywhere/features/utility/screens/utility_screens/airtime_gift.dart';
@@ -6,7 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:pull_to_reveal_flutter/pull_to_reveal_flutter.dart';
 
 import '../../constraints/vendor_theme.dart';
-import '../../features/bottom_navigation/profile/settings_screeen.dart';
+import '../../features/profile/screens/settings_screeen.dart';
 import '../../features/bottom_navigation/wallet/pages/withdraw_bank_screen.dart';
 import '../../features/marketPlace/utils/vendor_engine_entry.dart';
 
@@ -98,10 +99,11 @@ class _PullRevealOverlayWrapperState
             threshold: 60,
             resistanceFactor: 0.25,
             controller: widget.controller,
-            background: BackgroundWidget(onCancel: () {
+            background: BackgroundWidget(
+                onCancel: () {
               widget.controller.dismiss();
             }),
-            onReveal: () {
+            onReveal: GuestHelper.isGuest ? () {} : () {
               Navigator.push(context, MaterialPageRoute(builder: (context) =>
                   VendorEngineEntry(searchParam: null,)));
             },
@@ -308,7 +310,7 @@ class _ActionItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: () => GuestHelper.guardAction(context, action: onTap, reason: 'access quick actions'),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [

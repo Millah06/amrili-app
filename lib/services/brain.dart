@@ -1,13 +1,7 @@
 import 'dart:async';
 import 'dart:io';
-import 'dart:math';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:dio/dio.dart';
-import 'package:everywhere/constraints/firebase_constant.dart';
-import 'package:everywhere/features/communication/services/user_contact_service.dart';
-import 'package:everywhere/features/communication/services/user_match_service.dart';
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:image_picker/image_picker.dart';
@@ -16,8 +10,6 @@ import 'package:local_auth/local_auth.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
-
-import '../features/communication/services/contact_service.dart';
 import '../features/social/services/social_api_service.dart';
 
 class Brain extends ChangeNotifier {
@@ -30,48 +22,6 @@ class Brain extends ChangeNotifier {
 
 
   String get currentUser => FirebaseAuth.instance.currentUser!.uid;
-
-  bool _contactsLoaded = false;
-  bool _contactsLoading = false;
-  bool _contactsPermissionDenied = false;
-
-  bool get contactsLoaded => _contactsLoaded;
-  bool get contactsLoading => _contactsLoading;
-  bool get contactsPermissionDenied => _contactsPermissionDenied;
-
-  Future<void> loadContactsOnce() async {
-    // Avoid duplicate work if already running or done
-    if (_contactsLoaded || _contactsLoading) return;
-
-    _contactsLoading = true;
-    _contactsPermissionDenied = false;
-    notifyListeners();
-
-    try {
-      debugPrint('🔄 Start loading contacts for chat matching...');
-
-      final contacts = await ContactService().fetchContacts();
-      debugPrint('📇 CONTACT COUNT: ${contacts.length}');
-
-      final matchedUsers = await UserMatchService().findMatchedUsers(contacts);
-
-      debugPrint('👤 Saving matched contacts for user $currentUser, count: ${matchedUsers.length}');
-
-      await UserContactService.saveUserContacts(currentUser, matchedUsers);
-
-      _contactsLoaded = true;
-    } on ContactPermissionDeniedException catch (e) {
-      _contactsPermissionDenied = true;
-      debugPrint('⚠️ Contacts permission denied: $e');
-    } catch (e, st) {
-      debugPrint('❌ Error loading / matching contacts: $e\n$st');
-    } finally {
-      _contactsLoading = false;
-      notifyListeners();
-    }
-  }
-
-
 
   Future<bool> canAuthenticate() async {
     final LocalAuthentication auth = LocalAuthentication();
@@ -134,51 +84,50 @@ class Brain extends ChangeNotifier {
   Future<void> getData() async {
     final userId = FirebaseAuth.instance.currentUser?.uid;
     final prefs = await SharedPreferences.getInstance();
-    passCode  = prefs.getString('loginPassCode')!;
-    pIN = prefs.getString('transactionPIN')!;
-    imagePath = prefs.getString('imagePath')!;
+    // // passCode  = prefs.getString('loginPassCode')!;
+    // imagePath = prefs.getString('imagePath')!;
     try {
 
-      final doc = await FirebaseFirestore.instance.collection('users')
-          .doc(userId).get();
-
-      final bonusDoc = await FirebaseFirestore.instance.collection('bonuses ').doc('reward').get();
-      DocumentSnapshot updateSnap = await FirebaseFirestore.instance.collection('bonuses ').doc('updateInfo').get();
-
-      if (updateSnap.exists) {
-        whatIsNew = List<String>.from(updateSnap['whatIsNew'].values);
-        mandatory = updateSnap['mandatory'] ?? false;
-        versionName = updateSnap['versionName'];
-      }
-
-      final serviceDoc = await FirebaseFirestore.instance.collection('services').doc('services').get();
-
-      if (bonusDoc.exists) {
-        print("Bonus doc data: ${bonusDoc.data()}");
-      } else {
-        print("No bonus doc found!");
-      }
-
-      cableProviders = Map<String, bool>.from(serviceDoc['cableServices']);
-      dataProviders =  Map<String, bool>.from(serviceDoc['dataNetwork']);
-      airtimeProviders =  Map<String, bool>.from(serviceDoc['airtimeServices']);
-      electricProviders = Map<String, bool>.from(serviceDoc['electricProviders']);
-
-      airtimePercent = (bonusDoc['airtime'] as num).toDouble();
-      dataPercent = (bonusDoc['data'] as num).toDouble();
-      cablePercent = (bonusDoc['cable'] as num).toDouble();
-      electricPercent = (bonusDoc['electric'] as num).toDouble();
-      rCBusinessPercent = (bonusDoc['rechargeB'] as num).toDouble();
-      rCPersonalPercent = (bonusDoc['rechargeP'] as num).toDouble();
-      internetPercent = (bonusDoc['internet'] as num).toDouble();
-      waecPercent = (bonusDoc['waec'] as num).toDouble();
-      jambPercent = (bonusDoc['jamb'] as num).toDouble();
-      fundingFees = (bonusDoc['fundingFees'] as num).toDouble();
-      buildNumberFromFireStore = (bonusDoc['buildNumber'] as num).toInt();
-      baseURL = bonusDoc['baseURL'] ?? {
-        print('Base Url not found'),
-        "https://everywhere-data-app.onrender.com"
-      };
+      // final doc = await FirebaseFirestore.instance.collection('users')
+      //     .doc(userId).get();
+      //
+      // final bonusDoc = await FirebaseFirestore.instance.collection('bonuses ').doc('reward').get();
+      // DocumentSnapshot updateSnap = await FirebaseFirestore.instance.collection('bonuses ').doc('updateInfo').get();
+      //
+      // if (updateSnap.exists) {
+      //   whatIsNew = List<String>.from(updateSnap['whatIsNew'].values);
+      //   mandatory = updateSnap['mandatory'] ?? false;
+      //   versionName = updateSnap['versionName'];
+      // }
+      //
+      // final serviceDoc = await FirebaseFirestore.instance.collection('services').doc('services').get();
+      //
+      // if (bonusDoc.exists) {
+      //   print("Bonus doc data: ${bonusDoc.data()}");
+      // } else {
+      //   print("No bonus doc found!");
+      // }
+      //
+      // cableProviders = Map<String, bool>.from(serviceDoc['cableServices']);
+      // dataProviders =  Map<String, bool>.from(serviceDoc['dataNetwork']);
+      // airtimeProviders =  Map<String, bool>.from(serviceDoc['airtimeServices']);
+      // electricProviders = Map<String, bool>.from(serviceDoc['electricProviders']);
+      //
+      // airtimePercent = (bonusDoc['airtime'] as num).toDouble();
+      // dataPercent = (bonusDoc['data'] as num).toDouble();
+      // cablePercent = (bonusDoc['cable'] as num).toDouble();
+      // electricPercent = (bonusDoc['electric'] as num).toDouble();
+      // rCBusinessPercent = (bonusDoc['rechargeB'] as num).toDouble();
+      // rCPersonalPercent = (bonusDoc['rechargeP'] as num).toDouble();
+      // internetPercent = (bonusDoc['internet'] as num).toDouble();
+      // waecPercent = (bonusDoc['waec'] as num).toDouble();
+      // jambPercent = (bonusDoc['jamb'] as num).toDouble();
+      // fundingFees = (bonusDoc['fundingFees'] as num).toDouble();
+      // buildNumberFromFireStore = (bonusDoc['buildNumber'] as num).toInt();
+      // baseURL = bonusDoc['baseURL'] ?? {
+      //   print('Base Url not found'),
+      //   "https://everywhere-data-app.onrender.com"
+      // };
 
 
       notifyListeners();

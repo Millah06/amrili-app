@@ -7,6 +7,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../../services/api_service.dart';
 import '../../../services/dio_client.dart';
 import '../../../services/vendorService/vendor_repository.dart';
+import '../../social/services/social_api_service.dart';
 import '../models/order_model.dart';
 import '../models/vendor_model.dart';
 
@@ -90,6 +91,87 @@ class VendorCenterProvider extends ChangeNotifier {
     } catch (e) {
       error = e.toString();
       notifyListeners();
+      return false;
+    }
+  }
+
+  /// Vendor cancels their own appeal (or buyer cancels theirs from vendor context).
+  Future<bool> cancelAppeal(String orderId) async {
+    try {
+      await api.post('/order/$orderId/cancel-appeal', {});
+      return true;
+    } catch (e) {
+      error = e.toString().replaceAll('Exception: ', '');
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Vendor concedes a buyer's appeal — funds go back to buyer.
+  Future<bool> concedeAppeal(String orderId) async {
+    try {
+      await api.post('/order/$orderId/concede-appeal', {});
+      return true;
+    } catch (e) {
+      error = e.toString().replaceAll('Exception: ', '');
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Advances order to 'delivered' AND uploads proof images to chat.
+  /// Returns (success, List<uploadedUrls>).
+  Future<(bool, List<String>)> markDeliveredWithProof(
+      String orderId,
+      List<XFile> proofImages,
+      ) async {
+    try {
+      // 1. Upload images — uses the same uploadPostImages you already have
+      final SocialApiService apiService = SocialApiService();
+
+      final urls = await apiService.uploadPostImages(proofImages);
+
+      // 2. Advance status to delivered
+      await api.put('/order/$orderId/status', {'status': 'delivered'});
+
+      return (true, urls);
+    } catch (e) {
+      error = e.toString().replaceAll('Exception: ', '');
+      notifyListeners();
+      return (false, <String>[]);
+    }
+  }
+
+  /// Submit a review for a vendor after order completion.
+  Future<bool> submitReview(
+      String vendorId, {
+        required double rating,
+        required String comment,
+        required String userName,
+        required String orderId,
+      }) async {
+    try {
+      await api.post('/vendor/$vendorId/review', {
+        'rating': rating,
+        'comment': comment,
+        'userName': userName,
+        'orderId': orderId
+      });
+      return true;
+    } catch (e) {
+      error = e.toString().replaceAll('Exception: ', '');
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Check if the current user has already reviewed this vendor.
+  /// Returns {hasReviewed: bool}.
+  Future<bool> checkHasReviewed(String vendorId) async {
+    try {
+      final data = await api.get('/vendor/$vendorId/reviews');
+      return data['hasReviewed'] ?? false;
+    } catch (_) {
       return false;
     }
   }
@@ -247,3 +329,4 @@ class VendorCenterProvider extends ChangeNotifier {
 
   }
 }
+
