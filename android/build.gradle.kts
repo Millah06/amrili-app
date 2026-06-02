@@ -20,16 +20,17 @@ tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }
 
-plugins {
-    // ...
-
-    // Add the dependency for the Google services Gradle plugin
-    id("com.google.gms.google-services") version "4.4.2" apply false
-
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath("com.android.tools.build:gradle:8.11.1")
+        classpath("com.google.gms:google-services:4.4.2")
+    }
 }
 
-//buildscript {
-//    dependencies {
-//        classpath("com.google.gms.google-services")
-//    }
-//}
+plugins {
+    id("com.google.gms.google-services") version "4.4.4" apply false
+}
