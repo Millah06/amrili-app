@@ -1,12 +1,9 @@
 import 'dart:io';
-
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
 import '../../../services/api_service.dart';
 import '../../../services/dio_client.dart';
-import '../../../services/vendorService/vendor_repository.dart';
 import '../../social/services/social_api_service.dart';
 import '../models/order_model.dart';
 import '../models/vendor_model.dart';
@@ -119,8 +116,8 @@ class VendorCenterProvider extends ChangeNotifier {
     }
   }
 
-  /// Advances order to 'delivered' AND uploads proof images to chat.
-  /// Returns (success, List<uploadedUrls>).
+  // Advances order to 'delivered' AND uploads proof images to chat.
+  // Returns (success, List<uploadedUrls>).
   Future<(bool, List<String>)> markDeliveredWithProof(
       String orderId,
       List<XFile> proofImages,
@@ -313,7 +310,7 @@ class VendorCenterProvider extends ChangeNotifier {
       return true;
     }
     catch (e) {
-      print('${e.toString()}');
+      print(e.toString());
       error = e.toString(); notifyListeners(); return false;
     }
   }

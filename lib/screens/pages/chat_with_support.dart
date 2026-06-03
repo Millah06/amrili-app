@@ -126,7 +126,7 @@ class _ChatWithSupportState extends State<ChatWithSupport> {
                           },
                           child: Padding(
                             padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 3),
-                            child: Icon(FontAwesomeIcons.faceSmileBeam, color: Colors.white, size: 25,
+                            child: FaIcon(FontAwesomeIcons.faceSmileBeam, color: Colors.white, size: 25,
                             ),
                           )),
                       Expanded(
@@ -159,7 +159,7 @@ class _ChatWithSupportState extends State<ChatWithSupport> {
                             });
                           }, child: Padding(
                         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 3),
-                        child: Icon(
+                        child: FaIcon(
                           FontAwesomeIcons.plusCircle,
                           color: Colors.white,
                           size: 28,
@@ -172,7 +172,7 @@ class _ChatWithSupportState extends State<ChatWithSupport> {
                           });
                         }, child: Padding(
                         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 3),
-                        child: Icon(FontAwesomeIcons.keyboard, size: 28,),
+                        child: FaIcon(FontAwesomeIcons.keyboard, size: 28,),
                       ),),
                       Visibility(
                           visible: messageText.isNotEmpty,
@@ -206,7 +206,7 @@ class _ChatWithSupportState extends State<ChatWithSupport> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         ...List.generate(4, (index) {
-                          Map<String, IconData> cardDetails = {
+                          Map<String, FaIconData> cardDetails = {
                             'Send Airtime' : FontAwesomeIcons.simCard,
                             'Send AirtimeGift' : FontAwesomeIcons.gift,
                             'Transfer Money' : FontAwesomeIcons.moneyBillTransfer,

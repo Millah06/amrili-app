@@ -242,7 +242,7 @@ class _FeedScreenState extends State<FeedScreen> with AutomaticKeepAliveClientMi
               Navigator.push(context, MaterialPageRoute(builder: (_) => SearchScreen()));
             }, icon: Icon(Icons.search)),
             IconButton(
-              icon: const Icon( FontAwesomeIcons.plusCircle, color: Colors.white),
+              icon: const FaIcon(FontAwesomeIcons.plusCircle, color: Colors.white),
               onPressed: () async {
 
                 final result = await Navigator.push(

@@ -100,7 +100,7 @@ class _SupportChatScreenState extends State<SupportChatScreen > {
                           },
                           child: Padding(
                             padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 3),
-                            child: Icon(FontAwesomeIcons.faceSmileBeam, color: Colors.white, size: 25,
+                            child: FaIcon(FontAwesomeIcons.faceSmileBeam, color: Colors.white, size: 25,
                             ),
                           )),
                       Expanded(
@@ -128,7 +128,7 @@ class _SupportChatScreenState extends State<SupportChatScreen > {
                             });
                           }, child: Padding(
                         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 3),
-                        child: Icon(
+                        child: FaIcon(
                           FontAwesomeIcons.plusCircle,
                           color: Colors.white,
                           size: 28,
@@ -141,7 +141,7 @@ class _SupportChatScreenState extends State<SupportChatScreen > {
                           });
                         }, child: Padding(
                         padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 3),
-                        child: Icon(FontAwesomeIcons.keyboard, size: 28,),
+                        child: FaIcon(FontAwesomeIcons.keyboard, size: 28,),
                       ),),
                       Visibility(
                           visible: messageTextController.text.isNotEmpty,

@@ -135,7 +135,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
                                             obscureText1 = !obscureText1;
                                           });
                                         },
-                                        icon: Icon(obscureText1 ? FontAwesomeIcons.eyeSlash :
+                                        icon: FaIcon(obscureText1 ? FontAwesomeIcons.eyeSlash :
                                         FontAwesomeIcons.eye, size: 18,)
                                     ),
                                     hintStyle: TextStyle(color: Color(0x8AFFFFFF)),
@@ -179,7 +179,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
                                             obscureText2 = !obscureText2;
                                           });
                                         },
-                                        icon: Icon(obscureText2 ? FontAwesomeIcons.eyeSlash :
+                                        icon: FaIcon(obscureText2 ? FontAwesomeIcons.eyeSlash :
                                         FontAwesomeIcons.eye, size: 18,)
                                     ),
                                   ),
@@ -222,7 +222,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
                                             obscureText3 = !obscureText3;
                                           });
                                         },
-                                        icon: Icon(obscureText3 ? FontAwesomeIcons.eyeSlash :
+                                        icon: FaIcon(obscureText3 ? FontAwesomeIcons.eyeSlash :
                                         FontAwesomeIcons.eye, size: 18,)
                                     ),
                                     hintStyle: TextStyle(color: Color(0x8AFFFFFF)),
@@ -266,7 +266,7 @@ class _SecurityScreenState extends State<SecurityScreen> {
                                             obscureText4 = !obscureText4;
                                           });
                                         },
-                                        icon: Icon(obscureText4 ? FontAwesomeIcons.eyeSlash :
+                                        icon: FaIcon(obscureText4 ? FontAwesomeIcons.eyeSlash :
                                         FontAwesomeIcons.eye, size: 18,)
                                     ),
                                   ),

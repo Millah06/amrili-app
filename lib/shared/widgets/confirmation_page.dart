@@ -497,7 +497,7 @@ class _ConfirmationPageState extends State<ConfirmationPage> {
                               },
                               child: Row(
                                 children: [
-                                  Icon(
+                                  FaIcon(
                                     FontAwesomeIcons.plusCircle,
                                     color: Colors.black,
                                   ),

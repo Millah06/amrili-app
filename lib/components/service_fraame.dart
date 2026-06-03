@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 import '../constraints/constants.dart';
 
@@ -9,7 +10,7 @@ class ServiceFrame extends StatelessWidget {
     this.titleFont, this.backgroundColor, this.iconColor});
 
   final String title;
-  final IconData icon;
+  final FaIconData icon;
   final Function() onTap;
   final bool isNew;
   final double? titleFont;
@@ -38,7 +39,7 @@ class ServiceFrame extends StatelessWidget {
                       color: backgroundColor ??Color(0xFF177E85),
                       borderRadius: BorderRadius.circular(16),
                     ),
-                    child:Icon(icon,
+                    child: FaIcon(icon,
                       color: iconColor ?? Colors.white, size: kServiceIconSize),
                   ),
                 ),
@@ -78,7 +79,7 @@ class ServiceFrame extends StatelessWidget {
                   borderRadius: BorderRadius.circular(16),
 
                 ),
-                child:  Icon(icon,
+                child:  FaIcon(icon,
                     color: iconColor ?? Colors.white,),
               ),
             ),

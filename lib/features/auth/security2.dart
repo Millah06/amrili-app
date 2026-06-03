@@ -158,7 +158,7 @@ class _Security2ScreenState extends State<Security2Screen> {
                                             obscureText1 = !obscureText1;
                                           });
                                         },
-                                        icon: Icon(obscureText1 ? FontAwesomeIcons.eyeSlash :
+                                        icon: FaIcon(obscureText1 ? FontAwesomeIcons.eyeSlash :
                                         FontAwesomeIcons.eye, size: 18,)
                                     ),
                                     hintStyle: TextStyle(color: Color(0x8AFFFFFF)),
@@ -199,7 +199,7 @@ class _Security2ScreenState extends State<Security2Screen> {
                                             obscureText2 = !obscureText2;
                                           });
                                         },
-                                        icon: Icon(obscureText2 ? FontAwesomeIcons.eyeSlash :
+                                        icon: FaIcon(obscureText2 ? FontAwesomeIcons.eyeSlash :
                                         FontAwesomeIcons.eye, size: 18,)
                                     ),
                                     hintStyle: TextStyle(color: Color(0x8AFFFFFF)),

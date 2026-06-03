@@ -4,9 +4,11 @@ import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../constraints/vendor_theme.dart';
 
+import '../../../core/constant/api_constants.dart';
 import '../../../features/marketPlace/providers/vendor_provider.dart';
 import '../models/vendor_model.dart';
 import '../widgets/navigation.dart';
+import '../widgets/qr_share_sheet.dart';
 import '../widgets/shared_widgets.dart';
 import 'checkout.dart';
 import 'checkout_page.dart';
@@ -142,6 +144,28 @@ class _VendorDetailPageState extends State<VendorDetailPage> {
       backgroundColor: VendorTheme.background,
       expandedHeight: 200,
       pinned: true,
+      actions: [
+        // Share this store — opens the QR + link sheet (matches back-button style).
+        GestureDetector(
+          onTap: () => QRShareSheet.show(
+            context,
+            url: ApiConstants.storeUrl(vendor.id),
+            entity: QREntity.store,
+            entityId: vendor.id,
+            name: vendor.name,
+            logoUrl: vendor.logo,
+          ),
+          child: Container(
+            margin: const EdgeInsets.all(8),
+            decoration: const BoxDecoration(
+                color: Colors.black54, shape: BoxShape.circle),
+            child: const Padding(
+              padding: EdgeInsets.all(8),
+              child: Icon(Icons.ios_share_rounded, color: Colors.white, size: 18),
+            ),
+          ),
+        ),
+      ],
       leading: GestureDetector(
         onTap: () => Navigator.pop(context),
         child: Container(
@@ -527,8 +551,36 @@ class _ProductDetailSheetState extends State<_ProductDetailSheet> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Image gallery / single image
-                          _buildImageSection(item),
+                          // Image gallery / single image + share overlay
+                          Stack(
+                            children: [
+                              _buildImageSection(item),
+                              Positioned(
+                                top: 10,
+                                right: 12,
+                                child: GestureDetector(
+                                  onTap: () => QRShareSheet.show(
+                                    context,
+                                    url: ApiConstants.productUrl(item.id),
+                                    entity: QREntity.product,
+                                    entityId: item.id,
+                                    name: item.name,
+                                    logoUrl: vendor.logo, // store logo in QR centre
+                                  ),
+                                  child: Container(
+                                    decoration: const BoxDecoration(
+                                        color: Colors.black54,
+                                        shape: BoxShape.circle),
+                                    child: const Padding(
+                                      padding: EdgeInsets.all(8),
+                                      child: Icon(Icons.ios_share_rounded,
+                                          color: Colors.white, size: 18),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
 
                           // Product info
                           Padding(

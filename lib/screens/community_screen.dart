@@ -87,7 +87,7 @@ class CommunityScreen extends StatelessWidget {
                       title: "Join us on Telegram",
                       subtitle: "Join our global channel & group",
                       color: Colors.blue,
-                      icon: Icons.send, // paper-plane vibe
+                      icon: FontAwesomeIcons.message, // paper-plane vibe
                       onTap: () => _openLink(telegramLink),
                     ),
 
@@ -157,7 +157,7 @@ class CommunityScreen extends StatelessWidget {
         required String title,
         required String subtitle,
         required Color color,
-        required IconData icon,
+        required FaIconData icon,
         required VoidCallback onTap,
       }) {
     return GestureDetector(
@@ -181,7 +181,7 @@ class CommunityScreen extends StatelessWidget {
             CircleAvatar(
               radius: 20,
               backgroundColor: color.withOpacity(0.15),
-              child: Icon(icon, size: 25, color: color),
+              child: FaIcon(icon, size: 25, color: color),
             ),
             const SizedBox(width: 16),
             Expanded(

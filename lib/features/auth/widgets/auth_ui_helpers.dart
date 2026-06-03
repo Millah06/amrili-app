@@ -122,7 +122,7 @@ class EyeToggle extends StatelessWidget {
   Widget build(BuildContext context) {
     return IconButton(
       onPressed: onTap,
-      icon: Icon(
+      icon: FaIcon(
         obscure ? FontAwesomeIcons.eyeSlash : FontAwesomeIcons.eye,
         size: 16,
         color: Colors.white38,

@@ -351,7 +351,6 @@ class _CustomizationScreenState extends State<CustomizationScreen> with TickerPr
 
   @override
   Widget build(BuildContext context) {
-    final selectedFont = 'Poppins';
 
     String phoneNumber = widget.phoneNumber;
     String replace = phoneNumber.substring(11);
@@ -607,7 +606,7 @@ class _CustomizationScreenState extends State<CustomizationScreen> with TickerPr
                           children: [
                             Text("Suggest Message", style: TextStyle(color: Color(0xFF111827)),),
                             SizedBox(width: 5,),
-                            Icon(FontAwesomeIcons.diceD6, color: Colors.black,)
+                            FaIcon(FontAwesomeIcons.diceD6, color: Colors.black,)
                           ],
                         ),
                       ),

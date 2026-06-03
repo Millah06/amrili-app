@@ -1,10 +1,7 @@
 import 'package:everywhere/constraints/constants.dart';
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-
-import 'formatters.dart';
 
 class RecentFrame extends StatelessWidget {
   final String beneficiary;
@@ -38,8 +35,8 @@ class RecentFrame extends StatelessWidget {
       case 'data':              return Icons.wifi_rounded;
       case 'electricity':       return Icons.bolt_rounded;
       case 'cable':             return Icons.tv_rounded;
-      case 'waec_reg':          return FontAwesomeIcons.graduationCap;
-      case 'waec_result':       return FontAwesomeIcons.graduationCap;
+      case 'waec_reg':          return Icons.school_outlined;
+      case 'waec_result':       return Icons.schedule_outlined;
       case 'transfer_debit':    return Icons.arrow_upward_rounded;
       case 'transfer_credit':   return Icons.arrow_downward_rounded;
       case 'wallet_funding':    return Icons.account_balance_wallet_rounded;

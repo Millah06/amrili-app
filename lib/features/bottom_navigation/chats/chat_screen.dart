@@ -1,14 +1,13 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:country_currency_pickers/country_picker_dropdown.dart';
 import 'package:everywhere/core/auth/guest_helper.dart';
 import 'package:everywhere/features/bottom_navigation/chats/widgets/chat_bubble.dart';
 import 'package:everywhere/features/communication/providers/sync_contact_provider.dart';
 import 'package:everywhere/features/communication/widgets/sync_contact_sheet.dart';
 import 'package:everywhere/screens/pages/transaction_history_screen.dart';
-import 'package:everywhere/services/api_service.dart';
 import 'package:everywhere/shared/widgets/pull_to_reveal.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iconify_flutter/iconify_flutter.dart';
 import 'package:iconify_flutter/icons/ph.dart';
@@ -54,10 +53,7 @@ class _MessagesState extends State<Messages> {
            ),
            actions: [
              GestureDetector(
-               onTap: () async {
-                 // TODO: Implement QR scan / help link
-
-               },
+               onTap: () => context.push('/scan'),
                child: Column(
                  mainAxisAlignment: MainAxisAlignment.end,
                  crossAxisAlignment: CrossAxisAlignment.end,
@@ -77,7 +73,7 @@ class _MessagesState extends State<Messages> {
                ),
              ),
              IconButton(
-               icon: const Icon( FontAwesomeIcons.plusCircle, color: Colors.white),
+               icon: const FaIcon(FontAwesomeIcons.plusCircle, color: Colors.white),
                onPressed: () {
                  showAddFriendsSheet(context, pov);
                },

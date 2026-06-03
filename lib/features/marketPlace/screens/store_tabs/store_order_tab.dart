@@ -1,8 +1,6 @@
 import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:everywhere/constraints/constants.dart';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
 import '../../../../constraints/vendor_theme.dart';
 import '../../models/order_model.dart';
 import '../../providers/vendor_center_provider.dart';

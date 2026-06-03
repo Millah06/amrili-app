@@ -13,6 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:hive/hive.dart';
 import 'package:iconify_flutter/icons/ph.dart';
@@ -111,7 +112,7 @@ class _HomeScreenState extends State<HomeScreen>
        ),
       ServiceModel(
           name: 'Airtime Gift',
-          icon:  Icons.card_giftcard,
+          icon:  FontAwesomeIcons.gift,
           function: () {
             Navigator.push(context, MaterialPageRoute(
                 builder: (context) => AirtimeGift())
@@ -139,8 +140,8 @@ class _HomeScreenState extends State<HomeScreen>
           name: 'Cable',
           icon:  FontAwesomeIcons.tv,
           function: () {
-            Navigator.pushNamed(context, '/cable'
-                 );
+
+            context.push('/cable');
           }
       ),
       ServiceModel(
@@ -1177,12 +1178,7 @@ class _HomeScreenState extends State<HomeScreen>
             ),
             actions: [
               GestureDetector(
-                onTap: () async {
-                  final Uri uri = Uri.parse('https://wa.me/message/BZ5RBPJYF7PHE1');
-                  if (!await launchUrl(uri, mode: LaunchMode.externalApplication)) {
-                    throw Exception('Could not launch');
-                  }
-                },
+                onTap: () => context.push('/scan'),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.end,
                   crossAxisAlignment: CrossAxisAlignment.end,
@@ -1221,7 +1217,7 @@ class _HomeScreenState extends State<HomeScreen>
                       child: Text('${Hive.box<AppNotification>('notifications').length}', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold),),
                     ),
                     SizedBox(height: 2,),
-                    Icon(FontAwesomeIcons.bell, size: 20, color: Colors.white,),
+                    FaIcon(FontAwesomeIcons.bell, size: 20, color: Colors.white,),
                   ],
                 ),
               ),
@@ -1366,128 +1362,9 @@ class _HomeScreenState extends State<HomeScreen>
                               )
                             ],
                           )),
-                      Container(
-                          width: double.infinity,
-                          margin: EdgeInsets.only(left: 10, right: 10, top: 5),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(10),
-                            color: Color(0xFF1E293B),
-                          ),
-                          child:  Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.only(left: 20, top: 10),
-                                child: Text('Bills', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold),),
-                              ),
-                              GridView.builder(
-                                  padding: EdgeInsets.zero,
-                                  physics: NeverScrollableScrollPhysics(),
-                                  gridDelegate:  SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: 4,
-                                    childAspectRatio: 0.8,
-                                    crossAxisSpacing: 0,
-                                    mainAxisSpacing: 1,
-                                  ),
-                                  itemCount: billServices.length,
-                                  shrinkWrap: true,
-                                  itemBuilder: (context, index) {
-                                    final service = billServices[index];
-                                    return ServiceFrame(
-                                        title: service.name,
-                                        icon: service.icon,
-                                        onTap: service.function,
-                                      isNew: service.isNew ?? false,
-
-                                      // backgroundColor: Colors.white,
-                                      // iconColor: Color(0xFF177E85),
-                                    );
-                                  }
-                              ),
-                            ],
-                          )
-                      ),
-                      SizedBox(height: 10,),
-                      Container(
-                          width: double.infinity,
-                          margin: EdgeInsets.only(left: 10, right: 10, top: 5),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(10),
-                            color: Color(0xFF1E293B),
-                          ),
-                          child:  Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.only(left: 20, top: 10),
-                                child: Text('Essentials', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold),),
-                              ),
-                              GridView.builder(
-                                  padding: EdgeInsets.zero,
-                                  physics: NeverScrollableScrollPhysics(),
-                                  gridDelegate:  SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: 4,
-                                    childAspectRatio: 0.8,
-                                    crossAxisSpacing: 0,
-                                    mainAxisSpacing: 1,
-                                  ),
-                                  itemCount: essentialServices.length,
-                                  shrinkWrap: true,
-                                  itemBuilder: (context, index) {
-                                    final service = essentialServices [index];
-                                    return ServiceFrame(
-                                      title: service.name,
-                                      icon: service.icon,
-                                      onTap: service.function,
-                                      isNew: service.isNew ?? false,
-
-                                    );
-                                  }
-                              ),
-                            ],
-                          )
-                      ),
-                      SizedBox(height: 10,),
-                      Container(
-                          width: double.infinity,
-                          margin: EdgeInsets.only(left: 10, right: 10, top: 5),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(10),
-                            color: Color(0xFF1E293B),
-                          ),
-                          child:  Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Padding(
-                                padding: const EdgeInsets.only(left: 20, top: 10),
-                                child: Text('Travel & Hotels', style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold),),
-                              ),
-                              GridView.builder(
-                                  padding: EdgeInsets.zero,
-                                  physics: NeverScrollableScrollPhysics(),
-                                  gridDelegate:  SliverGridDelegateWithFixedCrossAxisCount(
-                                    crossAxisCount: 4,
-                                    childAspectRatio: 0.8,
-                                    crossAxisSpacing: 0,
-                                    mainAxisSpacing: 1,
-                                  ),
-                                  itemCount: travelServices.length,
-                                  shrinkWrap: true,
-                                  itemBuilder: (context, index) {
-                                    final service = travelServices[index];
-                                    return ServiceFrame(
-                                      title: service.name,
-                                      icon: service.icon,
-                                      onTap: service.function,
-                                      isNew: service.isNew ?? false,
-
-                                    );
-                                  }
-                              ),
-                            ],
-                          )
-                      ),
-                      SizedBox(height: 10,),
+                      _ServiceSection(title: 'Bills', services: billServices),
+                      _ServiceSection(title: 'Essentials', services: essentialServices),
+                      _ServiceSection(title: 'Travel & Hotels', services: travelServices),
                       PromoCarousel()
                     ],
                   ),
@@ -1495,6 +1372,135 @@ class _HomeScreenState extends State<HomeScreen>
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Polished service section + tile (Phase 2 UI optimization).
+// Self-contained so it doesn't disturb the shared `ServiceFrame` used elsewhere.
+// ─────────────────────────────────────────────────────────────────────────────
+class _ServiceSection extends StatelessWidget {
+  final String title;
+  final List<ServiceModel> services;
+  const _ServiceSection({required this.title, required this.services});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.fromLTRB(12, 0, 12, 14),
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 6),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        color: const Color(0xFF1E293B),
+        border: Border.all(color: Colors.white.withOpacity(0.04)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Section header with a small accent bar for hierarchy.
+          Padding(
+            padding: const EdgeInsets.only(left: 4, bottom: 10),
+            child: Row(
+              children: [
+                Container(
+                  width: 3,
+                  height: 16,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF21D3ED),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(title,
+                    style: GoogleFonts.inter(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white)),
+              ],
+            ),
+          ),
+          GridView.builder(
+            padding: EdgeInsets.zero,
+            physics: const NeverScrollableScrollPhysics(),
+            shrinkWrap: true,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 4,
+              childAspectRatio: 0.82,
+              crossAxisSpacing: 6,
+              mainAxisSpacing: 10,
+            ),
+            itemCount: services.length,
+            itemBuilder: (context, i) => _ServiceTile(service: services[i]),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ServiceTile extends StatelessWidget {
+  final ServiceModel service;
+  const _ServiceTile({required this.service});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(14),
+        onTap: service.function,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                // Rounded icon chip — clearer tap target than a bare icon.
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF0F172A),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(color: Colors.white.withOpacity(0.06)),
+                  ),
+                  child: FaIcon(service.icon,
+                      size: 20, color: const Color(0xFF21D3ED)),
+                ),
+                if (service.isNew == true)
+                  Positioned(
+                    top: -4,
+                    right: -4,
+                    child: Container(
+                      padding:
+                      const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF177E85),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text('New',
+                          style: GoogleFonts.inter(
+                              fontSize: 8,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white)),
+                    ),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              service.name,
+              maxLines: 2,
+              textAlign: TextAlign.center,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.inter(
+                  fontSize: 10.5, height: 1.15, color: Colors.white70),
+            ),
+          ],
         ),
       ),
     );

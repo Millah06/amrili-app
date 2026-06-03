@@ -9,6 +9,8 @@ import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 
+import '../core/constant/api_constants.dart';
+
 class AppLinkHandler {
   static String _appLink = "";
   static int _buildNumber = 0;
@@ -61,6 +63,81 @@ class AppLinkHandler {
     if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
       throw Exception('Could not launch $url');
     }
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// AppShareHelper — builds + shares Amril deep links (store / product / table /
+// post / referral). This is SEPARATE from AppLinkHandler, which shares the
+// Play-Store download link. All URLs come from ApiConstants so the share sheet
+// and the QR generator (Phase 2) stay in lock-step. Uses the confirmed
+// share_plus API: SharePlus.instance.share(ShareParams(...)).
+// ─────────────────────────────────────────────────────────────────────────────
+class AppShareHelper {
+  AppShareHelper._();
+
+  static Future<void> _shareText({required String text, String? subject}) async {
+    try {
+      await SharePlus.instance.share(ShareParams(text: text, title: subject));
+    } catch (e) {
+      // Sharing is best-effort; never crash the calling screen.
+      // ignore: avoid_print
+      print('AppShareHelper share error: $e');
+    }
+  }
+
+  static Future<void> shareStore(String vendorId, {String? storeName}) {
+    final url = ApiConstants.storeUrl(vendorId);
+    final name = (storeName != null && storeName.trim().isNotEmpty)
+        ? storeName.trim()
+        : 'this store';
+    return _shareText(
+      subject: 'Check out $name on Amril',
+      text: 'Check out $name on Amril 👇\n$url',
+    );
+  }
+
+  static Future<void> shareProduct(String menuItemId, {String? productName}) {
+    final url = ApiConstants.productUrl(menuItemId);
+    final name = (productName != null && productName.trim().isNotEmpty)
+        ? productName.trim()
+        : 'this item';
+    return _shareText(
+      subject: name,
+      text: 'Check out $name on Amril 👇\n$url',
+    );
+  }
+
+  static Future<void> shareTable(String vendorId, String tableId,
+      {String? storeName}) {
+    final url = ApiConstants.tableUrl(vendorId, tableId);
+    final name = (storeName != null && storeName.trim().isNotEmpty)
+        ? storeName.trim()
+        : 'this table';
+    return _shareText(
+      subject: 'Order at $name',
+      text: 'Scan to order at $name on Amril 👇\n$url',
+    );
+  }
+
+  // Used in Phase 2 to replace the hardcoded everywhere.app/post links.
+  static Future<void> sharePost(String postId, String userName, String text) {
+    final url = ApiConstants.postUrl(postId);
+    final snippet = text.trim().isEmpty
+        ? ''
+        : '\n\n“${text.trim().length > 140 ? '${text.trim().substring(0, 140)}…' : text.trim()}”';
+    return _shareText(
+      subject: '$userName on Amril',
+      text: '$userName on Amril$snippet\n\n$url',
+    );
+  }
+
+  static Future<void> shareReferral(String referralCode) {
+    final url = ApiConstants.referralUrl(referralCode);
+    return _shareText(
+      subject: 'Join me on Amril',
+      text: 'Join me on Amril and let’s both earn 🎁\n$url',
+    );
   }
 }
 

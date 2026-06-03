@@ -319,7 +319,7 @@ class _ActionItem extends StatelessWidget {
             height: 60,
             width: 60,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.08),
+              color: Colors.white.withValues(alpha: 0.08),
               borderRadius: BorderRadius.circular(18),
             ),
             child: Icon(icon, size: 28),

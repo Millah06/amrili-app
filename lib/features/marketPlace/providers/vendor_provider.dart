@@ -1,6 +1,5 @@
 import 'package:flutter/foundation.dart';
 import '../../../services/api_service.dart';
-import '../../../services/vendorService/vendor_repository.dart';
 import '../models/order_model.dart';
 import '../models/vendor_model.dart';
 

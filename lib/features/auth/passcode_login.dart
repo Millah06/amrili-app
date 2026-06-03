@@ -216,7 +216,7 @@ class _PasscodeScreenState extends State<PasscodeScreen> {
                                   obscureText = !obscureText;
                                 });
                               },
-                              icon: Icon(obscureText ? FontAwesomeIcons.eyeSlash :
+                              icon: FaIcon(obscureText ? FontAwesomeIcons.eyeSlash :
                               FontAwesomeIcons.eye, size: 18,)
                           ),
                         ),

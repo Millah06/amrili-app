@@ -171,7 +171,7 @@ extension TimeFormat on DateTime {
       return 'Today ${hour > 12 ? hour - 12 : hour}:${minute.toString().padLeft(2, '0')} '
           '${hour >= 12 ? 'PM' : 'AM'}';
     } else if (isAfter(yesterday)) {
-      return 'Yesterday ${hour > 12 ? hour - 12 : hour}:${this.minute.toString().padLeft(2, '0')} ${this.hour >= 12 ? 'PM' : 'AM'}';
+      return 'Yesterday ${hour > 12 ? hour - 12 : hour}:${minute.toString().padLeft(2, '0')} ${hour >= 12 ? 'PM' : 'AM'}';
     } else {
       return '$day/$month ${hour > 12 ? hour - 12 : hour}:${minute.toString().padLeft(2, '0')} ${hour >= 12 ? 'PM' : 'AM'}';
     }

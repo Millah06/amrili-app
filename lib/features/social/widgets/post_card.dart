@@ -12,6 +12,7 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import 'package:firebase_auth/firebase_auth.dart';
+import '../../../components/formatters.dart';
 import '../../../constraints/constants.dart';
 import '../../../constraints/vendor_theme.dart';
 import '../../../providers/profile_provider.dart';
@@ -456,9 +457,11 @@ class _PostCardState extends State<PostCard> {
                           icon: Icons.repeat,
                           label: _currentPost.repostCount < 1 ? '' :_formatCount(_currentPost.repostCount),
                           onTap: () => GuestHelper.guardAction(context, action: () {
-                            showDialog(
-                              context: context,
-                              builder: (context) => RepostDialog(post: widget.post),
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => RepostDialog(post: widget.post),
+                              ),
                             );
                           }, reason: 'repost a post')
                       )
@@ -521,15 +524,11 @@ class _PostCardState extends State<PostCard> {
   }
 
   void _sharePost() {
-    final shareText = '''
-${widget.post.text}
-
-By @${widget.post.userName}
-
-View on Everywhere: https://everywhere.app/post/${widget.post.postId}
-''';
-
-    Share.share(shareText);
+    AppShareHelper.sharePost(
+      widget.post.postId,
+      widget.post.userName,
+      widget.post.text,
+    );
   }
 
   void _toggleLike() async {

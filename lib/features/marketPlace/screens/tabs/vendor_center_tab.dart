@@ -7,11 +7,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import 'dart:ui' as ui;
 import '../../../../constraints/vendor_theme.dart';
+import '../../../../core/constant/api_constants.dart';
 import '../../pages/edit_vendor_profile.dart';
 import '../../providers/vendor_center_provider.dart';
 import '../../widgets/navigation.dart';
+import '../../widgets/qr_share_sheet.dart';
 import '../../widgets/vendor_pending_view.dart';
 import '../../widgets/vendor_pre_apply.dart';
 import '../store_tabs/overview_tab.dart';
@@ -160,6 +161,22 @@ class _DashboardViewState extends State<_DashboardView> with SingleTickerProvide
                   ],
                 ),
               ),
+              // Share this store — opens the QR + link share sheet (Phase 2).
+              IconButton(
+                tooltip: 'Share store',
+                visualDensity: VisualDensity.compact,
+                icon: const Icon(Icons.ios_share_rounded,
+                    color: VendorTheme.textPrimary, size: 20),
+                onPressed: () => QRShareSheet.show(
+                  context,
+                  url: ApiConstants.storeUrl(vendorCenter.myVendor!.id),
+                  entity: QREntity.store,
+                  entityId: vendorCenter.myVendor!.id,
+                  name: vendorCenter.myVendor!.name,
+                  logoUrl: vendorCenter.myVendor!.logo,
+                ),
+              ),
+              const SizedBox(width: 4),
               GestureDetector(
                 onTap: () => vendorCenter.toggleVisibility(),
                 child: Container(

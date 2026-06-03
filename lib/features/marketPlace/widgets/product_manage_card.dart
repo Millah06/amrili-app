@@ -1,16 +1,15 @@
-import 'dart:io';
 import 'dart:ui' as ui;
 import 'package:everywhere/constraints/constants.dart';
+import 'package:everywhere/features/marketPlace/widgets/qr_share_sheet.dart';
 import 'package:everywhere/features/marketPlace/widgets/share_card.dart';
 import 'package:everywhere/features/marketPlace/widgets/shared_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:share_plus/share_plus.dart';
-
 import '../../../components/swicht.dart';
 import '../../../constraints/vendor_theme.dart';
 
+import '../../../core/constant/api_constants.dart';
 import '../../../features/marketPlace/providers/vendor_center_provider.dart';
 import '../models/vendor_model.dart';
 import '../pages/add_product_item_page.dart';
@@ -134,7 +133,7 @@ class ProductManageCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               GestureDetector(
-                  onTap: () => _shareCard(context),
+                  onTap: () => _showInfo(context),
                   child: Row(
                     children: [
                       const Text('Toggle Availability',
@@ -203,7 +202,7 @@ class ProductManageCard extends StatelessWidget {
                         width: 20, thickness: 1, )),
                   // Share
                   GestureDetector(
-                      onTap: () => _shareCard(context),
+                      onTap: () => _shareProduct(context),
                       child: Row(
                         children: [
                           const Text('Share', style: TextStyle(fontSize: 12),),
@@ -271,7 +270,7 @@ class ProductManageCard extends StatelessWidget {
     );
   }
 
-  void _shareCard(BuildContext context) {
+  void _showInfo(BuildContext context) {
     showDialog(
       context: context,
       builder: (_) => Dialog(
@@ -283,23 +282,29 @@ class ProductManageCard extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               // The share card itself — captured by RepaintBoundary
-              RepaintBoundary(
-                key: _shareKey,
-                child: ShareCard(item: item, vendorName: p.myVendor?.name ?? ''),
-              ),
+              Text('When this is turn off, your store will not be visible to public', style:
+              TextStyle(color: VendorTheme.textMuted),),
               const SizedBox(height: 20),
-              VButton(
-                label: 'Share',
-                icon: Icons.share,
-                onTap: () async {
-                  Navigator.pop(context);
-                  await _captureAndShare(context);
-                },
-              ),
+
             ],
           ),
         ),
       ),
+    );
+  }
+
+  // Phase 2: share the product as a deep link + QR. This covers Copy link,
+  // Save QR, Share QR and Share link in one sheet. The older branded-image
+  // card (`_shareCard`) is still wired to the info/toggle row, so it stays
+  // available and nothing becomes unused.
+  void _shareProduct(BuildContext context) {
+    QRShareSheet.show(
+      context,
+      url: ApiConstants.productUrl(item.id),
+      entity: QREntity.product,
+      entityId: item.id,
+      name: item.name,
+      logoUrl: p.myVendor?.logo,
     );
   }
 

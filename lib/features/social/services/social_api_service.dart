@@ -2,15 +2,13 @@
 
 import 'dart:convert';
 import 'dart:io';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:everywhere/features/social/models/comment_model.dart';
 import 'package:http/http.dart' as http;
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:path/path.dart' as path;
 
 class SocialApiService {
-  static const String baseUrl = 'https://everywhere-data-app.onrender.com';
+  static const String baseUrl = 'https://api.amril.app';
 
 
   Future<String> _getAuthToken() async {
@@ -100,6 +98,39 @@ class SocialApiService {
     } else {
       throw Exception('Failed to increment view: ${response.body}');
     }
+  }
+
+  /// Public single-post read for the /post/:id deep link.
+  /// Returns the post JSON map (postToClientShape) or null if not found.
+  Future<Map<String, dynamic>?> getPostById(String postId) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/web/post/$postId'),
+      headers: await _getOptionalHeaders(),
+    );
+    if (response.statusCode == 404) return null;
+    if (response.statusCode != 200) {
+      throw Exception('Failed to fetch post: ${response.body}');
+    }
+    final body = jsonDecode(response.body);
+    return (body is Map && body['post'] != null)
+        ? Map<String, dynamic>.from(body['post'])
+        : null;
+  }
+
+  /// Public read-only profile for the /u/:handle deep link.
+  Future<Map<String, dynamic>?> getPublicProfile(String userHandle) async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/web/u/$userHandle'),
+      headers: await _getOptionalHeaders(),
+    );
+    if (response.statusCode == 404) return null;
+    if (response.statusCode != 200) {
+      throw Exception('Failed to fetch profile: ${response.body}');
+    }
+    final body = jsonDecode(response.body);
+    return (body is Map && body['profile'] != null)
+        ? Map<String, dynamic>.from(body['profile'])
+        : null;
   }
 
   // Reporting

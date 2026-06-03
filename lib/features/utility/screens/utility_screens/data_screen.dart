@@ -550,7 +550,7 @@ class _DataScreenState extends State<DataScreen> with TickerProviderStateMixin {
                                   builder: (context) =>
                                       ConfirmationPage(
                                         isRecharge: false,
-                                        amount: '${plan?.price}',
+                                        amount: '${plan.price}',
                                         bonusEarn: (bonus).toDouble(),
                                         receiptData: {
                                           'Product Name' : '$_selectedNetwork Data',

@@ -71,7 +71,7 @@ class LogoPicker extends StatelessWidget {
                 const SizedBox(height: 8),
                 VSmallButton(
                   label:  logo!? 'Change Logo' : 'Change Profile Picture',
-                  color: VendorTheme.primary.withOpacity(0.15),
+                  color: VendorTheme.primary.withValues(alpha: 0.15),
                   textColor: VendorTheme.primary,
                   onTap: () async {
                     final picker = ImagePicker();

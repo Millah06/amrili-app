@@ -77,7 +77,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                final result = await Navigator.push(context,
                    MaterialPageRoute(builder: (context) => EditProfilePage()));
 
-               if (result == true) {
+               if (result == true && context.mounted) {
                  final profileProvider = context.read<ProfileProvider>();
                  profileProvider.loadUserProfile(profileProvider.profile!.userId);
                }
@@ -287,7 +287,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
 
-    if (confirm == true) {
+    if (confirm == true && context.mounted) {
       Navigator.pop(context);
       // context.read<MyProfileProvider>().invalidate();
       final prefs = await SharedPreferences.getInstance();

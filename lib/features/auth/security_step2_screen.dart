@@ -2,7 +2,6 @@ import 'package:everywhere/features/auth/widgets/auth_ui_helpers.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
 import '../../constraints/constants.dart';
 import '../../screens/community_screen.dart';
 import '../../services/api_service.dart';

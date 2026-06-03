@@ -117,7 +117,7 @@ class _WalletScreenState extends State<WalletScreen> {
                                                         hasTouched = !hasTouched;
                                                       });
                                                     },
-                                                    child: Icon(hasTouched ? FontAwesomeIcons.eyeSlash :
+                                                    child: FaIcon(hasTouched ? FontAwesomeIcons.eyeSlash :
                                                     FontAwesomeIcons.eye, size: 13, color: Colors.white70,)
                                                 )
 
@@ -219,7 +219,7 @@ class _WalletScreenState extends State<WalletScreen> {
                                                 hasTouched = !hasTouched;
                                               });
                                             },
-                                            child: Icon(hasTouched ? FontAwesomeIcons.eyeSlash :
+                                            child: FaIcon(hasTouched ? FontAwesomeIcons.eyeSlash :
                                             FontAwesomeIcons.eye, size: 13, color: Colors.white70,)
                                         )
                                       ],
@@ -298,7 +298,7 @@ class _WalletScreenState extends State<WalletScreen> {
                                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
                                           Text('Add Funds', style: kExpenseStyle,),
-                                          Icon(
+                                          FaIcon(
                                             FontAwesomeIcons.plusCircle,
                                           )
                                         ],

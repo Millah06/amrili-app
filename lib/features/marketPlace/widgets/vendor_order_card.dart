@@ -1,7 +1,5 @@
 import 'dart:async';
-import 'dart:io';
 import 'package:everywhere/constraints/constants.dart';
-import 'package:everywhere/features/marketPlace/widgets/shared_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';

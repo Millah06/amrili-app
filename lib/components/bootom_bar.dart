@@ -1,13 +1,9 @@
 
 import 'dart:async';
-
 import 'package:curved_navigation_bar/curved_navigation_bar.dart';
-import 'package:everywhere/constraints/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:pull_to_reveal_flutter/pull_to_reveal_flutter.dart';
-
 import '../core/auth/guest_helper.dart';
 import '../features/bottom_navigation/chats/chat_screen.dart';
 import '../features/bottom_navigation/profile/profile_screen.dart';
@@ -15,7 +11,6 @@ import '../features/bottom_navigation/services_screen.dart';
 import '../features/bottom_navigation/socialFeature/feed_screen.dart';
 import '../features/bottom_navigation/wallet/wallet_screen.dart';
 import '../shared/widgets/auth_gate_bottom_sheet.dart';
-import '../shared/widgets/pull_to_reveal.dart';
 
 
 class BottomBar extends StatefulWidget {
@@ -200,7 +195,7 @@ class _BottomBarState extends State<BottomBar> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  Icon(FontAwesomeIcons.compass,
+                  FaIcon(FontAwesomeIcons.compass,
                     size: selectedIndex == 0 ? 15 : 20,
                     color: selectedIndex == 0 ? Color(0xFF21D3ED) :
                     Colors.white38,),
@@ -218,7 +213,7 @@ class _BottomBarState extends State<BottomBar> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  Icon(FontAwesomeIcons.message,
+                  FaIcon(FontAwesomeIcons.message,
                     size: selectedIndex == 1 ? 15 : 20, color: selectedIndex == 1 ? Color(0xFF21D3ED) :
                       Colors.white38),
                   SizedBox(height: 3.5,),
@@ -236,7 +231,7 @@ class _BottomBarState extends State<BottomBar> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  Icon(FontAwesomeIcons.layerGroup,
+                  FaIcon(FontAwesomeIcons.layerGroup,
                       size: selectedIndex == 2 ? 15 : 20, color: selectedIndex == 2 ? Color(0xFF21D3ED) :
                       Colors.white38),
                   SizedBox(height: 3.5,),
@@ -254,7 +249,7 @@ class _BottomBarState extends State<BottomBar> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  Icon(FontAwesomeIcons.wallet,
+                  FaIcon(FontAwesomeIcons.wallet,
                     size: selectedIndex == 3 ? 15 : 20, color: selectedIndex == 3 ? Color(0xFF21D3ED) :
                     Colors.white38,),
                   SizedBox(height: 3.5,),
@@ -272,7 +267,7 @@ class _BottomBarState extends State<BottomBar> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
-                  Icon(FontAwesomeIcons.circleUser,
+                  FaIcon(FontAwesomeIcons.circleUser,
                     size: selectedIndex == 4 ? 15 : 20, color: selectedIndex == 4 ? Color(0xFF21D3ED) :
                       Colors.white38),
                   SizedBox(height: 3.5,),

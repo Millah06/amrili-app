@@ -104,6 +104,20 @@ import '../models/top_earner_model.dart';
 class RewardProvider with ChangeNotifier {
   final SocialApiService _apiService = SocialApiService();
 
+  bool _disposed = false;
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+
+  void safeNotify() {
+    if (!_disposed) {
+      notifyListeners();
+    }
+  }
+
   CreatorStats? _stats;
   List<TopEarner> _topEarners = [];
   int _coinBalance = 0;
@@ -123,7 +137,7 @@ class RewardProvider with ChangeNotifier {
   Future<void> loadCreatorStats() async {
     _isLoadingStats = true;
     _error = null;
-    notifyListeners();
+    safeNotify();
 
     try {
       final response = await _apiService.getCreatorStats();
@@ -133,7 +147,7 @@ class RewardProvider with ChangeNotifier {
       debugPrint('Load stats error: $e');
     } finally {
       _isLoadingStats = false;
-      notifyListeners();
+      safeNotify();
     }
   }
 

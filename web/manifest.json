@@ -1,12 +1,13 @@
 {
-    "name": "everywhere",
-    "short_name": "everywhere",
-    "start_url": ".",
+    "name": "Amril",
+    "short_name": "Amril",
+    "description": "Nigeria's all-in-one app for shopping, wallet, bill payments and ordering from local merchants.",
+    "start_url": "/",
+    "scope": "/",
     "display": "standalone",
-    "background_color": "#0175C2",
-    "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
     "orientation": "portrait-primary",
+    "background_color": "#0F172A",
+    "theme_color": "#0F172A",
     "prefer_related_applications": false,
     "icons": [
         {

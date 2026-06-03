@@ -181,7 +181,7 @@ class _ElectricScreenState extends State<ElectricScreen>  with SingleTickerProvi
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.end,
                         children: [
-                          Icon(FontAwesomeIcons.userPlus, size: 14,),
+                          FaIcon(FontAwesomeIcons.userPlus, size: 14,),
                           SizedBox(width: 7,),
                           Text('Easily Load from Recent Beneficiary',
                             style: TextStyle(fontSize: 9, fontWeight: FontWeight.w900),),
@@ -444,7 +444,7 @@ class _ElectricScreenState extends State<ElectricScreen>  with SingleTickerProvi
                                                           crossAxisAlignment: CrossAxisAlignment.center,
                                                           mainAxisAlignment: MainAxisAlignment.center,
                                                           children: [
-                                                            Icon(FontAwesomeIcons.plusCircle),
+                                                            FaIcon(FontAwesomeIcons.plusCircle),
                                                             SizedBox(width: 10,),
                                                             Text('Add to Beneficiaries', style: TextStyle(color: kIconColor),)
                                                           ],
@@ -460,7 +460,7 @@ class _ElectricScreenState extends State<ElectricScreen>  with SingleTickerProvi
                                           Positioned(
                                               right: 2,
                                               top: 2,
-                                              child: FaIcon(Icons.check_circle,
+                                              child: Icon(Icons.check_circle,
                                                 color: adIsTouch ? Color(0xFF21D3ED) : Colors.white70, size: 15,)
                                           ),
                                         ]

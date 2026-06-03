@@ -114,7 +114,7 @@ class _MyProfileScreenState extends State<MyProfileScreen>
                   onCreatePost: () async {
                     final result = await Navigator.push<bool>(context,
                         MaterialPageRoute(builder: (_) => const CreatePostScreen()));
-                    if (result == true) {
+                    if (result == true && context.mounted) {
                       context.read<FeedProvider>().loadFeed(refresh: true);
                       provider.refreshPosts(userId);
                     }

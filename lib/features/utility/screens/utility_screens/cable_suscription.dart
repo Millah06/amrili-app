@@ -1,15 +1,10 @@
-import 'dart:ui' as BorderType;
-
-import 'package:dotted_border/dotted_border.dart';
 import 'package:everywhere/components/formatters.dart';
 import 'package:everywhere/components/notice_banner.dart';
-import 'package:everywhere/components/reusable_card.dart';
 import 'package:everywhere/providers/user_provider.dart';
 import 'package:everywhere/services/purchase_service.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:shimmer/shimmer.dart';
@@ -667,7 +662,7 @@ class _CableSubscriptionState extends State<CableSubscription> with TickerProvid
                                     Positioned(
                                       right: 2,
                                         top: 2,
-                                        child: FaIcon(Icons.check_circle,
+                                        child: Icon(Icons.check_circle,
                                           color: Color(0xFF21D3ED),
                                           size: 15,
                                         )

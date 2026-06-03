@@ -1,14 +1,10 @@
-import 'package:another_flushbar/flushbar.dart';
-import 'package:dio/dio.dart';
 import 'package:everywhere/shared/widgets/confirmation_page.dart';
-import 'package:everywhere/components/transacrtion_pin.dart';
 import 'package:everywhere/constraints/constants.dart';
 import 'package:everywhere/constraints/firebase_constant.dart';
 import 'package:everywhere/services/purchase_service.dart';
 import 'package:everywhere/services/transaction_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:fluttertoast/fluttertoast.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 

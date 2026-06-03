@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
+import '../../../components/formatters.dart';
 import '../../../providers/profile_provider.dart';
 import '../../../providers/user_provider.dart';
 import '../../../services/image_processor_service.dart';
@@ -178,22 +179,20 @@ class _PostOptionsMenuState extends State<PostOptionsMenu> {
     if (!mounted) return;
 
     print(widget.post.userHandle);
-    showDialog(
-      context: context,
-      builder: (context) => RepostDialog(post: widget.post),
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => RepostDialog(post: widget.post),
+      ),
     );
   }
 
   void _sharePost() {
-    final shareText = '''
-${widget.post.text}
-
-By @${widget.post.userName}
-
-View on Everywhere: https://everywhere.app/post/${widget.post.postId}
-''';
-
-    Share.share(shareText);
+    AppShareHelper.sharePost(
+      widget.post.postId,
+      widget.post.userName,
+      widget.post.text,
+    );
   }
 
   void _downloadPost() async {

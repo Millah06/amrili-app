@@ -821,8 +821,8 @@ class _GiftCard extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
                     color: isSelected
-                        ? Colors.white.withOpacity(0.2)
-                        : Colors.black.withOpacity(0.3),
+                        ? Colors.white.withValues(alpha: 0.2)
+                        : Colors.black.withValues(alpha: 0.3),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
@@ -897,7 +897,7 @@ class _QuantityButton extends StatelessWidget {
           borderRadius: BorderRadius.circular(10),
           border: Border.all(
             color: onTap != null
-                ? const Color(0xFF21D3ED).withOpacity(0.4)
+                ? const Color(0xFF21D3ED).withValues(alpha: 0.4)
                 : Colors.grey[700]!,
           ),
         ),

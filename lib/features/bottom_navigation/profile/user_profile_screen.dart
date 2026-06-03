@@ -3,15 +3,11 @@ import 'package:everywhere/core/constant/app_constants.dart';
 import 'package:everywhere/features/profile/screens/settings_screeen.dart';
 import 'package:everywhere/services/api_service.dart';
 import 'package:everywhere/shared/functions/shared_functions.dart';
-import 'package:everywhere/shared/widgets/pull_to_reveal.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import 'package:pull_to_reveal_flutter/pull_to_reveal_flutter.dart';
 import 'package:timeago/timeago.dart' as timeago;
-
 import '../../../constraints/constants.dart';
 import '../../../constraints/vendor_theme.dart';
 import '../../../features/social/providers/feed_provider.dart';
@@ -55,7 +51,6 @@ class _UserProfileScreenState extends State<UserProfileScreen>
   @override
   void initState() {
     super.initState();
-    // context.read<FeedProvider>().loadFeed(refresh: true);
     _tabController = TabController(
       length: widget.isOwnProfile ? 4 : 2,
       vsync: this,

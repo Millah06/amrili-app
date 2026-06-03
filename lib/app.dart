@@ -1,5 +1,6 @@
 
 import 'package:everywhere/core/constant/app_constants.dart';
+import 'package:everywhere/core/router/app_router.dart';
 import 'package:everywhere/features/communication/providers/chat_provider.dart';
 import 'package:everywhere/features/social/providers/feed_provider.dart';
 import 'package:everywhere/providers/profile_provider.dart';
@@ -13,6 +14,7 @@ import 'package:everywhere/services/brain.dart';
 import 'package:everywhere/services/notification_service.dart';
 import 'package:everywhere/services/session_service.dart';
 import 'package:everywhere/shared/widgets/splash_screen.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -20,6 +22,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'components/bootom_bar.dart';
 import 'constraints/constants.dart';
 import 'constraints/vendor_theme.dart';
+import 'core/deep_link/deep_link_service.dart';
 import 'features/bottom_navigation/services_screen.dart';
 import 'features/bottom_navigation/wallet/wallet_screen.dart';
 import 'features/profile/providers/my_profile_provider.dart';
@@ -53,11 +56,19 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
+
     WidgetsBinding.instance.addObserver(this);
-    PushNotificationService().init();
+    if (!kIsWeb) {
+      PushNotificationService().init(); // FCM web is out of scope (needs SW + VAPID)
+    }
     _finish();
+    // Start listening for App Links / Universal Lcinks once the first frame is
+    // up, so the router is ready to receive go() calls. navigatorKey + appRouter
+    // are wired together in app_router.dart.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      DeepLinkService.instance.init();
+    });
   }
 
   Future<void> _finish () async {
@@ -75,6 +86,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   void dispose() {
     // TODO: implement dispose
     WidgetsBinding.instance.removeObserver(this);
+    DeepLinkService.instance.dispose();
     super.dispose();
   }
 
@@ -135,11 +147,12 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
             Brain()..getData()),
         ChangeNotifierProvider(create: (_) => TransactionProvider()..loadInitial()),
       ],
-      child: MaterialApp(
+
+      child: MaterialApp.router(
         debugShowCheckedModeBanner: false,
-        navigatorKey: navigatorKey,
         title: AppConstants.appName,
         // key: _key,
+        routerConfig: appRouter,
         theme: ThemeData(
           scaffoldBackgroundColor: Color(0xFF0F172A),
           inputDecorationTheme: InputDecorationTheme(
@@ -218,24 +231,26 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         // this will be implemented in the second phase
         // home: hasDone ? const FirstScreen() : const WelcomeScreen(),
         // After:
-        home: hasDone ? const BottomBar()
-            : _isGuest ? const BottomBar()   // ← guest persists to feed
-            : const WelcomeScreen(),
-        routes: {
-          HomeScreen.id : (context) => HomeScreen(),
-          WalletScreen.id: (context) => WalletScreen(),
-          FirstScreen.id: (context) => FirstScreen(),
-          WelcomeScreen.id: (context) => WelcomeScreen(),
-          '/cable': (context) => CableSubscription(),
-          '/airtimeNormal' : (context) => AirtimeScreen(),
-          '/airtimeGift' : (context) => AirtimeGift(),
-          '/data': (context) => DataScreen(),
-          '/electric': (context) => ElectricScreen(),
-          '/waec': (content) => WaecServices(),
-          '/jamb' : (content) => JambServices(),
-          '/rechargePins': (context) => RechargePinsBusiness(),
-          '/internetServices' : (context) => InternetServicesScreen()
-        },
+        // home: hasDone ? const BottomBar()
+        //     : _isGuest ? const BottomBar()   // ← guest persists to feed
+        //     : const WelcomeScreen(),
+
+        // routes: {
+        //   HomeScreen.id : (context) => HomeScreen(),
+        //   WalletScreen.id: (context) => WalletScreen(),
+        //   FirstScreen.id: (context) => FirstScreen(),
+        //   WelcomeScreen.id: (context) => WelcomeScreen(),
+        //   '/cable': (context) => CableSubscription(),
+        //   '/airtimeNormal' : (context) => AirtimeScreen(),
+        //   '/airtimeGift' : (context) => AirtimeGift(),
+        //   '/data': (context) => DataScreen(),
+        //   '/electric': (context) => ElectricScreen(),
+        //   '/waec': (content) => WaecServices(),
+        //   '/jamb' : (content) => JambServices(),
+        //   '/rechargePins': (context) => RechargePinsBusiness(),
+        //   '/internetServices' : (context) => InternetServicesScreen()
+        // },
+
       ),
     );
   }

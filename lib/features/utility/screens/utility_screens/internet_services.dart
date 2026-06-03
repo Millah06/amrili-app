@@ -617,7 +617,7 @@ class _InternetServicesScreenState extends State<InternetServicesScreen> with Ti
                                         Positioned(
                                             right: 2,
                                             top: 2,
-                                            child: FaIcon(Icons.check_circle,
+                                            child: Icon(Icons.check_circle,
                                               color: Color(0xFF21D3ED), size: 15,)
                                         ),
                                       ]

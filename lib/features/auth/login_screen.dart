@@ -1,8 +1,6 @@
 
 import 'dart:io';
-
 import 'package:another_flushbar/flushbar.dart';
-import 'package:everywhere/features/auth/security2.dart';
 import 'package:everywhere/features/auth/signup_screen.dart';
 import 'package:everywhere/features/auth/widgets/auth_ui_helpers.dart';
 import 'package:everywhere/features/auth/widgets/social_auth_buttons.dart';

@@ -3,8 +3,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-
-import '../../providers/user_provider.dart';
 import '../../services/api_service.dart';
 import '../../services/notification_service.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -32,6 +30,7 @@ class AuthProvider extends ChangeNotifier {
 
   bool get isLoading => _isLoading;
   bool get isGuest => _isGuest;
+  bool get isAuthenticated => FirebaseAuth.instance.currentUser != null;
   Map<String, dynamic>? get authUserData => _authUserData;
 
   void _setLoading(bool val) {

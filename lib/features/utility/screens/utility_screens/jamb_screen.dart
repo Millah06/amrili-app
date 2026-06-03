@@ -226,7 +226,7 @@ class _JambServicesState extends State<JambServices> {
                                     title: Text(snapshot.data!,
                                       style:
                                       TextStyle(fontWeight: FontWeight.w900, fontSize: 12, color: Colors.white),),
-                                    trailing: FaIcon(Icons.check_circle,
+                                    trailing: Icon(Icons.check_circle,
                                       color:  Color(0xFF21D3ED),
                                       size: 26,
                                     ),

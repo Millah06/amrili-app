@@ -7,7 +7,7 @@ import 'package:path/path.dart' as path;
 
 class ApiService {
 
-  static const String baseUrl = 'https://everywhere-data-app.onrender.com';
+  static const String baseUrl = 'https://api.amril.app';
 
   Future<String> _getAuthTokenOptional() async {
     final user = FirebaseAuth.instance.currentUser;

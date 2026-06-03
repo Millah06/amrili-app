@@ -972,7 +972,7 @@ class _PinInput extends StatelessWidget {
       fillColor: Colors.white.withOpacity(0.06),
       suffixIcon: IconButton(
           onPressed: onToggle,
-          icon: Icon(
+          icon: FaIcon(
               obscure ? FontAwesomeIcons.eyeSlash : FontAwesomeIcons.eye,
               size: 15,
               color: Colors.white38)),
@@ -1013,7 +1013,7 @@ class _PasswordInput extends StatelessWidget {
       fillColor: Colors.white.withOpacity(0.06),
       suffixIcon: IconButton(
           onPressed: onToggle,
-          icon: Icon(
+          icon: FaIcon(
               obscure ? FontAwesomeIcons.eyeSlash : FontAwesomeIcons.eye,
               size: 15,
               color: Colors.white38)),

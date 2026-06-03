@@ -43,7 +43,9 @@ class JoinWithIdFormState extends State<JoinWithIdForm> {
 
   @override
   void dispose() {
-    for (final c in [_vendorIdCtrl, _area, _street]) c.dispose();
+    for (final c in [_vendorIdCtrl, _area, _street]) {
+      c.dispose();
+    }
     super.dispose();
   }
 
