@@ -259,140 +259,145 @@ class _FeedScreenState extends State<FeedScreen> with AutomaticKeepAliveClientMi
             ),
           ],
         ),
-        body: Column(
-          children: [
-            // Feed Type Toggle
-            AnimatedSwitcher(
-              duration: const Duration(milliseconds: 250),
-              child: _showToggle ? _FeedTypeToggle() : const SizedBox(),
-            ),
-
-            // Feed Content
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: () async {
-                  await context.read<FeedProvider>().forceRefresh();
-                  await context.read<RewardProvider>().loadLeaderboard();
-                },
-                color: const Color(0xFF177E85),
-                backgroundColor: const Color(0xFF1E293B),
-                child: CustomScrollView(
-                  controller: _scrollController,
-                  slivers: [
-                    // Compact Leaderboard
-                    const SliverToBoxAdapter(
-                      child: CompactLeaderboard(),
-                    ),
-                    // Posts List
-                    Consumer<FeedProvider>(
-                      builder: (context, feedProvider, _) {
-                        if (feedProvider.isLoading && feedProvider.posts.isEmpty) {
-                          return const SliverToBoxAdapter(
-                              child: PostFeedShimmer(itemCount: 4),
-                            );
-                        }
-                        if (feedProvider.error != null && feedProvider.posts.isEmpty) {
-                          return SliverFillRemaining(
-                            child: Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(
-                                    Icons.error_outline,
-                                    size: 64,
-                                    color: Colors.grey,
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    'Failed to load feed',
-                                    style: TextStyle(color: Colors.grey[400]),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  ElevatedButton(
-                                    onPressed: () => feedProvider.loadFeed(refresh: true),
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF177E85),
-                                    ),
-                                    child: const Text('Retry'),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        }
-
-                        if (feedProvider.posts.isEmpty) {
-                          return SliverFillRemaining(
-                            child: Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.feed_outlined,
-                                    size: 64,
-                                    color: Colors.grey[600],
-                                  ),
-                                  const SizedBox(height: 16),
-                                  Text(
-                                    feedProvider.currentFeedType == FeedType.following
-                                        ? 'Follow users to see their posts'
-                                        : 'No posts yet',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      color: Colors.grey[400],
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    feedProvider.currentFeedType == FeedType.following
-                                        ? 'Discover creators in For You'
-                                        : 'Be the first to share something!',
-                                    style: TextStyle(color: Colors.grey[500]),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        }
-
-                        return SliverList(
-                          delegate: SliverChildBuilderDelegate(
-                                (context, index) {
-                              if (index < feedProvider.posts.length) {
-                                return PostCard(post: feedProvider.posts[index]);
-                              } else if (feedProvider.hasMore) {
-                                return const Padding(
-                                  padding: EdgeInsets.all(16.0),
-                                  child: Center(
-                                    child: CircularProgressIndicator(
-                                      color: Color(0xFF177E85),
-                                    ),
-                                  ),
-                                );
-                              } else {
-                                return Padding(
-                                  padding: const EdgeInsets.all(24.0),
-                                  child: Center(
-                                    child: Text(
-                                      "You've reached the end",
-                                      style: TextStyle(color: Colors.grey[500]),
-                                    ),
-                                  ),
-                                );
-                              }
-                            },
-                            childCount: feedProvider.posts.length +
-                                (feedProvider.hasMore ? 1 : 1),
-                          ),
-                        );
-                      },
-                    ),
-                  ],
+        body: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 640),
+            child: Column(
+              children: [
+                // Feed Type Toggle
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 250),
+                  child: _showToggle ? _FeedTypeToggle() : const SizedBox(),
                 ),
-              ),
+
+                // Feed Content
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: () async {
+                      await context.read<FeedProvider>().forceRefresh();
+                      await context.read<RewardProvider>().loadLeaderboard();
+                    },
+                    color: const Color(0xFF177E85),
+                    backgroundColor: const Color(0xFF1E293B),
+                    child: CustomScrollView(
+                      controller: _scrollController,
+                      slivers: [
+                        // Compact Leaderboard
+                        const SliverToBoxAdapter(
+                          child: CompactLeaderboard(),
+                        ),
+                        // Posts List
+                        Consumer<FeedProvider>(
+                          builder: (context, feedProvider, _) {
+                            if (feedProvider.isLoading && feedProvider.posts.isEmpty) {
+                              return const SliverToBoxAdapter(
+                                  child: PostFeedShimmer(itemCount: 4),
+                                );
+                            }
+                            if (feedProvider.error != null && feedProvider.posts.isEmpty) {
+                              return SliverFillRemaining(
+                                child: Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(
+                                        Icons.error_outline,
+                                        size: 64,
+                                        color: Colors.grey,
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        'Failed to load feed',
+                                        style: TextStyle(color: Colors.grey[400]),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      ElevatedButton(
+                                        onPressed: () => feedProvider.loadFeed(refresh: true),
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: const Color(0xFF177E85),
+                                        ),
+                                        child: const Text('Retry'),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }
+
+                            if (feedProvider.posts.isEmpty) {
+                              return SliverFillRemaining(
+                                child: Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.feed_outlined,
+                                        size: 64,
+                                        color: Colors.grey[600],
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Text(
+                                        feedProvider.currentFeedType == FeedType.following
+                                            ? 'Follow users to see their posts'
+                                            : 'No posts yet',
+                                        style: TextStyle(
+                                          fontSize: 18,
+                                          color: Colors.grey[400],
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        feedProvider.currentFeedType == FeedType.following
+                                            ? 'Discover creators in For You'
+                                            : 'Be the first to share something!',
+                                        style: TextStyle(color: Colors.grey[500]),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }
+
+                            return SliverList(
+                              delegate: SliverChildBuilderDelegate(
+                                    (context, index) {
+                                  if (index < feedProvider.posts.length) {
+                                    return PostCard(post: feedProvider.posts[index]);
+                                  } else if (feedProvider.hasMore) {
+                                    return const Padding(
+                                      padding: EdgeInsets.all(16.0),
+                                      child: Center(
+                                        child: CircularProgressIndicator(
+                                          color: Color(0xFF177E85),
+                                        ),
+                                      ),
+                                    );
+                                  } else {
+                                    return Padding(
+                                      padding: const EdgeInsets.all(24.0),
+                                      child: Center(
+                                        child: Text(
+                                          "You've reached the end",
+                                          style: TextStyle(color: Colors.grey[500]),
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                },
+                                childCount: feedProvider.posts.length +
+                                    (feedProvider.hasMore ? 1 : 1),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );

@@ -1,4 +1,4 @@
-import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:everywhere/core/constant/app_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -10,6 +10,8 @@ import '../../features/auth/login_screen.dart';
 import '../../features/auth/security_step1_screen.dart';
 import '../../providers/user_provider.dart';
 import '../../services/session_service.dart';
+// ADD
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
 
 class AuthGateBottomSheet {
   static void show(BuildContext context, {String reason = 'do that'}) {
@@ -158,7 +160,9 @@ class _AuthGateSheetState extends State<_AuthGateSheet> {
               ),
             ),
             // Apple — iOS only
-            if (Platform.isIOS) ...[
+            if (!kIsWeb &&
+                (defaultTargetPlatform == TargetPlatform.iOS ||
+                    defaultTargetPlatform == TargetPlatform.macOS)) ...[
               const SizedBox(height: 12),
               _SocialButton(
                 label: 'Continue with Apple',

@@ -131,14 +131,22 @@
 </div>
 
 <script>
-  // Exposed to Dart (via dart:js / package:web) so the engine can fade the
-  // splash out once it has painted. Safe to call more than once.
+  // Fade the splash out once the app has painted. Safe to call repeatedly.
   window.removeAmrilSplash = function () {
     var el = document.getElementById('splash');
     if (!el) return;
     el.classList.add('splash-hidden');
     setTimeout(function () { if (el && el.parentNode) el.parentNode.removeChild(el); }, 500);
   };
+
+  // THIS is what removes the splash: Flutter dispatches `flutter-first-frame`
+  // on the window the instant it paints its first frame. Without this listener
+  // the overlay covers the running app forever (the original bug).
+  window.addEventListener('flutter-first-frame', window.removeAmrilSplash);
+
+  // Safety net: never trap the user behind the splash. If the first frame is
+  // slow (cold start, slow network), reveal whatever has rendered after 8s.
+  setTimeout(window.removeAmrilSplash, 8000);
 </script>
 
 <!-- Flutter bootstrap (flutter.js is generated into build/web). -->

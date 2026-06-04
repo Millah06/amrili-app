@@ -37,6 +37,7 @@ import '../../core/auth/auth_provider.dart';
 // Shell + entry screens
 import '../../components/bootom_bar.dart';
 import '../../features/marketPlace/pages/qr_scanner_screen.dart';
+import '../../features/marketPlace/utils/vendor_scope.dart';
 import '../../features/social/pages/post_detail_page.dart';
 import '../../features/social/pages/public_profile_page.dart';
 import '../../screens/welcome_screen.dart';
@@ -62,6 +63,11 @@ import '../../features/marketPlace/pages/order_detail_landing_page.dart';
 import '../../features/referral/pages/referral_landing_page.dart';
 import '../../shared/pages/not_found_page.dart';
 
+/// Set by main.dart BEFORE the router is first built, from a cold-start App Link.
+/// Lets the very first routed frame be the deep-linked page (no '/' or welcome
+/// flash). Defaults to '/' for a normal launch.
+String bootDeepLinkLocation = '/';
+
 /// Paths a logged-out, non-guest visitor is allowed to land on directly.
 /// Everything here is either the entry shell, the welcome screen, or a
 /// public deep-link read surface (the backend gates the actual payload).
@@ -80,33 +86,33 @@ bool _isPublicLocation(String location) {
 /// here: if the visitor is neither authenticated nor a guest AND is trying to
 /// reach a non-public location, bounce them to /welcome. Authenticated users
 /// and guests pass through untouched (guest still sees the feed at `/`).
+
+// BEFORE: _globalRedirect bounced any non-signed-in visitor off non-public
+// locations to /welcome, and _requireAuth hard-bounced guests off /order, /wallet.
+
+// AFTER: only first-time visitors at '/' go to welcome; deep links pass through
+// (they self-mark guest); private routes are guarded by AuthRequired, not redirects.
 String? _globalRedirect(BuildContext context, GoRouterState state) {
   final auth = context.read<AuthProvider>();
-  final signedIn = auth.isAuthenticated || auth.isGuest;
+  final entered = auth.isAuthenticated || auth.isGuest;
   final loc = state.matchedLocation;
 
-  if (!signedIn && !_isPublicLocation(loc)) {
-    return '/welcome';
-  }
-  // If a signed-in/guest user somehow lands on /welcome, send them home so the
-  // back stack never strands them on the marketing screen.
-  if (signedIn && loc == '/welcome') {
-    return '/';
-  }
-  return null; // no redirect
+  // First-time visitor opening the app normally → welcome, not the bottom nav.
+  if (loc == '/' && !entered) return '/welcome';
+
+  // Never strand an entered user on the marketing screen.
+  if (entered && loc == '/welcome') return '/';
+
+  return null;
 }
 
 /// Per-route guard for surfaces that require a REAL (non-guest) account.
 /// Used for the private order receipt. Guests are pushed to /welcome.
-String? _requireAuth(BuildContext context, GoRouterState state) {
-  final auth = context.read<AuthProvider>();
-  if (!auth.isAuthenticated) return '/welcome';
-  return null;
-}
+
 
 final GoRouter appRouter = GoRouter(
   navigatorKey: navigatorKey, // same key the PIN sheets + FCM use
-  initialLocation: '/',
+  initialLocation: bootDeepLinkLocation,
   redirect: _globalRedirect,
   debugLogDiagnostics: false,
 
@@ -135,7 +141,7 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/wallet',
       name: WalletScreen.id, // 'wallet'
-      redirect: _requireAuth, // wallet is account-only
+      // redirect: _requireAuth, // wallet is account-only
       builder: (context, state) => const WalletScreen(),
     ),
     GoRoute(
@@ -160,7 +166,7 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/store/:storeId',
       builder: (c, s) =>
-          VendorDetailPage(vendorId: s.pathParameters['storeId']!),
+          VendorScope(child: VendorDetailPage(vendorId: s.pathParameters['storeId']!)),
     ),
 
     // Store + table → Phase 6 wires the tableId into VendorDetailPage/checkout.
@@ -170,10 +176,12 @@ final GoRouter appRouter = GoRouter(
     // route change.
     GoRoute(
       path: '/store/:storeId/table/:tableId',
-      builder: (c, s) => VendorDetailPage(
-        vendorId: s.pathParameters['storeId']!,
-        // NOTE (Phase 6): add `tableId:` param to VendorDetailPage and read
-        // s.pathParameters['tableId'] here. Forwarded via `extra` for now.
+      builder: (c, s) => VendorScope(
+        child: VendorDetailPage(
+          vendorId: s.pathParameters['storeId']!,
+          // NOTE (Phase 6): add `tableId:` param to VendorDetailPage and read
+          // s.pathParameters['tableId'] here. Forwarded via `extra` for now.
+        ),
       ),
     ),
 
@@ -182,7 +190,7 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/product/:productId',
       builder: (c, s) =>
-          ProductLandingPage(menuItemId: s.pathParameters['productId']!),
+          VendorScope(child: ProductLandingPage(menuItemId: s.pathParameters['productId']!)),
     ),
 
     // Referral join → captures the code, shows a friendly landing + CTA.
@@ -195,7 +203,7 @@ final GoRouter appRouter = GoRouter(
     // Private order receipt → requires a real account.
     GoRoute(
       path: '/order/:orderId',
-      redirect: _requireAuth,
+      // redirect: _requireAuth,
       builder: (c, s) =>
           OrderDetailLandingPage(orderId: s.pathParameters['orderId']!),
     ),

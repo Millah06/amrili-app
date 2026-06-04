@@ -22,6 +22,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'components/bootom_bar.dart';
 import 'constraints/constants.dart';
 import 'constraints/vendor_theme.dart';
+import 'core/app_scroll_behavior.dart';
 import 'core/deep_link/deep_link_service.dart';
 import 'features/bottom_navigation/services_screen.dart';
 import 'features/bottom_navigation/wallet/wallet_screen.dart';
@@ -151,7 +152,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       child: MaterialApp.router(
         debugShowCheckedModeBanner: false,
         title: AppConstants.appName,
-        // key: _key,
+        scrollBehavior: const AppScrollBehavior(),
         routerConfig: appRouter,
         theme: ThemeData(
           scaffoldBackgroundColor: Color(0xFF0F172A),

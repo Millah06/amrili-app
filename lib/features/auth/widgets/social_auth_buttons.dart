@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -16,6 +15,8 @@ import '../../marketPlace/widgets/shared_widgets.dart'; // for FlushBarMessage
 import '../../../shared/utils/flush_bar_message.dart';
 import '../../../screens/community_screen.dart';
 import '../security_step1_screen.dart';
+// ADD
+import 'package:flutter/foundation.dart' show kIsWeb, defaultTargetPlatform, TargetPlatform;
 
 /// Renders Google + Apple (iOS) buttons, handles the full auth flow,
 /// and calls [onAuthSuccess] with the result on completion.
@@ -119,7 +120,9 @@ class _SocialAuthButtonsState extends State<SocialAuthButtons> {
             ),
           ),
           // Apple — iOS only
-          if (Platform.isIOS) ...[
+          if (!kIsWeb &&
+              (defaultTargetPlatform == TargetPlatform.iOS ||
+                  defaultTargetPlatform == TargetPlatform.macOS)) ...[
             const SizedBox(height: 12),
             _SocialAuthButton(
               label: 'Continue with Apple',

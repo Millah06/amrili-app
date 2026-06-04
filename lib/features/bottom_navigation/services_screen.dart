@@ -1379,8 +1379,9 @@ class _HomeScreenState extends State<HomeScreen>
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Polished service section + tile (Phase 2 UI optimization).
-// Self-contained so it doesn't disturb the shared `ServiceFrame` used elsewhere.
+// Service section — reuses the app's real ServiceFrame so tiles look identical
+// to the rest of the screen (teal cards, white FontAwesome icons). Only the
+// section wrapper + spacing are styled here.
 // ─────────────────────────────────────────────────────────────────────────────
 class _ServiceSection extends StatelessWidget {
   final String title;
@@ -1391,35 +1392,37 @@ class _ServiceSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      margin: const EdgeInsets.fromLTRB(12, 0, 12, 14),
-      padding: const EdgeInsets.fromLTRB(14, 14, 14, 6),
+      margin: const EdgeInsets.fromLTRB(12, 0, 12, 12),
+      padding: const EdgeInsets.fromLTRB(8, 12, 8, 8),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         color: const Color(0xFF1E293B),
-        border: Border.all(color: Colors.white.withOpacity(0.04)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Section header with a small accent bar for hierarchy.
+          // Section header with a small teal accent bar for hierarchy.
           Padding(
-            padding: const EdgeInsets.only(left: 4, bottom: 10),
+            padding: const EdgeInsets.only(left: 10, bottom: 6, top: 2),
             child: Row(
               children: [
                 Container(
                   width: 3,
-                  height: 16,
+                  height: 14,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF21D3ED),
+                    color: const Color(0xFF177E85),
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
                 const SizedBox(width: 8),
-                Text(title,
-                    style: GoogleFonts.inter(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white)),
+                Text(
+                  title,
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                  ),
+                ),
               ],
             ),
           ),
@@ -1429,79 +1432,22 @@ class _ServiceSection extends StatelessWidget {
             shrinkWrap: true,
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 4,
-              childAspectRatio: 0.82,
-              crossAxisSpacing: 6,
-              mainAxisSpacing: 10,
+              childAspectRatio: 0.84, // a touch taller so labels don't crowd
+              crossAxisSpacing: 0,    // ServiceFrame carries its own padding
+              mainAxisSpacing: 4,
             ),
             itemCount: services.length,
-            itemBuilder: (context, i) => _ServiceTile(service: services[i]),
+            itemBuilder: (context, i) {
+              final s = services[i];
+              return ServiceFrame(
+                title: s.name,
+                icon: s.icon,            // FaIconData — rendered by ServiceFrame
+                onTap: s.function,
+                isNew: s.isNew,          // if your field is `bool?`, use `s.isNew ?? false`
+              );
+            },
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _ServiceTile extends StatelessWidget {
-  final ServiceModel service;
-  const _ServiceTile({required this.service});
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        borderRadius: BorderRadius.circular(14),
-        onTap: service.function,
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                // Rounded icon chip — clearer tap target than a bare icon.
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF0F172A),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.white.withOpacity(0.06)),
-                  ),
-                  child: FaIcon(service.icon,
-                      size: 20, color: const Color(0xFF21D3ED)),
-                ),
-                if (service.isNew == true)
-                  Positioned(
-                    top: -4,
-                    right: -4,
-                    child: Container(
-                      padding:
-                      const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF177E85),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text('New',
-                          style: GoogleFonts.inter(
-                              fontSize: 8,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white)),
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(
-              service.name,
-              maxLines: 2,
-              textAlign: TextAlign.center,
-              overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.inter(
-                  fontSize: 10.5, height: 1.15, color: Colors.white70),
-            ),
-          ],
-        ),
       ),
     );
   }

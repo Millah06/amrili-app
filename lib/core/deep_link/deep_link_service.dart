@@ -17,8 +17,11 @@ import 'dart:async';
 
 import 'package:app_links/app_links.dart';
 import 'package:flutter/foundation.dart';
-
 import '../router/app_router.dart';
+// add imports
+import 'package:provider/provider.dart';
+import '../../app.dart' show navigatorKey;
+import '../auth/auth_provider.dart';
 
 class DeepLinkService {
   DeepLinkService._();
@@ -36,14 +39,6 @@ class DeepLinkService {
     if (_started) return; // idempotent — safe to call again on hot reload
     _started = true;
 
-    // 1) COLD start: did a link launch the app?
-    try {
-      final Uri? initial = await _appLinks.getInitialLink();
-      if (initial != null) _handleUri(initial);
-    } catch (e) {
-      debugPrint('DeepLinkService: initial link error — $e');
-    }
-
     // 2) WARM/HOT: links arriving while the app is running.
     _sub = _appLinks.uriLinkStream.listen(
       _handleUri,
@@ -52,19 +47,23 @@ class DeepLinkService {
   }
 
   void _handleUri(Uri uri) {
-    // Guard: only route links that belong to us.
     if (!_ownHosts.contains(uri.host)) {
       debugPrint('DeepLinkService: ignoring foreign host ${uri.host}');
       return;
     }
 
-    // Build a router location from path (+ query if present). GoRouter expects
-    // a leading slash; `uri.path` already provides it (defaults to '/').
+    // Don't disrupt a deep-link visitor: if they have no account and aren't yet a
+    // guest, mark them a guest so the router lets them through and gated actions
+    // (like/comment) show the sign-in sheet instead of bouncing to welcome.
+    final ctx = navigatorKey.currentContext;
+    if (ctx != null) {
+      final auth = ctx.read<AuthProvider>();
+      if (!auth.isAuthenticated && !auth.isGuest) auth.continueAsGuest();
+    }
+
     final String location =
     uri.hasQuery ? '${uri.path}?${uri.query}' : uri.path;
-
     debugPrint('DeepLinkService: routing → $location');
-    // `go` (not `push`) so a fresh link replaces rather than stacks endlessly.
     appRouter.go(location.isEmpty ? '/' : location);
   }
 

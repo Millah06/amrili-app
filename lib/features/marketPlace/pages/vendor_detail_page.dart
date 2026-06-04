@@ -1,5 +1,6 @@
 import 'package:everywhere/constraints/constants.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../constraints/vendor_theme.dart';
@@ -167,7 +168,7 @@ class _VendorDetailPageState extends State<VendorDetailPage> {
         ),
       ],
       leading: GestureDetector(
-        onTap: () => Navigator.pop(context),
+        onTap: () => context.canPop() ? context.pop() : context.go('/'),
         child: Container(
           margin: const EdgeInsets.all(8),
           decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
