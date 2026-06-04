@@ -36,6 +36,8 @@ class VendorModel {
 
   final double rating;
 
+  final int? trustLevel; // null until /web|vendor payloads include trustProfile
+
   final int totalCompletedOrders;
 
   final double completionRate;
@@ -62,6 +64,7 @@ class VendorModel {
     required this.coverPhoto,
     required this.cac,
     required this.rating,
+    this.trustLevel,
     required this.totalCompletedOrders,
     required this.completionRate,
     required this.verified,
@@ -86,6 +89,7 @@ class VendorModel {
     coverPhoto: j['coverPhoto'],
     cac: j['cac'] ?? '',
     rating: (j['rating'] as num).toDouble(),
+    trustLevel: (j['trustLevel'] ?? j['trustProfile']?['level']) as int?,
     totalCompletedOrders: j['totalCompletedOrders'],
     completionRate: (j['completionRate'] as num).toDouble(),
     verified: j['verified'],

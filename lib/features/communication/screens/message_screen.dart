@@ -1,8 +1,8 @@
 import 'dart:io';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:everywhere/features/bottom_navigation/chats/shortcut_actions.dart';
-import 'package:everywhere/features/bottom_navigation/chats/widgets/message_bubble.dart';
+import 'package:everywhere/features/communication/widgets/shortcut_actions.dart';
+import 'package:everywhere/features/communication/widgets/message_bubble.dart';
 
 import 'package:everywhere/features/communication/services/message_service.dart';
 import 'package:flutter/material.dart';

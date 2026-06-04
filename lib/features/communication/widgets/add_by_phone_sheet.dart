@@ -5,7 +5,7 @@ import '../../../constraints/constants.dart';
 import '../../../constraints/vendor_theme.dart';
 import '../../../services/brain.dart';
 import '../../../shared/widgets/country_code_picker_field.dart';
-import '../../bottom_navigation/chats/message_screen.dart';
+import '../screens/message_screen.dart';
 import '../services/chat_room_service.dart';
 
 class AddByPhoneNumber extends StatefulWidget {

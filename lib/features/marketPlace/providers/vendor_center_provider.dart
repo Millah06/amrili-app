@@ -271,11 +271,11 @@ class VendorCenterProvider extends ChangeNotifier {
   }
 
   Future<bool> uploadLogo(File imageFile, String fileCategory) async {
-    print('the inner is also called');
+
     try {
-      print('I will start upload');
+
       final url = await api.upload('vendor/upload/logo', imageFile, fileCategory);
-      print(url);
+
       if (myVendor != null) {
         // myVendor = VendorModel.fromJson({...myVendor!.toJson(), 'logo': url});
         myVendor = myVendor!.copyWith(logo: url);

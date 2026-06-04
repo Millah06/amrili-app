@@ -5,11 +5,11 @@ import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../core/auth/guest_helper.dart';
-import '../features/bottom_navigation/chats/chat_screen.dart';
-import '../features/bottom_navigation/profile/profile_screen.dart';
+import '../features/bottom_navigation/chat_screen.dart';
+import '../features/bottom_navigation/profile_screen.dart';
 import '../features/bottom_navigation/services_screen.dart';
-import '../features/bottom_navigation/socialFeature/feed_screen.dart';
-import '../features/bottom_navigation/wallet/wallet_screen.dart';
+import '../features/bottom_navigation/feed_screen.dart';
+import '../features/bottom_navigation/wallet_screen.dart';
 import '../shared/widgets/auth_gate_bottom_sheet.dart';
 
 

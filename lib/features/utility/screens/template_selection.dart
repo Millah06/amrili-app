@@ -2,8 +2,8 @@ import 'package:everywhere/components/notice_banner.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import '../../components/cached_image.dart';
-import '../../components/edit2.dart';
+import '../../../components/cached_image.dart';
+import '../../../components/edit2.dart';
 
 import 'package:carousel_slider/carousel_slider.dart';
 

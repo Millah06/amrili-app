@@ -1,3 +1,4 @@
+import 'package:everywhere/features/marketPlace/widgets/trust_badge.dart';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../../../constraints/vendor_theme.dart';
@@ -77,12 +78,13 @@ class VendorCard extends StatelessWidget {
                     ),
                   ),
                   // Verified badge
-                  if (vendor.verified)
-                    const Positioned(
+                  Positioned(
                       top: 10,
                       left: 10,
-                      child: Icon(Icons.verified, color: Color(0xFF3B82F6), size: 20),
-                    ),
+                      child:
+                      TrustBadge(level: vendor.trustLevel ?? 0,
+                          verifiedFallback: vendor.verified)
+                  ),
                 ],
               ),
             ),

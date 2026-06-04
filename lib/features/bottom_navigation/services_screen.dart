@@ -1,10 +1,5 @@
-import 'dart:io';
-
-import 'package:another_flushbar/flushbar.dart';
 import 'package:everywhere/components/dash_line.dart';
 import 'package:everywhere/components/wallet_balance.dart';
-import 'package:everywhere/features/bottom_navigation/wallet/pages/p2p_transfer_screen.dart';
-import 'package:everywhere/features/bottom_navigation/wallet/pages/withdraw_bank_screen.dart';
 import 'package:everywhere/models/service_model.dart';
 import 'package:everywhere/screens/pages/notification_screen.dart';
 import 'package:everywhere/screens/pages/transaction_history_screen.dart';
@@ -20,7 +15,6 @@ import 'package:iconify_flutter/icons/ph.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:pull_to_reveal_flutter/pull_to_reveal_flutter.dart';
-import 'package:url_launcher/url_launcher.dart';
 import 'package:iconify_flutter/iconify_flutter.dart';
 import '../../components/formatters.dart';
 import '../../components/promotion_screen.dart';
@@ -37,6 +31,8 @@ import '../utility/screens/utility_screens/data_screen.dart';
 import '../utility/screens/utility_screens/electric_screen.dart';
 import '../utility/screens/utility_screens/internet_services.dart';
 import '../utility/screens/utility_screens/rechargepins_screen.dart';
+import '../wallet/pages/p2p_transfer_screen.dart';
+import '../wallet/pages/withdraw_bank_screen.dart';
 
 class HomeScreen extends StatefulWidget {
 
@@ -1330,10 +1326,6 @@ class _HomeScreenState extends State<HomeScreen>
                                   Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      // Text('Total Money In:',
-                                      //   style: GoogleFonts.roboto(
-                                      //       fontWeight: FontWeight.w700,
-                                      //       color: Colors.white54, fontSize: 12),),
                                       Text('Total money Spent:',
                                           style: GoogleFonts.roboto(
                                               fontWeight: FontWeight.w700, color: Colors.white54, fontSize: 12))
@@ -1342,13 +1334,7 @@ class _HomeScreenState extends State<HomeScreen>
                                   Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      // Row(
-                                      //   children: [
-                                      //     Text(kNaira, style: TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.bold),),
-                                      //     SizedBox(width: 3,),
-                                      //     BalanceText(0, 16, 8)
-                                      //   ],
-                                      // ),
+
                                       Row(
                                         children: [
                                           Text(kNaira, style: TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.bold),),
@@ -1432,7 +1418,7 @@ class _ServiceSection extends StatelessWidget {
             shrinkWrap: true,
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 4,
-              childAspectRatio: 0.84, // a touch taller so labels don't crowd
+              childAspectRatio: 0.8, // a touch taller so labels don't crowd
               crossAxisSpacing: 0,    // ServiceFrame carries its own padding
               mainAxisSpacing: 4,
             ),
@@ -1443,7 +1429,7 @@ class _ServiceSection extends StatelessWidget {
                 title: s.name,
                 icon: s.icon,            // FaIconData — rendered by ServiceFrame
                 onTap: s.function,
-                isNew: s.isNew,          // if your field is `bool?`, use `s.isNew ?? false`
+                isNew: s.isNew ?? false,          // if your field is `bool?`, use `s.isNew ?? false`
               );
             },
           ),

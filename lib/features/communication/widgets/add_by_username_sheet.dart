@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import '../../../constraints/constants.dart';
 import '../../../constraints/vendor_theme.dart';
 import '../../../services/brain.dart';
-import '../../bottom_navigation/chats/message_screen.dart';
+import '../screens/message_screen.dart';
 import '../services/chat_room_service.dart';
 
 class AddByUsernameSheet extends StatefulWidget {

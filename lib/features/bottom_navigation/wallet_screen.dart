@@ -1,9 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:everywhere/components/wallet_balance.dart';
 import 'package:everywhere/constraints/constants.dart';
-import 'package:everywhere/features/bottom_navigation/wallet/pages/crypto_wallet_screen.dart';
-import 'package:everywhere/features/bottom_navigation/wallet/pages/p2p_transfer_screen.dart';
-import 'package:everywhere/features/bottom_navigation/wallet/pages/withdraw_bank_screen.dart';
 import 'package:everywhere/features/support/help_center.dart';
 import 'package:everywhere/providers/user_provider.dart';
 import 'package:everywhere/shared/widgets/pull_to_reveal.dart';
@@ -16,12 +13,15 @@ import 'package:provider/provider.dart';
 import 'package:pull_to_reveal_flutter/pull_to_reveal_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../../../shared/widgets/account_information.dart';
-import '../../../components/recent_frame.dart';
-import '../../../components/reusable_card.dart';
-import '../../../components/service_fraame.dart';
-import '../../../components/view_receipt.dart';
-import '../../../services/brain.dart';
+import '../../shared/widgets/account_information.dart';
+import '../../components/recent_frame.dart';
+import '../../components/reusable_card.dart';
+import '../../components/service_fraame.dart';
+import '../../components/view_receipt.dart';
+import '../../services/brain.dart';
+import '../wallet/pages/crypto_wallet_screen.dart';
+import '../wallet/pages/p2p_transfer_screen.dart';
+import '../wallet/pages/withdraw_bank_screen.dart';
 
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});

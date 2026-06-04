@@ -44,7 +44,7 @@ import '../../screens/welcome_screen.dart';
 
 // Utility screens (moved here from app.dart's old routes map)
 import '../../features/bottom_navigation/services_screen.dart'; // HomeScreen
-import '../../features/bottom_navigation/wallet/wallet_screen.dart'; // WalletScreen
+import '../../features/bottom_navigation/wallet_screen.dart'; // WalletScreen
 import '../../screens/first_screen.dart';
 import '../../features/utility/screens/utility_screens/cable_suscription.dart';
 import '../../features/utility/screens/utility_screens/airtime_screen.dart';

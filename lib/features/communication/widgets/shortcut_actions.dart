@@ -9,7 +9,7 @@ import '../../../components/notice_banner.dart';
 import '../../../components/textInput_formater.dart';
 import '../../../constraints/constants.dart';
 import '../../../services/brain.dart';
-import '../../communication/services/message_service.dart';
+import '../services/message_service.dart';
 import '../../../services/purchase_service.dart';
 import '../../../services/transaction_service.dart';
 

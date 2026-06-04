@@ -66,3 +66,4 @@ firebase_data
 # Android release keys
 /android/app/my-release-key.jks
 /android/key.properties
+lib/firebase_options.dart

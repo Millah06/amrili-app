@@ -25,7 +25,7 @@ import 'constraints/vendor_theme.dart';
 import 'core/app_scroll_behavior.dart';
 import 'core/deep_link/deep_link_service.dart';
 import 'features/bottom_navigation/services_screen.dart';
-import 'features/bottom_navigation/wallet/wallet_screen.dart';
+import 'features/bottom_navigation/wallet_screen.dart';
 import 'features/profile/providers/my_profile_provider.dart';
 import 'features/support/provider.dart';
 import 'features/utility/screens/utility_screens/airtime_gift.dart';

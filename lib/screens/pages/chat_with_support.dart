@@ -19,8 +19,8 @@ import '../../../constraints/formatters.dart';
 import '../../../services/brain.dart';
 import '../../../services/purchase_service.dart';
 import '../../../services/transaction_service.dart';
-import '../../features/bottom_navigation/chats/shortcut_actions.dart';
-import '../../features/bottom_navigation/chats/widgets/message_bubble.dart';
+import '../../features/communication/widgets/shortcut_actions.dart';
+import '../../features/communication/widgets/message_bubble.dart';
 
 
 class ChatWithSupport extends StatefulWidget {

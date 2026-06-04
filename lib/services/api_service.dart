@@ -69,6 +69,46 @@ class ApiService {
     return _handle(res);
   }
 
+  Future<Map<String, dynamic>> submitIdentity(String urlPath, File imageFile, String fileCategory) async {
+
+    try {
+      // Create multipart request
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$baseUrl/$urlPath'),
+      );
+
+      // Add your existing headers (same as createPost!)
+      final headers = await _headers;
+      request.headers.addAll(headers);
+
+      // Add the file (this is the multipart part)
+      final multipartFile = await http.MultipartFile.fromPath(
+        'image',           // Field name (must match backend)
+        imageFile.path,    // File path
+        filename: path.basename(imageFile.path), // Original filename
+      );
+      request.files.add(multipartFile);
+
+      // Send request
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+
+      // Parse response (same as your createPost!)
+      final responseData = jsonDecode(response.body);
+
+      if (response.statusCode == 200) {
+        return responseData; // Returns URL string
+      } else {
+        print('expection');
+        throw Exception(responseData['error'] ?? 'Upload failed');
+      }
+
+    } catch (error) {
+      throw Exception('Failed to upload image: $error');
+    }
+  }
+
   Future<String> upload(String urlPath, File imageFile, String fileCategory) async {
 
     try {

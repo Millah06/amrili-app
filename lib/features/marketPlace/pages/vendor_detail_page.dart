@@ -11,6 +11,7 @@ import '../models/vendor_model.dart';
 import '../widgets/navigation.dart';
 import '../widgets/qr_share_sheet.dart';
 import '../widgets/shared_widgets.dart';
+import '../widgets/trust_badge.dart';
 import 'checkout.dart';
 import 'checkout_page.dart';
 
@@ -203,7 +204,8 @@ class _VendorDetailPageState extends State<VendorDetailPage> {
                 child: Text(vendor.name,
                     style: const TextStyle(color: VendorTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 20)),
               ),
-              if (vendor.verified) const Icon(Icons.verified, color: VendorTheme.primary, size: 20),
+              TrustBadge(level: vendor.trustLevel ?? 0,
+                  verifiedFallback: vendor.verified),
             ],
           ),
           const SizedBox(height: 4),
@@ -558,7 +560,7 @@ class _ProductDetailSheetState extends State<_ProductDetailSheet> {
                               _buildImageSection(item),
                               Positioned(
                                 top: 10,
-                                right: 12,
+                                left: 12,
                                 child: GestureDetector(
                                   onTap: () => QRShareSheet.show(
                                     context,

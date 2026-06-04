@@ -157,6 +157,7 @@ class TransactionModel {
       case 'order_payment':     return 'Order Payment';
       case 'wallet_withdrawal': return 'Wallet Withdrawal';
       case 'order_refund':      return 'Order Refund';
+      case 'verification_fee':  return  'Business Verification';
       case 'gift':              return 'Gift Card';
       default:
         return type.replaceAll('_', ' ').split(' ').map((w) =>

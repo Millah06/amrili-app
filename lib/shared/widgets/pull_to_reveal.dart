@@ -1,6 +1,5 @@
 import 'package:everywhere/core/auth/guest_helper.dart';
 import 'package:everywhere/features/support/help_center.dart';
-import 'package:everywhere/features/marketPlace/widgets/shared_widgets.dart';
 import 'package:everywhere/features/utility/screens/utility_screens/airtime_gift.dart';
 import 'package:everywhere/screens/pages/transaction_history_screen.dart';
 import 'package:flutter/material.dart';
@@ -8,8 +7,8 @@ import 'package:pull_to_reveal_flutter/pull_to_reveal_flutter.dart';
 
 import '../../constraints/vendor_theme.dart';
 import '../../features/profile/screens/settings_screeen.dart';
-import '../../features/bottom_navigation/wallet/pages/withdraw_bank_screen.dart';
 import '../../features/marketPlace/utils/vendor_engine_entry.dart';
+import '../../features/wallet/pages/withdraw_bank_screen.dart';
 
 class PullRevealOverlayWrapper extends StatefulWidget {
   final Widget child;

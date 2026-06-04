@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:everywhere/core/auth/guest_helper.dart';
-import 'package:everywhere/features/bottom_navigation/chats/widgets/chat_bubble.dart';
+import 'package:everywhere/features/communication/widgets/chat_bubble.dart';
 import 'package:everywhere/features/communication/providers/sync_contact_provider.dart';
 import 'package:everywhere/features/communication/widgets/sync_contact_sheet.dart';
 import 'package:everywhere/screens/pages/transaction_history_screen.dart';
@@ -13,15 +13,15 @@ import 'package:iconify_flutter/iconify_flutter.dart';
 import 'package:iconify_flutter/icons/ph.dart';
 import 'package:provider/provider.dart';
 import 'package:pull_to_reveal_flutter/pull_to_reveal_flutter.dart';
-import '../../../constraints/constants.dart';
-import '../../../constraints/vendor_theme.dart';
-import '../../../features/communication/providers/chat_provider.dart';
-import '../../../services/brain.dart';
-import '../../../shared/widgets/country_code_picker_field.dart';
-import '../../communication/services/chat_room_service.dart';
-import '../../communication/widgets/add_by_phone_sheet.dart';
-import '../../communication/widgets/add_by_username_sheet.dart';
-import 'message_screen.dart';
+import '../../constraints/constants.dart';
+import '../../constraints/vendor_theme.dart';
+import '../communication/providers/chat_provider.dart';
+import '../../services/brain.dart';
+import '../../shared/widgets/country_code_picker_field.dart';
+import '../communication/services/chat_room_service.dart';
+import '../communication/widgets/add_by_phone_sheet.dart';
+import '../communication/widgets/add_by_username_sheet.dart';
+import '../communication/screens/message_screen.dart';
 
 
 class Messages extends StatefulWidget {

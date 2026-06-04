@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import '../../../../constraints/constants.dart';
-import '../../../communication/services/message_service.dart';
+import '../../../constraints/constants.dart';
+import '../services/message_service.dart';
 
 
 class MessageBubble extends StatelessWidget {

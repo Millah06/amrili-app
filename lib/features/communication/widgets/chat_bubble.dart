@@ -1,7 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:everywhere/constraints/constants.dart';
 import 'package:flutter/material.dart';
-import '../../../communication/models/chat_model.dart';
+import '../models/chat_model.dart';
 
 class ChatCard extends StatelessWidget {
   final ChatModel chat;

@@ -13,7 +13,7 @@ import '../../../../components/textInput_formater.dart';
 import '../../../../services/brain.dart';
 import '../../../../services/purchase_service.dart';
 import '../../../../services/transaction_service.dart';
-import '../../../bottom_navigation/promotion.dart';
+import '../template_selection.dart';
 
 
 enum ViewMode {  standardValue, customValue}

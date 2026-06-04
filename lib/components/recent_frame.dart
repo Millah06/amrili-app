@@ -44,6 +44,7 @@ class RecentFrame extends StatelessWidget {
       case 'gift':              return Icons.card_giftcard_rounded;
       case 'wallet_withdrawal': return Icons.account_balance_rounded;
       case 'order_refund':      return Icons.replay_rounded;
+      case 'verification_fee':  return Icons.workspace_premium;
       default:                  return Icons.receipt_rounded;
     }
   }

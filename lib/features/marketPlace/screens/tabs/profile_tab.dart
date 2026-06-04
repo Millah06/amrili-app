@@ -9,6 +9,7 @@ import '../../../support/help_center.dart';
 import '../../pages/add_branch_page.dart';
 import '../../pages/edit_vendor_profile.dart';
 import '../../pages/manage_branches_page.dart';
+import '../../pages/merchant_trust_page.dart';
 import '../../pages/verified_merchant_page.dart';
 import '../../providers/vendor_center_provider.dart';
 import '../../widgets/navigation.dart';
@@ -122,6 +123,10 @@ class ProfileTab extends StatelessWidget {
                     _tile(Icons.verified_outlined, 'Apply for Verified Merchant', () {
                       vendorPush(context, VerifiedMerchantPage());
                     }),
+                    _tile(Icons.workspace_premium_outlined, 'Verification & Trust',
+                            () {
+                          vendorPush(context, const MerchantTrustPage());
+                        }),
                     const SizedBox(height: 10),
                     Container(
                       margin: const EdgeInsets.only(bottom: 8),
