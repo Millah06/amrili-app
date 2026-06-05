@@ -10,6 +10,7 @@
           "/order/*",
           "/join/*",
           "/store/*/table/*"
+          "/checkout-success"
         ]
       }
     ]

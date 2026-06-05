@@ -348,28 +348,32 @@ class _SettingsTile extends StatelessWidget {
         color: const Color(0xFF1E293B),
         borderRadius: BorderRadius.circular(12),
       ),
-      child: ListTile(
-        leading: Icon(icon, color: const Color(0xFF177E85)),
-        title: Text(
-          title,
-          style: const TextStyle(
-            color: Colors.white,
-            fontSize: 16,
+      child: Material(
+        color: const Color(0xFF1E293B),
+        borderRadius: BorderRadius.circular(12),
+        child: ListTile(
+          leading: Icon(icon, color: const Color(0xFF177E85)),
+          title: Text(
+            title,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+            ),
           ),
+          subtitle: subtitle != null
+              ? Text(
+            subtitle!,
+            style: TextStyle(
+              color: Colors.grey[500],
+              fontSize: 14,
+            ),
+          )
+              : null,
+          trailing: onTap != null
+              ? const Icon(Icons.chevron_right, color: Colors.grey)
+              : null,
+          onTap: onTap,
         ),
-        subtitle: subtitle != null
-            ? Text(
-          subtitle!,
-          style: TextStyle(
-            color: Colors.grey[500],
-            fontSize: 14,
-          ),
-        )
-            : null,
-        trailing: onTap != null
-            ? const Icon(Icons.chevron_right, color: Colors.grey)
-            : null,
-        onTap: onTap,
       ),
     );
   }

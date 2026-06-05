@@ -38,6 +38,7 @@ import '../../core/auth/auth_provider.dart';
 import '../../components/bootom_bar.dart';
 import '../../features/marketPlace/pages/qr_scanner_screen.dart';
 import '../../features/marketPlace/utils/vendor_scope.dart';
+import '../../features/payment/pages/checkout_return_page.dart';
 import '../../features/social/pages/post_detail_page.dart';
 import '../../features/social/pages/public_profile_page.dart';
 import '../../screens/welcome_screen.dart';
@@ -78,7 +79,8 @@ bool _isPublicLocation(String location) {
       location.startsWith('/product/') ||
       location.startsWith('/join/') ||
       location.startsWith('/post/') ||   // ← add
-      location.startsWith('/u/');        // ← add
+      location.startsWith('/u/') ||
+      location == '/checkout-success';   // ← add
 }
 
 /// Replicates the OLD `home:` decision as a router-wide redirect:
@@ -223,6 +225,12 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/scan',
       builder: (c, s) => const QrScannerScreen(),
+    ),
+
+    // OPay return landing — verifies the in-flight payment, then goes home.
+    GoRoute(
+      path: '/checkout-success',
+      builder: (c, s) => const CheckoutReturnPage(),
     ),
 
   ],

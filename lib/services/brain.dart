@@ -88,48 +88,46 @@ class Brain extends ChangeNotifier {
     // imagePath = prefs.getString('imagePath')!;
     try {
 
-      // final doc = await FirebaseFirestore.instance.collection('users')
-      //     .doc(userId).get();
-      //
-      // final bonusDoc = await FirebaseFirestore.instance.collection('bonuses ').doc('reward').get();
-      // DocumentSnapshot updateSnap = await FirebaseFirestore.instance.collection('bonuses ').doc('updateInfo').get();
-      //
-      // if (updateSnap.exists) {
-      //   whatIsNew = List<String>.from(updateSnap['whatIsNew'].values);
-      //   mandatory = updateSnap['mandatory'] ?? false;
-      //   versionName = updateSnap['versionName'];
-      // }
-      //
-      // final serviceDoc = await FirebaseFirestore.instance.collection('services').doc('services').get();
-      //
-      // if (bonusDoc.exists) {
-      //   print("Bonus doc data: ${bonusDoc.data()}");
-      // } else {
-      //   print("No bonus doc found!");
-      // }
-      //
-      // cableProviders = Map<String, bool>.from(serviceDoc['cableServices']);
-      // dataProviders =  Map<String, bool>.from(serviceDoc['dataNetwork']);
-      // airtimeProviders =  Map<String, bool>.from(serviceDoc['airtimeServices']);
-      // electricProviders = Map<String, bool>.from(serviceDoc['electricProviders']);
-      //
-      // airtimePercent = (bonusDoc['airtime'] as num).toDouble();
-      // dataPercent = (bonusDoc['data'] as num).toDouble();
-      // cablePercent = (bonusDoc['cable'] as num).toDouble();
-      // electricPercent = (bonusDoc['electric'] as num).toDouble();
-      // rCBusinessPercent = (bonusDoc['rechargeB'] as num).toDouble();
-      // rCPersonalPercent = (bonusDoc['rechargeP'] as num).toDouble();
-      // internetPercent = (bonusDoc['internet'] as num).toDouble();
-      // waecPercent = (bonusDoc['waec'] as num).toDouble();
-      // jambPercent = (bonusDoc['jamb'] as num).toDouble();
-      // fundingFees = (bonusDoc['fundingFees'] as num).toDouble();
-      // buildNumberFromFireStore = (bonusDoc['buildNumber'] as num).toInt();
-      // baseURL = bonusDoc['baseURL'] ?? {
-      //   print('Base Url not found'),
-      //   "https://everywhere-data-app.onrender.com"
-      // };
+      final doc = await FirebaseFirestore.instance.collection('users')
+          .doc(userId).get();
 
+      final bonusDoc = await FirebaseFirestore.instance.collection('bonuses ').doc('reward').get();
+      DocumentSnapshot updateSnap = await FirebaseFirestore.instance.collection('bonuses ').doc('updateInfo').get();
 
+      if (updateSnap.exists) {
+        whatIsNew = List<String>.from(updateSnap['whatIsNew'].values);
+        mandatory = updateSnap['mandatory'] ?? false;
+        versionName = updateSnap['versionName'];
+      }
+
+      final serviceDoc = await FirebaseFirestore.instance.collection('services').doc('services').get();
+
+      if (bonusDoc.exists) {
+        print("Bonus doc data: ${bonusDoc.data()}");
+      } else {
+        print("No bonus doc found!");
+      }
+
+      cableProviders = Map<String, bool>.from(serviceDoc['cableServices']);
+      dataProviders =  Map<String, bool>.from(serviceDoc['dataNetwork']);
+      airtimeProviders =  Map<String, bool>.from(serviceDoc['airtimeServices']);
+      electricProviders = Map<String, bool>.from(serviceDoc['electricProviders']);
+
+      airtimePercent = (bonusDoc['airtime'] as num).toDouble();
+      dataPercent = (bonusDoc['data'] as num).toDouble();
+      cablePercent = (bonusDoc['cable'] as num).toDouble();
+      electricPercent = (bonusDoc['electric'] as num).toDouble();
+      rCBusinessPercent = (bonusDoc['rechargeB'] as num).toDouble();
+      rCPersonalPercent = (bonusDoc['rechargeP'] as num).toDouble();
+      internetPercent = (bonusDoc['internet'] as num).toDouble();
+      waecPercent = (bonusDoc['waec'] as num).toDouble();
+      jambPercent = (bonusDoc['jamb'] as num).toDouble();
+      fundingFees = (bonusDoc['fundingFees'] as num).toDouble();
+      buildNumberFromFireStore = (bonusDoc['buildNumber'] as num).toInt();
+      baseURL = bonusDoc['baseURL'] ?? {
+        print('Base Url not found'),
+        "https://everywhere-data-app.onrender.com"
+      };
       notifyListeners();
     }
     catch (e) {

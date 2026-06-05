@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../constraints/vendor_theme.dart';
 
+import '../../../core/auth/guest_helper.dart';
 import '../../../features/marketPlace/providers/order_provider.dart';
 import '../../../features/marketPlace/providers/vendor_provider.dart';
 import '../models/order_model.dart';
@@ -109,9 +110,13 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 VButton(
                   label: 'Place Order',
                   loading: checkout.placingOrder,
-                  onTap: checkout.canCheckout && !checkout.placingOrder
-                      ? () => _placeOrder(context, checkout, cart)
-                      : null,
+                  onTap:  checkout.canCheckout && !checkout.placingOrder
+                      ? () => GuestHelper.guardAction(
+                      context, action: () => _placeOrder(context, checkout, cart),
+                      reason: 'create post') : null,
+                  // onTap: checkout.canCheckout && !checkout.placingOrder
+                  //     ? () => _placeOrder(context, checkout, cart)
+                  //     : null,
                 ),
               ],
             ),

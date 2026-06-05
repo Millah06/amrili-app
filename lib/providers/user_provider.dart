@@ -112,5 +112,21 @@ class UserProvider extends ChangeNotifier {
 
   }
 
+  /// Live available balance (₦). Source of truth: User.wallet.fiat.
+  double get availableBalance => user?.wallet.fiat.availableBalance ?? 0.0;
+
+  /// Local affordability check — lets the PaymentSheet avoid a wasted backend
+  /// call when the wallet clearly can't cover an amount.
+  bool canAfford(double amount) => availableBalance >= amount;
+
+  /// Reflect a wallet movement after a confirmed payment/refund. We re-fetch
+  /// silently (authoritative, can't drift). If you later add nested copyWith to
+  /// the User model, you can make this a true optimistic in-place update and
+  /// drop the network call. `delta` is negative for spends, positive for refunds.
+  Future<void> applyWalletDelta(double delta) async {
+    // Optimistic-ready signature; safe authoritative refresh for now.
+    await loadUser(silent: true);
+  }
+
 
 }

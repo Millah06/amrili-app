@@ -13,6 +13,7 @@ import '../../../../constraints/firebase_constant.dart';
 import '../../../../features/utility/models/plan_model.dart';
 import '../../../../services/brain.dart';
 import '../../../../services/purchase_service.dart';
+import '../../services/utility_purchase.dart';
 
 class DataScreen extends StatefulWidget {
   const DataScreen({super.key});
@@ -532,7 +533,7 @@ class _DataScreenState extends State<DataScreen> with TickerProviderStateMixin {
                               elevation: 4,
                               padding: EdgeInsets.symmetric(vertical: 15, horizontal: 50)
                           ),
-                          onPressed: () {
+                          onPressed: () async {
                             int tabIndex = _tabController!.index;
                             int? selectedIndex = _selectedIndices[tabIndex];
                             if (_formKey.currentState!.validate()) {
@@ -544,58 +545,18 @@ class _DataScreenState extends State<DataScreen> with TickerProviderStateMixin {
                               }
                               final plan = _categories[_selectedNetwork]?[tabIndex].plans[selectedIndex];
                               double bonus = pov.dataPercent * double.parse(plan!.price);
-                              showModalBottomSheet(
-                                  context: context,
-                                  isScrollControlled: true,
-                                  builder: (context) =>
-                                      ConfirmationPage(
-                                        isRecharge: false,
-                                        amount: '${plan.price}',
-                                        bonusEarn: (bonus).toDouble(),
-                                        receiptData: {
-                                          'Product Name' : '$_selectedNetwork Data',
-                                          'Actual Amount' : '${plan.price} NGN',
-                                          'Plan' : '${plan.quantity} ${plan.duration}',
-                                          'Recipient Mobile': '0${_phoneController.text}',
-                                          'Bonus to Earn' : '$kNaira${(bonus).toStringAsFixed(2) }'
-                                        },
-                                        onTap: (amount, reward, useReward) {
-                                          print(amount);
-                                          print(reward);
-                                          TransactionService.handlePurchase(
-                                            context: context,
-                                            purchaseFunction: () async {
-                                              try {
-                                                if (currentRequestId != null) {
-                                                  return {
-                                                    'status' : false
-                                                  };
-                                                }
-                                                currentRequestId = FirebaseConstant.clientRequestId();
-                                                String humanReference = FirebaseConstant.generateTransactionId();
-                                                final res = await PurchaseItems(context: context).purchaseData(
-                                                  variationCode:
-                                                    plan.variationCode,
-                                                    network: _selectedNetwork,
-                                                    phone:  _phoneController.text,
-                                                    clientRequestId: currentRequestId!,
-                                                    humanRef: humanReference,
-                                                    isRecharge: false,
-                                                    useReward: useReward,
-                                                    amount: '',
-                                                  plan: '${plan.quantity} ${plan.duration}',
-                                                );
-                                                currentRequestId = null;
-                                                return res;
-                                              }
-                                              catch (e) {
-                                                rethrow;
-                                              }
-                                            },
-                                          );
-                                        },
-                                      )
+                              final ok = await UtilityPurchase.buy(
+                                context,
+                                amount: double.parse(plan.price),
+                                productName: '$_selectedNetwork ${plan.quantity}',
+                                service: 'data',
+                                serviceID: _selectedNetwork.toLowerCase(),
+                                phone: '0${_phoneController.text}',
+                                variationCode: plan.variationCode,
+                                useReward: true,
+                                isRecharge: false,
                               );
+                              // if (ok) _resetForm();
                             }
                           },
                           child: Text('Buy Now', style: TextStyle(color: Colors.black),)

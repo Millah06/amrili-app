@@ -21,6 +21,7 @@ import '../../../../../features/utility/models/plan_model.dart';
 import '../../../../../services/brain.dart';
 import '../../../../services/purchase_service.dart';
 import '../../../../services/transaction_service.dart';
+import '../../services/utility_purchase.dart';
 
 enum ViewMode {  email, accountID, standardValue }
 
@@ -706,7 +707,7 @@ class _InternetServicesScreenState extends State<InternetServicesScreen> with Ti
                                 elevation: 4,
                                 padding: EdgeInsets.symmetric(vertical: 15, horizontal: 50)
                             ),
-                            onPressed: () {
+                            onPressed: () async {
                               int tabIndex = _tabController!.index;
                               int? selectedIndex = _selectedIndices[tabIndex];
                               if (_formKey.currentState!.validate()) {
@@ -719,39 +720,56 @@ class _InternetServicesScreenState extends State<InternetServicesScreen> with Ti
                                 final plan = _categories[_selectedNetwork]?[tabIndex].plans[selectedIndex];
 
                                 double bonus = pov.internetPercent * double.parse(plan!.price);
-                                showModalBottomSheet(
-                                    context: context,
-                                    isScrollControlled: true,
-                                    builder: (context) =>
-                                        ConfirmationPage(
-                                          isRecharge: true,
-                                          amount: plan.price,
-                                          bonusEarn: (bonus).toDouble(),
-                                          receiptData: {
-                                            'Product Name' : '$_selectedNetwork Data',
-                                            'Actual Amount' : '${plan.price} NGN',
-                                            'Plan' : '${plan.description} ${plan.duration}',
-                                            'Account ID': _idController.text,
-                                            'Bonus to Earn' : '$kNaira${(bonus).toStringAsFixed(2) }'
-                                          },
-                                          onTap: (amount, reward, useReward) {
-                                            TransactionService.handlePurchase(
-                                              context: context,
-                                              purchaseFunction: () async {
-                                                try {
-                                                  final res = await PurchaseItems(context: context).purchaseSmile(
-                                                    _selectedNetwork, plan.variationCode, context.read<UserProvider>().user?.phone ?? ''
-                                                  );
-                                                  return res;
-                                                }
-                                                catch (e) {
-                                                  rethrow;
-                                                }
-                                              },
-                                            );
-                                          },
-                                        )
+
+                                final ok = await UtilityPurchase.buy(
+                                  context,
+                                  amount: double.parse(plan.price),
+                                  productName:'$_selectedNetwork Data',
+                                  service: 'smile',
+                                  serviceID: 'smile-direct',
+                                  phone: '080197894930',
+                                  billersCode: _idController.text,
+                                  variationCode: plan.variationCode,
+                                  // useReward: _useReward,
                                 );
+                                // if (ok) _resetForm();
+
+                                // showModalBottomSheet(
+                                //     context: context,
+                                //     isScrollControlled: true,
+                                //     builder: (context) =>
+                                //         ConfirmationPage(
+                                //           isRecharge: true,
+                                //           amount: plan.price,
+                                //           bonusEarn: (bonus).toDouble(),
+                                //           receiptData: {
+                                //             'Product Name' : '$_selectedNetwork Data',
+                                //             'Actual Amount' : '${plan.price} NGN',
+                                //             'Plan' : '${plan.description} ${plan.duration}',
+                                //             'Account ID': _idController.text,
+                                //             'Bonus to Earn' : '$kNaira${(bonus).toStringAsFixed(2) }'
+                                //           },
+                                //           onTap: (amount, reward, useReward) {
+                                //             TransactionService.handlePurchase(
+                                //               context: context,
+                                //               purchaseFunction: () async {
+                                //                 try {
+                                //                   final res = await
+                                //                   PurchaseItems(context: context).purchaseSmile(
+                                //                     _selectedNetwork,
+                                //                       plan.variationCode,
+                                //                       context.read<UserProvider>().user?.phone ?? ''
+                                //                   );
+                                //                   return res;
+                                //                 }
+                                //                 catch (e) {
+                                //                   rethrow;
+                                //                 }
+                                //               },
+                                //             );
+                                //           },
+                                //         )
+                                // );
                               }
                             },
                             child: Text('Buy Now', style: TextStyle(color: Colors.black),)

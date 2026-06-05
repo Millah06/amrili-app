@@ -16,6 +16,7 @@ import '../../../../constraints/constants.dart';
 import '../../../../services/brain.dart';
 import '../../../../services/purchase_service.dart';
 import '../../../../services/transaction_service.dart';
+import '../../services/utility_purchase.dart';
 
 enum ViewMode {  standardValue, customValue}
 
@@ -599,49 +600,24 @@ class _ElectricScreenState extends State<ElectricScreen>  with SingleTickerProvi
                                     elevation: 4,
                                     padding: EdgeInsets.symmetric(vertical: 15, horizontal: 50)
                                 ),
-                                onPressed: () {
+                                onPressed: () async {
                                   if (_formKey.currentState!.validate()) {
                                     double bonus = pov.electricPercent *
                                         double.parse(_amountController.text.replaceAll(',', ''));
-                                    showModalBottomSheet(
-                                        context: context,
-                                        isScrollControlled: true,
-                                        builder: (context) =>
-                                            ConfirmationPage(
-                                              isRecharge: true,
-                                              bonusEarn: (bonus).toDouble(),
-                                              amount: _amountController.text.replaceAll(',', ''),
-                                              receiptData: {
-                                                'Product Name' : _selectedProvider,
-                                                'Actual Amount' : '${_amountController.text} NGN',
-                                                'Meter Number' : _meterNumberController.text,
-                                                'Meter Type' : _selectedMeterType,
-                                                'Bonus to Earn' : '$kNaira${
-                                                    (bonus).toStringAsFixed(2) }'
-                                              },
-                                              onTap: (amount, reward, useReward) {
-                                                TransactionService.handlePurchase(
-                                                  context: context,
-                                                  purchaseFunction: () async {
-                                                    try {
-                                                      final res = await PurchaseItems(context: context)
-                                                          .purchaseElectric(
-                                                          _selectedProvider,
-                                                          '08087798514',
-                                                          _meterNumberController.text,
-                                                          _selectedMeterType,
-                                                          _amountController.text
-                                                      );
-                                                      return res;
-                                                    }
-                                                    catch(e) {
-                                                      rethrow;
-                                                    }
-                                                  },
-                                                );
-                                              },
-                                            )
+
+                                    final ok = await UtilityPurchase.buy(
+                                      context,
+                                      amount: double.parse(_amountController.text.replaceAll(',', '')),
+                                      productName: _selectedProvider,
+                                      service: 'electricity',
+                                      serviceID: '${ _selectedProvider.split(' ').first.toLowerCase()}-electric',                  // e.g. 'ikeja-electric'
+                                      phone:  '08087798514',
+                                      billersCode: _meterNumberController.text,     // meter number
+                                      variationCode:  _selectedMeterType,              // 'prepaid' | 'postpaid'
+                                      // useReward: _useReward,
+                                      isRecharge: false,
                                     );
+                                    // if (ok) _resetForm();
                                   }
                                 },
                                 child: Text('Proceed', style: TextStyle(color: Colors.black),)

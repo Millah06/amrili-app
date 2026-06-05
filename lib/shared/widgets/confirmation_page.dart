@@ -53,7 +53,7 @@ class _ConfirmationPageState extends State<ConfirmationPage> {
 
     double productAmount =  double.parse(widget.amount);
 
-    double actualReward =  pov!.wallet.fiat.rewardBalance;
+    double actualReward =  pov?.wallet.fiat.rewardBalance ?? 55;
 
     final formatter = NumberFormat('#,##0.00');
 
@@ -93,7 +93,7 @@ class _ConfirmationPageState extends State<ConfirmationPage> {
       }
     }
 
-    bool inSufficientFunds = finalAmount > pov.wallet.fiat.availableBalance;
+    bool inSufficientFunds = finalAmount > pov!.wallet.fiat.availableBalance;
 
     if (inSufficientFunds) {
       setState(() {

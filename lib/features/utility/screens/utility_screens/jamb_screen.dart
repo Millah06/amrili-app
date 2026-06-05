@@ -9,6 +9,7 @@ import 'package:shimmer/shimmer.dart';
 import '../../../../services/brain.dart';
 import '../../../../services/purchase_service.dart';
 import '../../../../services/transaction_service.dart';
+import '../../services/utility_purchase.dart';
 
 class JambServices extends StatefulWidget {
   const JambServices({super.key});
@@ -282,43 +283,56 @@ class _JambServicesState extends State<JambServices> {
                               elevation: 4,
                               padding: EdgeInsets.symmetric(vertical: 15, horizontal: 50)
                           ),
-                          onPressed: () {
+                          onPressed: () async {
                             if (_formKey.currentState!.validate()) {
-                              showModalBottomSheet(
-                                  context: context,
-                                  isScrollControlled: true,
-                                  builder: (context) =>
-                                      ConfirmationPage(
-                                        amount: '${currentData?['variation_amount']}',
-                                        bonusEarn: (pov.rCPersonalPercent * double.parse(currentData?['variation_amount'])).toDouble(),
-                                        isRecharge: false,
-                                        receiptData: {
-                                          'Product Name' : _selectedService,
-                                          'Actual Amount' : '${currentData?['variation_amount']} NGN',
-                                          'Phone Number' : '0${_phoneController.text}',
-                                          'Bonus to Earn' : '$kNaira${(pov.jambPercent * double.parse(currentData?['variation_amount'])).toStringAsFixed(2)}'
-                                        },
-                                        onTap: (amount, reward, useReward) {
-                                          TransactionService.handlePurchase(
-                                            context: context,
-                                            purchaseFunction: () async {
-                                              try {
-                                                final res = await PurchaseItems(context: context)
-                                                    .purchaseJamb(
-                                                    _profileCodeController.text, _phoneController.text,
-                                                    currentData?['variation_code'],
-                                                    currentData?['variation_amount']
-                                                );
-                                                return res;
-                                              }
-                                              catch(e) {
-                                                rethrow;
-                                              }
-                                            },
-                                          );
-                                        },
-                                      )
+                              final ok = await UtilityPurchase.buy(
+                                context,
+                                amount: currentData?['variation_amount'],
+                                productName:  _selectedService!,
+                                service: 'jamb',
+                                serviceID: 'jamb',
+                                phone: '0${_phoneController.text}',
+                                billersCode:  _profileCodeController.text,
+                                variationCode:  currentData?['variation_code'],   // utme / de
+                                useReward: false,
                               );
+                              // if (ok) _resetForm();
+                              // showModalBottomSheet(
+                              //     context: context,
+                              //     isScrollControlled: true,
+                              //     builder: (context) =>
+                              //         ConfirmationPage(
+                              //           amount: '${currentData?['variation_amount']}',
+                              //           bonusEarn: (pov.rCPersonalPercent * double.parse(currentData?['variation_amount'])).toDouble(),
+                              //           isRecharge: false,
+                              //           receiptData: {
+                              //             'Product Name' : _selectedService,
+                              //             'Actual Amount' : '${currentData?['variation_amount']} NGN',
+                              //             'Phone Number' : '0${_phoneController.text}',
+                              //             'Bonus to Earn' : '$kNaira${(pov.jambPercent * double.parse(currentData?['variation_amount'])).toStringAsFixed(2)}'
+                              //           },
+                              //           onTap: (amount, reward, useReward) {
+                              //             TransactionService.handlePurchase(
+                              //               context: context,
+                              //               purchaseFunction: () async {
+                              //                 try {
+                              //                   final res = await PurchaseItems(context: context)
+                              //                       .purchaseJamb(
+                              //                       _profileCodeController.text,
+                              //                       _phoneController.text,
+                              //                       currentData?['variation_code'],
+                              //                       currentData?['variation_amount']
+                              //                   );
+                              //                   return res;
+                              //                 }
+                              //                 catch(e) {
+                              //                   rethrow;
+                              //                 }
+                              //               },
+                              //             );
+                              //           },
+                              //         )
+                              // );
                             }
                           },
                           child: Text('Proceed', style: TextStyle(color: Colors.black),)

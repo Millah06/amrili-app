@@ -15,6 +15,7 @@ import '../../../../constraints/firebase_constant.dart';
 import '../../../../services/brain.dart';
 import '../../../../services/transaction_service.dart';
 import '../../models/tv_model.dart';
+import '../../services/utility_purchase.dart';
 
 class CableSubscription extends StatefulWidget  {
   const CableSubscription({super.key});
@@ -757,7 +758,7 @@ class _CableSubscriptionState extends State<CableSubscription> with TickerProvid
                                 elevation: 4,
                                 padding: EdgeInsets.symmetric(vertical: 15, horizontal: 50)
                             ),
-                            onPressed: () {
+                            onPressed: () async {
                               print(cableNumberIsIncorrect);
                               int tabIndex = _tabController!.index;
                               int? selectedIndex = _selectedIndices[tabIndex];
@@ -772,55 +773,70 @@ class _CableSubscriptionState extends State<CableSubscription> with TickerProvid
 
                                 double bonus = pov.cablePercent * double.parse(plan!.price);
 
-                                showModalBottomSheet(
-                                    context: context,
-                                    isScrollControlled: true,
-                                    builder: (context) =>
-                                        ConfirmationPage(
-                                          amount: '${plan?.price}',
-                                          bonusEarn: (bonus).toDouble(),
-                                          isRecharge: false,
-                                          receiptData: {
-                                            'Product Name' : '$_selectedProvider Subscription',
-                                            'SmartCard Number' : _smartController.text,
-                                            'Actual Amount' : '${plan.price} NGN',
-                                            'Bonus to Earn' : '$kNaira${(bonus).toStringAsFixed(2) }'
-                                          },
-                                          onTap: (amount, reward, useReward) {
-
-                                            TransactionService.handlePurchase(
-                                              context: context,
-                                              purchaseFunction: () async {
-                                                try {
-                                                  if (currentRequestId != null) {
-                                                    return {
-                                                      'status' : false
-                                                    };
-                                                  }
-                                                  currentRequestId = FirebaseConstant.clientRequestId();
-                                                  String humanReference = FirebaseConstant.generateTransactionId();
-                                                  final res = await PurchaseItems(context: context)
-                                                      .purchaseTV(
-                                                      variationCode:  plan.variationCode,
-                                                      serviceID: _selectedProvider,
-                                                      phoneNumber:  context.read<UserProvider>().user?.phone ?? '',
-                                                      cableNumber:  _smartController.text,
-                                                      clientRequestId: currentRequestId!,
-                                                      humanRef: humanReference,
-                                                      isRecharge: false,
-                                                      useReward: useReward,
-                                                      amount: plan.price,
-                                                  );
-                                                  return res;
-                                                }
-                                                catch(e) {
-                                                  rethrow;
-                                                }
-                                              },
-                                            );
-                                          },
-                                        )
+                                final ok = await UtilityPurchase.buy(
+                                  context,
+                                  amount: double.parse(plan.price),
+                                  productName:   '$_selectedProvider Subscription',
+                                  service: 'cable',
+                                  serviceID: _selectedProvider,                  // 'dstv' | 'gotv' | 'startimes'
+                                  phone: context.read<UserProvider>().user?.phone ?? '',
+                                  billersCode: _smartController.text,
+                                  variationCode: plan.variationCode,
+                                  subscriptionType: 'change',
+                                  // useReward: _useReward,
+                                  isRecharge: false,
                                 );
+                                // if (ok) _resetForm();
+
+                                // showModalBottomSheet(
+                                //     context: context,
+                                //     isScrollControlled: true,
+                                //     builder: (context) =>
+                                //         ConfirmationPage(
+                                //           amount: '${plan?.price}',
+                                //           bonusEarn: (bonus).toDouble(),
+                                //           isRecharge: false,
+                                //           receiptData: {
+                                //             'Product Name' : '$_selectedProvider Subscription',
+                                //             'SmartCard Number' : _smartController.text,
+                                //             'Actual Amount' : '${plan.price} NGN',
+                                //             'Bonus to Earn' : '$kNaira${(bonus).toStringAsFixed(2) }'
+                                //           },
+                                //           onTap: (amount, reward, useReward) {
+                                //
+                                //             TransactionService.handlePurchase(
+                                //               context: context,
+                                //               purchaseFunction: () async {
+                                //                 try {
+                                //                   if (currentRequestId != null) {
+                                //                     return {
+                                //                       'status' : false
+                                //                     };
+                                //                   }
+                                //                   currentRequestId = FirebaseConstant.clientRequestId();
+                                //                   String humanReference = FirebaseConstant.generateTransactionId();
+                                //                   final res = await PurchaseItems(context: context)
+                                //                       .purchaseTV(
+                                //                       variationCode:  plan.variationCode,
+                                //                       serviceID: _selectedProvider,
+                                //                       phoneNumber:  context.read<UserProvider>().user?.phone ?? '',
+                                //                       cableNumber:  _smartController.text,
+                                //                       clientRequestId: currentRequestId!,
+                                //                       humanRef: humanReference,
+                                //                       isRecharge: false,
+                                //                       useReward: useReward,
+                                //                       amount: plan.price,
+                                //                   );
+                                //                   return res;
+                                //                 }
+                                //                 catch(e) {
+                                //                   rethrow;
+                                //                 }
+                                //               },
+                                //             );
+                                //           },
+                                //         )
+                                // );
                               }
                             },
                             child: Text('Buy Now', style: TextStyle(color:  Colors.black,),)

@@ -26,6 +26,8 @@ import 'core/app_scroll_behavior.dart';
 import 'core/deep_link/deep_link_service.dart';
 import 'features/bottom_navigation/services_screen.dart';
 import 'features/bottom_navigation/wallet_screen.dart';
+import 'features/payment/services/payment_service.dart';
+import 'features/payment/widgets/payment_sheet.dart';
 import 'features/profile/providers/my_profile_provider.dart';
 import 'features/support/provider.dart';
 import 'features/utility/screens/utility_screens/airtime_gift.dart';
@@ -54,6 +56,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   bool  hasDone = false;
   bool _isGuest = false;   // ← add this
   bool _isLoading = true;
+  bool _resolvingPayment = false; // prevents stacking recovery sheets on resume
 
   @override
   void initState() {
@@ -108,6 +111,29 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           setState(() {
             hasDone  = prefs.getBool('isSetupDone') ?? false;
           });
+
+          // ── Resume any unfinished payment (spec §13.2) ──────────────────────
+          // The recovery cron already finishes payments server-side; this just
+          // shows the user the outcome promptly when they come back.
+          if (!_resolvingPayment) {
+            _resolvingPayment = true;
+            try {
+              final pending = await PaymentService.instance.pending();
+              final ctx = navigatorKey.currentContext;
+              if (pending.isNotEmpty && ctx != null) {
+                final p = pending.first;
+                await PaymentSheet.show(
+                  ctx,
+                  amount: p.amount,
+                  entityType: p.entityType,
+                  entityId: p.entityId,
+                  recoverPaymentId: p.paymentId,
+                );
+              }
+            } catch (_) {/* cron will still finish it */} finally {
+              _resolvingPayment = false;
+            }
+          }
         }
       });
     }

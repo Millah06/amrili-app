@@ -12,6 +12,7 @@ import '../../../../components/formatters.dart';
 import '../../../../components/notice_banner.dart';
 import '../../../../components/textInput_formater.dart';
 import '../../../../services/brain.dart';
+import '../../services/utility_purchase.dart';
 
 class AirtimeScreen extends StatefulWidget {
   const AirtimeScreen({super.key});
@@ -196,67 +197,22 @@ class _AirtimeScreenState extends State<AirtimeScreen> {
                             elevation: 4,
                             padding: EdgeInsets.symmetric(vertical: 15, horizontal: 50)
                         ),
-                        onPressed: () {
+                        onPressed: () async {
                           print(_amountController.text);
                           if (_formKey.currentState!.validate()) {
                             double bonus = pov.airtimePercent *
                                 int.parse(_amountController.text.replaceAll(',', ''));
-                            showModalBottomSheet(
-                                context: context,
-                                isScrollControlled: true,
-                                builder: (context) =>
-                                    ConfirmationPage(
-                                      amount: _amountController.text.replaceAll(',', ''),
-                                      bonusEarn:
-                                      (bonus).toDouble(),
-                                      isRecharge: true,
-                                      receiptData: {
-                                        'Product Name' : '$_selectedNetwork Airtime',
-                                        'Actual Amount' : ''
-                                            '${kFormatter.format(double.parse(_amountController
-                                            .text.replaceAll(',', '')))} NGN',
-                                        'Recipient Mobile' : '0${_phoneController.text}',
-                                        'Bonus to Earn' : '$kNaira${(bonus).toStringAsFixed(2) }'
-                                      },
-                                      onTap: (amount, reward, useReward) {
-                                        TransactionService.handlePurchase(
-                                          context: context,
-                                          purchaseFunction: () async {
-                                            try {
-                                              if (currentRequestId != null) {
-                                                return {
-                                                  'status' : false
-                                                };
-                                              }
-                                              currentRequestId = FirebaseConstant.clientRequestId();
-                                              String humanReference = FirebaseConstant.generateTransactionId();
-                                              final res = await PurchaseItems(context: context)
-                                                  .purchaseAirtime(
-                                                  humanRef: humanReference,
-                                                  phone: '0${_phoneController.text}',
-                                                  serviceId: _selectedNetwork.toLowerCase(),
-                                                  amount: _amountController.text,
-                                                  clientRequestId: currentRequestId!,
-                                                  isRecharge: true,
-                                                  useReward: useReward
-                                              );
-                                              print(res);
-                                              return res;
-
-                                            }
-                                            catch(e) {
-                                              rethrow;
-                                            }
-                                            finally {
-                                              setState(() {
-                                                currentRequestId = null;
-                                              });
-                                            }
-                                          },
-                                        );
-                                      },
-                                    )
+                            final ok = await UtilityPurchase.buy(
+                              context,
+                              amount: double.parse(_amountController.text.replaceAll(',', '')),
+                              productName: '$_selectedNetwork Airtime',
+                              service: 'airtime',
+                              serviceID: _selectedNetwork.toLowerCase(),     // mtn | glo | airtel | etisalat
+                              phone: '0${_phoneController.text}',
+                              // useReward: _useReward,
+                              isRecharge: true,
                             );
+                            // if (ok) _resetForm();   // optional: clear inputs. Do NOT show your own success.
                           }
                         },
                         child: Text('Proceed', style: GoogleFonts.inter(
