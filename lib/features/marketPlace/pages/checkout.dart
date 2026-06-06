@@ -7,6 +7,7 @@ import '../../../constraints/vendor_theme.dart';
 import '../../../core/auth/guest_helper.dart';
 import '../../../features/marketPlace/providers/order_provider.dart';
 import '../../../features/marketPlace/providers/vendor_provider.dart';
+import '../../payment/widgets/payment_sheet.dart';
 import '../models/order_model.dart';
 import '../widgets/navigation.dart';
 import '../widgets/shared_widgets.dart';
@@ -126,30 +127,79 @@ class _CheckoutPageState extends State<CheckoutPage> {
     );
   }
 
+  // void _placeOrder(
+  //     BuildContext context, CheckoutProvider checkout, CartProvider cart) async {
+  //   final success = await checkout.placeOrder(
+  //     vendorId: cart.vendorId!,
+  //     branchId: cart.branchId!,
+  //     items: cart.items.toList(),
+  //   );
+  //   if (success && context.mounted) {
+  //     cart.clear();
+  //     checkout.reset();
+  //     showDialog(
+  //       context: context,
+  //       barrierDismissible: false,
+  //       builder: (_) => _OrderPlacedDialog(
+  //         onDone: () {
+  //           Navigator.of(context).pop(); // dialog
+  //           Navigator.of(context).pop(); // checkout
+  //           Navigator.of(context).pop(); // vendor detail
+  //           vendorPush(context, OrdersTab());
+  //         },
+  //       ),
+  //     );
+  //   }
+  // }
   void _placeOrder(
       BuildContext context, CheckoutProvider checkout, CartProvider cart) async {
+    // 1) Create the order. For prepaid it's created UNPAID (no funds moved yet);
+    //    for POD it behaves exactly as before.
     final success = await checkout.placeOrder(
       vendorId: cart.vendorId!,
       branchId: cart.branchId!,
       items: cart.items.toList(),
     );
-    if (success && context.mounted) {
-      cart.clear();
-      checkout.reset();
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (_) => _OrderPlacedDialog(
-          onDone: () {
-            Navigator.of(context).pop(); // dialog
-            Navigator.of(context).pop(); // checkout
-            Navigator.of(context).pop(); // vendor detail
-            vendorPush(context, OrdersTab());
-          },
-        ),
+    if (!success || !context.mounted) return;
+
+    final order = checkout.placedOrder;
+    final isPod = checkout.paymentMethod == 'pay_on_delivery';
+
+    // 2) Prepaid → pay up front via the universal sheet (wallet or OPay). On
+    //    success the backend handler moves the NET to the merchant's pending
+    //    balance and confirms the order. If the user cancels the sheet, the order
+    //    stays pending and auto-cancels in 30 min — we just return to checkout.
+    if (!isPod && order != null) {
+      final result = await PaymentSheet.show(
+        context,
+        amount: order.totalAmount,
+        entityType: 'marketplace_order',
+        entityId: order.id,
+        productName: order.vendorName.isNotEmpty
+            ? 'Order from ${order.vendorName}'
+            : 'Marketplace order',
       );
+      if (result == null) return; // payment not completed — leave order pending
     }
+
+    // 3) Done (paid prepaid, or POD placed).
+    if (!context.mounted) return;
+    cart.clear();
+    checkout.reset();
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => _OrderPlacedDialog(
+        onDone: () {
+          Navigator.of(context).pop(); // dialog
+          Navigator.of(context).pop(); // checkout
+          Navigator.of(context).pop(); // vendor detail
+          vendorPush(context, OrdersTab());
+        },
+      ),
+    );
   }
+
 }
 
 // ─── Delivery Form ────────────────────────────────────────────────────────────

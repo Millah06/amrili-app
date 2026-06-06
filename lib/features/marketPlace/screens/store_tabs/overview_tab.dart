@@ -1,9 +1,11 @@
 import 'package:everywhere/constraints/constants.dart';
 import 'package:flutter/material.dart';
 import '../../../../constraints/vendor_theme.dart';
+import '../../pages/merchant_balance_page.dart';
 import '../../providers/vendor_center_provider.dart';
 import '../../widgets/metrics_grid.dart';
 import '../../widgets/shared_widgets.dart';
+import '../../widgets/navigation.dart';
 
 class OverviewTab extends StatelessWidget {
   final VendorCenterProvider p;
@@ -19,23 +21,52 @@ class OverviewTab extends StatelessWidget {
           MetricsGrid(metrics: m),
           const SizedBox(height: 16),
         ],
-        Container(
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: VendorTheme.surface,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: VendorTheme.divider),
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('Escrow Breakdown',
-                  style: TextStyle(color: VendorTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 14)),
-              const SizedBox(height: 12),
-              _erow('Held in Escrow', m != null ? '₦${kFormatter.format(m.pendingEscrow)}' : '—', VendorTheme.warning),
-              const SizedBox(height: 6),
-              _erow('Released Earnings', m != null ? '₦${kFormatter.format(m.releasedEarnings)}' : '—', VendorTheme.accent),
-            ],
+        // Earnings card — settlement language (was "Escrow Breakdown").
+        // Pending = money clearing the settlement window; Available = settled
+        // to the owner's balance. Tapping opens the full balance + withdrawal.
+        GestureDetector(
+          onTap: () => vendorPush(context, const MerchantBalancePage()),
+          child: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: VendorTheme.surface,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: VendorTheme.divider),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Text('Earnings',
+                        style: TextStyle(
+                            color: VendorTheme.textPrimary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14)),
+                    const Spacer(),
+                    const Text('Balance',
+                        style: TextStyle(
+                            color: VendorTheme.primary,
+                            fontWeight: FontWeight.w600,
+                            fontSize: 12)),
+                    const Icon(Icons.chevron_right,
+                        color: VendorTheme.primary, size: 18),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _erow(
+                    'Pending settlement',
+                    m != null ? '₦${kFormatter.format(m.pendingEscrow)}' : '—',
+                    VendorTheme.warning),
+                const SizedBox(height: 6),
+                _erow(
+                    'Available balance',
+                    m != null
+                        ? '₦${kFormatter.format(m.releasedEarnings)}'
+                        : '—',
+                    VendorTheme.accent),
+              ],
+            ),
           ),
         ),
         // In _OverviewTab build(), after existing metrics grid:

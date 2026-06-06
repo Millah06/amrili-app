@@ -175,7 +175,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                                 fontSize: 13)),
                         SizedBox(height: 2),
                         Text(
-                            'Escrow is frozen. An admin will review and resolve.',
+                            'Payment is paused while an admin reviews this dispute.',
                             style: TextStyle(
                                 color: VendorTheme.warning,
                                 fontSize: 11)),
@@ -405,7 +405,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                 ),
                 const SizedBox(height: 10),
 
-                // Escrow (hidden for POD)
+                // Payment protection / settlement (hidden for POD)
                 if (!_order.isPod)
                   _InfoCard(
                     child: Row(
@@ -416,7 +416,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                             color: VendorTheme.warning.withOpacity(0.1),
                             shape: BoxShape.circle,
                           ),
-                          child: const Icon(Icons.lock_outline,
+                          child: const Icon(Icons.shield_outlined,
                               color: VendorTheme.warning, size: 16),
                         ),
                         const SizedBox(width: 12),
@@ -428,8 +428,8 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  const Text('Escrow',
-                                      style: TextStyle(
+                                  Text(_isUser ? 'Buyer protection' : 'Settlement',
+                                      style: const TextStyle(
                                           color: VendorTheme.textMuted,
                                           fontSize: 12)),
                                   Container(
@@ -440,7 +440,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                     child: Text(
-                                      _order.escrowStatus.toUpperCase(),
+                                      _payLabel(),
                                       style: TextStyle(
                                           color: _escrowColor,
                                           fontSize: 9,
@@ -530,12 +530,26 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
     );
   }
 
-  String  _escrowMessage (bool isUser) {
+  /// Short uppercase pill label for the payment state (buyer- vs merchant-aware).
+  String _payLabel() {
     switch (_order.escrowStatus) {
-      case 'held':    return 'Payment is secured in escrow';
-      case 'released': return isUser ? 'Payment has been released to vendor' : 'Payment has been released to you';
-      case 'appealed': return 'Escrow frozen — dispute in progress';
-      case 'refunded': return isUser ? 'Refunded to your wallet' : 'Refunded to the user\'s wallet';
+      case 'held':      return _isUser ? 'PROTECTED' : 'CLEARING';
+      case 'released':  return 'SETTLED';
+      case 'appealed':  return 'PAUSED';
+      case 'refunded':  return 'REFUNDED';
+      case 'cancelled': return 'CANCELLED';
+      default:          return _order.escrowStatus.toUpperCase();
+    }
+  }
+
+  String _escrowMessage(bool isUser) {
+    switch (_order.escrowStatus) {
+      case 'held':     return isUser ? 'Protected until you confirm delivery' : 'Clearing — settles to your balance soon';
+      case 'released': return isUser ? 'Payment released to the seller' : 'Settled to your balance';
+      case 'appealed': return 'Payout paused — dispute under review';
+      case 'refunded': return isUser ? 'Refunded to your wallet' : "Refunded to the buyer's wallet";
+
+
       case 'cancelled': return isUser ? 'Order automatically cancelled by the system,'
           ' due to no response from vendor' : 'Order automatically cancelled by the System,'
           ' due to no response from you';
@@ -635,14 +649,14 @@ class _ActionPanelState extends State<_ActionPanel> {
         }
         if (order.status.canConfirm) {
           actions.add(_PanelBtn(
-            label: 'Release Funds',
-            icon: Icons.lock_open_rounded,
+            label: 'Confirm Delivery',
+            icon: Icons.check_circle_outline,
             color: VendorTheme.accent,
             onTap: () => _showReleasePin(context, userProvider),
           ));
         }
       }
-      // POD delivered — no escrow, just open chat
+      // POD delivered — no settlement, just open chat
       if (order.isPod && order.status == OrderStatus.delivered) {
         actions.add(_PanelBtn(
           label: 'Contact Vendor',
@@ -663,12 +677,12 @@ class _ActionPanelState extends State<_ActionPanel> {
       };
       const labelMap = {
         'pending':   'Accept Order',
-        'confirmed': 'Start Preparing',
+        'confirmed': 'Start Processing',
         'preparing': 'Out for Delivery',
       };
       const iconMap = {
         'pending':   Icons.check_circle_outline,
-        'confirmed': Icons.restaurant_outlined,
+        'confirmed': Icons.inventory_2_outlined,
         'preparing': Icons.delivery_dining_outlined,
       };
 
@@ -776,7 +790,7 @@ class _ActionPanelState extends State<_ActionPanel> {
   Future<void> _cancelAppeal(
       BuildContext context, OrderListProvider p) async {
     final ok = await _confirm(
-        context, 'Cancel your appeal? Escrow timer will be restored.');
+        context, 'Cancel your appeal? Your payment stays protected until the order settles.');
     if (!ok) return;
     final success = await p.cancelAppeal(order.id);
     if (!success && context.mounted) {
@@ -872,14 +886,14 @@ class _ActionPanelState extends State<_ActionPanel> {
       context: context,
       isDismissible: false,
       builder: (_) => TransactionPin(
-        onSuccess: () async {
-          final ok = await p.confirmDelivery(order.id);
-          if (!ok && context.mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                content: Text(p.error ?? 'Failed'),
-                backgroundColor: VendorTheme.error));
+          onSuccess: () async {
+            final ok = await p.confirmDelivery(order.id);
+            if (!ok && context.mounted) {
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                  content: Text(p.error ?? 'Failed'),
+                  backgroundColor: VendorTheme.error));
+            }
           }
-        }
       ),
     );
   }
@@ -1025,8 +1039,8 @@ class _DetailStepBar extends StatelessWidget {
   static const _steps = [
     ('Placed', Icons.receipt_long_outlined),
     ('Accepted', Icons.check_circle_outline),
-    ('Preparing', Icons.restaurant_outlined),
-    ('En Route', Icons.delivery_dining_outlined),
+    ('Processing', Icons.inventory_2_outlined),
+    ('On the way', Icons.delivery_dining_outlined),
     ('Arrived', Icons.home_outlined),
     ('Done', Icons.done_all_rounded),
   ];

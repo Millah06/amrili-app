@@ -388,8 +388,8 @@ class _OrderCard extends StatelessWidget {
                     if (order.status.canConfirm)
                       Expanded(
                         child: _ActionButton(
-                          label: 'Release Funds',
-                          icon: Icons.lock_open_rounded,
+                          label: 'Confirm Delivery',
+                          icon: Icons.check_circle_outline,
                           color: VendorTheme.accent,
                           onTap: () =>
                               _showReleasePin(context, p),
@@ -413,7 +413,7 @@ class _OrderCard extends StatelessWidget {
       context: context,
       isDismissible: false,
       builder: (_) => TransactionPin(
-        onSuccess: () async {
+          onSuccess: () async {
             Navigator.pop(context);
             final ok = await p.confirmDelivery(order.id);
             if (!ok && context.mounted) {
@@ -435,7 +435,7 @@ class _StepBar extends StatelessWidget {
   final OrderStatus status;
   const _StepBar({required this.status});
 
-  static const _labels = ['Placed', 'Accepted', 'Preparing', 'En Route', 'Arrived', 'Done'];
+  static const _labels = ['Placed', 'Accepted', 'Processing', 'On the way', 'Arrived', 'Done'];
   static const _totalSteps = 6;
 
   @override

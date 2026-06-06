@@ -1,4 +1,5 @@
 import 'package:everywhere/components/swicht.dart';
+import 'package:everywhere/features/wallet/pages/withdraw_bank_screen.dart';
 import 'package:everywhere/providers/user_provider.dart';
 import 'package:everywhere/screens/pages/notification_screen.dart';
 import 'package:everywhere/screens/privacy_policy.dart';
@@ -9,6 +10,7 @@ import '../../../support/help_center.dart';
 import '../../pages/add_branch_page.dart';
 import '../../pages/edit_vendor_profile.dart';
 import '../../pages/manage_branches_page.dart';
+import '../../pages/merchant_balance_page.dart';
 import '../../pages/merchant_trust_page.dart';
 import '../../pages/verified_merchant_page.dart';
 import '../../providers/vendor_center_provider.dart';
@@ -127,7 +129,13 @@ class ProfileTab extends StatelessWidget {
                             () {
                           vendorPush(context, const MerchantTrustPage());
                         }),
+                    _tile(Icons.account_balance_wallet_outlined, 'Balance & Settlements',
+                            () => vendorPush(context, const MerchantBalancePage())),
+                    if (p.myVendor!.isOwner(context.read<UserProvider>().user!.userId))
+                    _tile(Icons.wallet, 'Withdraw to a bank',
+                            () => vendorPush(context, WithdrawBankScreen())),
                     const SizedBox(height: 10),
+                    if (p.myVendor!.isOwner(context.read<UserProvider>().user!.userId))
                     Container(
                       margin: const EdgeInsets.only(bottom: 8),
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),

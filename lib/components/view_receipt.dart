@@ -36,6 +36,9 @@ class _ViewReceiptState extends State<ViewReceipt> {
 
   @override
   void dispose() {
+    didChangeDependencies(
+
+    );
     context.read<TransactionProvider>().clearDetail();
     super.dispose();
   }

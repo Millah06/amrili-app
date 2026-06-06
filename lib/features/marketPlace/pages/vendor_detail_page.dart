@@ -13,7 +13,6 @@ import '../widgets/qr_share_sheet.dart';
 import '../widgets/shared_widgets.dart';
 import '../widgets/trust_badge.dart';
 import 'checkout.dart';
-import 'checkout_page.dart';
 
 class VendorDetailPage extends StatefulWidget {
   final String vendorId;

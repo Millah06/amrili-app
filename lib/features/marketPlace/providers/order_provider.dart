@@ -129,7 +129,8 @@ class CheckoutProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> placeOrder({required String vendorId, required String branchId, required List<CartItem> items,}) async {
+  Future<bool> placeOrder({required String vendorId, required String branchId,
+    required List<CartItem> items,}) async {
     if (!canCheckout) {
       error = 'Please select a delivery zone';
       notifyListeners();
