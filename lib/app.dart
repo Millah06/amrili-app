@@ -57,6 +57,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   bool _isGuest = false;   // ← add this
   bool _isLoading = true;
   bool _resolvingPayment = false; // prevents stacking recovery sheets on resume
+  String? _lastRecoveredPaymentId;
 
   @override
   void initState() {
@@ -115,24 +116,40 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
           // ── Resume any unfinished payment (spec §13.2) ──────────────────────
           // The recovery cron already finishes payments server-side; this just
           // shows the user the outcome promptly when they come back.
-          if (!_resolvingPayment) {
-            _resolvingPayment = true;
-            try {
-              final pending = await PaymentService.instance.pending();
-              final ctx = navigatorKey.currentContext;
-              if (pending.isNotEmpty && ctx != null) {
-                final p = pending.first;
-                await PaymentSheet.show(
+          // add to your State:
+
+
+          // inside the resumed branch, replacing the forced PaymentSheet.show:
+          if (_resolvingPayment) return;
+          _resolvingPayment = true;
+          try {
+            final pending = await PaymentService.instance.pending();
+            if (pending.isEmpty) { _lastRecoveredPaymentId = null; return; }
+            final p = pending.first;
+            if (p.paymentId == _lastRecoveredPaymentId) return; // already offered — don't re-pop
+            _lastRecoveredPaymentId = p.paymentId;
+
+            final ctx = navigatorKey.currentContext;
+            if (ctx == null) return;
+
+            // Non-blocking: stay on the exact screen; let the user choose to resume.
+            ScaffoldMessenger.of(ctx).showSnackBar(SnackBar(
+              duration: const Duration(seconds: 6),
+              content: const Text('You have a payment to finish.'),
+              backgroundColor: kSnackSuccess,
+              action: SnackBarAction(
+                label: 'Resume',
+                onPressed: () => PaymentSheet.show(
                   ctx,
                   amount: p.amount,
                   entityType: p.entityType,
                   entityId: p.entityId,
                   recoverPaymentId: p.paymentId,
-                );
-              }
-            } catch (_) {/* cron will still finish it */} finally {
-              _resolvingPayment = false;
-            }
+                ),
+              ),
+            ));
+          } catch (_) {/* cron finishes it */} finally {
+            _resolvingPayment = false;
           }
         }
       });

@@ -29,6 +29,9 @@ class VendorOrderCard extends StatefulWidget {
 class _VendorOrderCardState extends State<VendorOrderCard> {
   bool _busy = false;
 
+  // NOTE: the vendor only ever sees `pending` for POD orders — prepaid `pending`
+  // is hidden by the backend until payment confirms it. So "Accept Order" here
+  // maps to a POD-only pending→confirmed, which the backend permits.
   static const _nextStatus = {
     'pending':        'confirmed',
     'confirmed':      'preparing',
@@ -38,14 +41,15 @@ class _VendorOrderCardState extends State<VendorOrderCard> {
 
   static const _nextLabel = {
     'pending':        'Accept Order',
-    'confirmed':      'Start Preparing',
+    'confirmed':      'Start Processing',
     'preparing':      'Out for Delivery',
     'outForDelivery': 'Mark Delivered',
   };
 
+  // Retail-neutral icons (inventory box instead of a restaurant fork).
   static const _nextIcon = {
     'pending':        Icons.check_circle_outline,
-    'confirmed':      Icons.restaurant_outlined,
+    'confirmed':      Icons.inventory_2_outlined,
     'preparing':      Icons.delivery_dining_outlined,
     'outForDelivery': Icons.done_all_rounded,
   };
@@ -289,7 +293,7 @@ class _VendorOrderCardState extends State<VendorOrderCard> {
               ),
             ),
 
-            // Appeal frozen banner
+            // Issue under review banner
             if (isAppealed) ...[
               const SizedBox(height: 10),
               Padding(
@@ -304,10 +308,10 @@ class _VendorOrderCardState extends State<VendorOrderCard> {
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.gavel_rounded,
+                      Icon(Icons.support_agent_rounded,
                           color: VendorTheme.warning, size: 12),
                       SizedBox(width: 6),
-                      Text('Under dispute — admin reviewing',
+                      Text('Issue under review',
                           style: TextStyle(
                               color: VendorTheme.warning, fontSize: 11)),
                     ],
@@ -407,13 +411,13 @@ class _VendorOrderCardState extends State<VendorOrderCard> {
             ),
           ),
 
-        // Appeal (non-POD only, canAppeal statuses)
+        // Report an issue (non-POD only, canAppeal statuses) — softened from "Appeal"
         if (!isPod && widget.order.status.canAppealForVendor && widget.onAppeal != null) ...[
           const SizedBox(width: 8),
           _CardBtn(
-            label: 'Appeal',
-            icon: Icons.gavel_rounded,
-            color: VendorTheme.error,
+            label: 'Report an issue',
+            icon: Icons.flag_outlined,
+            color: VendorTheme.warning,
             outlined: true,
             onTap: widget.onAppeal!,
             compact: true,

@@ -153,8 +153,8 @@ class _CheckoutPageState extends State<CheckoutPage> {
   // }
   void _placeOrder(
       BuildContext context, CheckoutProvider checkout, CartProvider cart) async {
-    // 1) Create the order. For prepaid it's created UNPAID (no funds moved yet);
-    //    for POD it behaves exactly as before.
+    final isPod = checkout.paymentMethod == 'pay_on_delivery';
+
     final success = await checkout.placeOrder(
       vendorId: cart.vendorId!,
       branchId: cart.branchId!,
@@ -162,34 +162,50 @@ class _CheckoutPageState extends State<CheckoutPage> {
     );
     if (!success || !context.mounted) return;
 
-    final order = checkout.placedOrder;
-    final isPod = checkout.paymentMethod == 'pay_on_delivery';
+    final order = checkout.placedOrder;            // capture BEFORE reset()
+    final amount = order?.totalAmount ?? 0;
+    final orderId = order?.id ?? '';
+    final vendorName = order?.vendorName ?? 'your order';
 
-    // 2) Prepaid → pay up front via the universal sheet (wallet or OPay). On
-    //    success the backend handler moves the NET to the merchant's pending
-    //    balance and confirms the order. If the user cancels the sheet, the order
-    //    stays pending and auto-cancels in 30 min — we just return to checkout.
-    if (!isPod && order != null) {
-      final result = await PaymentSheet.show(
-        context,
-        amount: order.totalAmount,
-        entityType: 'marketplace_order',
-        entityId: order.id,
-        productName: order.vendorName.isNotEmpty
-            ? 'Order from ${order.vendorName}'
-            : 'Marketplace order',
-      );
-      if (result == null) return; // payment not completed — leave order pending
-    }
-
-    // 3) Done (paid prepaid, or POD placed).
-    if (!context.mounted) return;
     cart.clear();
     checkout.reset();
+
+    // POD: nothing to charge — confirm placement.
+    if (isPod) {
+      _showPlacedDialog(context, paid: false);
+      return;
+    }
+
+    // Prepaid: charge now (entityId = order.id → handler confirms this order).
+    final result = await PaymentSheet.show(
+      context,
+      amount: amount,
+      entityType: 'marketplace_order',
+      entityId: orderId,
+      productName: 'Order from $vendorName',
+    );
+    if (!context.mounted) return;
+
+    if (result != null) {
+      _showPlacedDialog(context, paid: true);
+    } else {
+      // Abandoned/failed — order is saved unpaid; pay later from My Orders.
+      Navigator.of(context).pop(); // checkout
+      Navigator.of(context).pop(); // vendor detail
+      vendorPush(context, OrdersTab());
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        content: Text('Order saved. You can complete payment from My Orders.'),
+        backgroundColor: VendorTheme.warning,
+      ));
+    }
+  }
+
+  void _showPlacedDialog(BuildContext context, {required bool paid}) {
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (_) => _OrderPlacedDialog(
+        paid: paid,
         onDone: () {
           Navigator.of(context).pop(); // dialog
           Navigator.of(context).pop(); // checkout
@@ -395,7 +411,7 @@ class _PaymentMethodSelector extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       children: [
-        _option('escrow', Icons.lock_outline, 'Pay Now', 'Secured by escrow', checkout),
+        _option('prepaid', Icons.account_balance_wallet_outlined, 'Pay Now', 'Wallet or OPay', checkout),
         const SizedBox(width: 10),
         _option('pay_on_delivery', Icons.payments_outlined,
             'Pay on Delivery', 'Cash at doorstep', checkout),
@@ -553,8 +569,8 @@ class _Section extends StatelessWidget {
 
 class _OrderPlacedDialog extends StatelessWidget {
   final VoidCallback onDone;
-
-  const _OrderPlacedDialog({required this.onDone});
+  final bool paid;
+  const _OrderPlacedDialog({required this.onDone, this.paid = false});
 
   @override
   Widget build(BuildContext context) {
@@ -583,11 +599,11 @@ class _OrderPlacedDialog extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                     fontSize: 18)),
             const SizedBox(height: 8),
-            const Text(
-              'Your order has been placed and payment is held in escrow. '
-                  'You will be notified as it progresses.',
+            Text(
+              paid ? 'Payment received and your order is placed. Track it in My Orders.'
+                  : 'Your order is placed. Pay cash when it arrives.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: VendorTheme.textSecondary, fontSize: 13),
+              style: const TextStyle(color: VendorTheme.textSecondary, fontSize: 13),
             ),
             const SizedBox(height: 20),
             VButton(label: 'View My Orders', onTap: onDone),

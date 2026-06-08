@@ -64,7 +64,7 @@ class _AppealWidgetState extends State<AppealWidget> {
     final orderId = widget.order.id;
     bool ok;
 
-    // 1. Submit appeal reason
+    // 1. Submit the report reason (kept on the same appealOrder endpoint)
     if (widget.orderListProvider != null) {
       ok = await widget.orderListProvider!.appealOrder(orderId, reason);
     } else {
@@ -75,7 +75,7 @@ class _AppealWidgetState extends State<AppealWidget> {
       if (mounted) {
         final err = widget.orderListProvider?.error ??
             widget.vendorCenterProvider?.error ??
-            'Failed to submit appeal';
+            'Failed to submit your report';
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text(err), backgroundColor: VendorTheme.error),
         );
@@ -84,7 +84,7 @@ class _AppealWidgetState extends State<AppealWidget> {
       return;
     }
 
-    // 2. If proof image selected, upload and send as chat message
+    // 2. If a photo was selected, upload and send it into the order chat.
     if (_proofImage != null) {
       try {
         final api = widget.orderListProvider?.api ??
@@ -98,11 +98,11 @@ class _AppealWidgetState extends State<AppealWidget> {
           await chat.sendImage(
             orderId,
             urls.first,
-            caption: '📎 Appeal proof attached',
+            caption: '📎 Photo attached',
           );
         }
       } catch (_) {
-        // proof upload failure is non-fatal — appeal is already submitted
+        // photo upload failure is non-fatal — the report is already submitted
       }
     }
 
@@ -117,7 +117,7 @@ class _AppealWidgetState extends State<AppealWidget> {
         backgroundColor: VendorTheme.background,
         elevation: 0,
         title: const Text(
-          'Open Appeal',
+          'Report an issue',
           style: TextStyle(
               color: VendorTheme.textPrimary,
               fontWeight: FontWeight.bold,
@@ -131,7 +131,7 @@ class _AppealWidgetState extends State<AppealWidget> {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          // Warning banner
+          // Info banner — calm, settlement language (no "escrow"/"freeze").
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
@@ -139,13 +139,15 @@ class _AppealWidgetState extends State<AppealWidget> {
               borderRadius: BorderRadius.circular(12),
               border: Border.all(color: VendorTheme.warning.withOpacity(0.3)),
             ),
-            child: Row(
+            child: const Row(
               children: [
-                const Icon(Icons.lock_outline, color: VendorTheme.warning, size: 18),
-                const SizedBox(width: 10),
-                const Expanded(
+                Icon(Icons.support_agent_rounded,
+                    color: VendorTheme.warning, size: 18),
+                SizedBox(width: 10),
+                Expanded(
                   child: Text(
-                    'Submitting an appeal will freeze the escrow until an admin resolves the dispute.',
+                    'Reporting an issue pauses the payout while our team helps '
+                        'sort it out. Most issues are resolved quickly.',
                     style: TextStyle(color: VendorTheme.warning, fontSize: 12),
                   ),
                 ),
@@ -154,9 +156,9 @@ class _AppealWidgetState extends State<AppealWidget> {
           ),
           const SizedBox(height: 24),
 
-          // Proof upload
+          // Photo upload
           const Text(
-            'Upload Proof (optional)',
+            'Add a photo (optional)',
             style: TextStyle(
                 color: VendorTheme.textSecondary,
                 fontSize: 13,
@@ -222,7 +224,7 @@ class _AppealWidgetState extends State<AppealWidget> {
                   Icon(Icons.upload_file_outlined,
                       color: VendorTheme.textMuted, size: 32),
                   SizedBox(height: 8),
-                  Text('Tap to attach evidence',
+                  Text('Tap to attach a photo',
                       style: TextStyle(
                           color: VendorTheme.textMuted, fontSize: 13)),
                   SizedBox(height: 2),
@@ -237,7 +239,7 @@ class _AppealWidgetState extends State<AppealWidget> {
 
           // Reason
           const Text(
-            'Describe the issue *',
+            'What went wrong? *',
             style: TextStyle(
                 color: VendorTheme.textSecondary,
                 fontSize: 13,
@@ -292,12 +294,13 @@ class _AppealWidgetState extends State<AppealWidget> {
                 child: ElevatedButton(
                   onPressed: _submitting ? null : _submit,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: VendorTheme.error,
+                    backgroundColor: VendorTheme.primary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12)),
-                    disabledBackgroundColor: VendorTheme.error.withOpacity(0.4),
+                    disabledBackgroundColor:
+                    VendorTheme.primary.withOpacity(0.4),
                   ),
                   child: _submitting
                       ? const SizedBox(
@@ -306,7 +309,7 @@ class _AppealWidgetState extends State<AppealWidget> {
                     child: CircularProgressIndicator(
                         color: Colors.white, strokeWidth: 2),
                   )
-                      : const Text('Submit Appeal',
+                      : const Text('Submit report',
                       style: TextStyle(fontWeight: FontWeight.bold)),
                 ),
               ),

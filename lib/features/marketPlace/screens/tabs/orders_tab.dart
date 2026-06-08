@@ -11,6 +11,7 @@ import '../../providers/order_provider.dart';
 import '../../widgets/appeal_widget.dart';
 import '../../widgets/navigation.dart';
 import '../../widgets/shared_widgets.dart';
+import 'package:everywhere/features/payment/widgets/payment_sheet.dart';
 
 // ─── OrdersTab ────────────────────────────────────────────────────────────────
 
@@ -29,7 +30,6 @@ class _OrdersTabState extends State<OrdersTab>
   void initState() {
     super.initState();
     _tabs = TabController(length: 4, vsync: this);
-    // Substitute the existing addPostFrameCallback block:
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final userId = context.read<UserProvider>().user?.userId ?? '';
       context.read<OrderListProvider>()
@@ -118,7 +118,7 @@ class _OrdersTabState extends State<OrdersTab>
                 Tab(text: 'Ongoing'),
                 Tab(text: 'Completed'),
                 Tab(text: 'Cancelled'),
-                Tab(text: 'Appealed'),
+                Tab(text: 'Issues'),
               ],
             ),
 
@@ -151,7 +151,7 @@ class _OrdersTabState extends State<OrdersTab>
                           emptyTitle: 'No cancelled orders'),
                       _OrderList(
                           orders: p.appealed,
-                          emptyTitle: 'No appealed orders'),
+                          emptyTitle: 'No reported orders'),
                     ],
                   );
                 },
@@ -290,10 +290,10 @@ class _OrderCard extends StatelessWidget {
                   child: const Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.gavel_rounded,
+                      Icon(Icons.support_agent_rounded,
                           color: VendorTheme.warning, size: 13),
                       SizedBox(width: 6),
-                      Text('Dispute under admin review',
+                      Text('Issue under review',
                           style: TextStyle(
                               color: VendorTheme.warning, fontSize: 11)),
                     ],
@@ -353,6 +353,27 @@ class _OrderCard extends StatelessWidget {
               ),
             ),
 
+            // Unpaid prepaid order — let the buyer complete payment. (POD never
+            // needs this; paid orders move to confirmed and lose "pending".)
+            if (order.status == OrderStatus.pending && !order.isPod) ...[
+              const SizedBox(height: 2),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 0, 14, 12),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _ActionButton(
+                        label: 'Complete payment',
+                        icon: Icons.account_balance_wallet_outlined,
+                        color: VendorTheme.primary,
+                        onTap: () => _payNow(context),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
             // Action buttons
             if (!order.isPod && (order.status.canConfirm || order.status.canAppeal)) ...[
               const SizedBox(height: 12),
@@ -369,9 +390,9 @@ class _OrderCard extends StatelessWidget {
                     if (order.status.canAppeal)
                       Expanded(
                         child: _ActionButton(
-                          label: 'Appeal',
-                          icon: Icons.gavel_rounded,
-                          color: VendorTheme.error,
+                          label: 'Report an issue',
+                          icon: Icons.flag_outlined,
+                          color: VendorTheme.warning,
                           outlined: true,
                           onTap: () => vendorPush(
                             context,
@@ -388,7 +409,7 @@ class _OrderCard extends StatelessWidget {
                     if (order.status.canConfirm)
                       Expanded(
                         child: _ActionButton(
-                          label: 'Confirm Delivery',
+                          label: 'Confirm Receipt',
                           icon: Icons.check_circle_outline,
                           color: VendorTheme.accent,
                           onTap: () =>
@@ -426,6 +447,22 @@ class _OrderCard extends StatelessWidget {
           }
       ),
     );
+  }
+
+  // Re-open the universal PaymentSheet for an UNPAID order. entityId = order.id,
+  // so on success the backend marketplace_order handler confirms this exact
+  // order. On success we refresh so it leaves the "pending" bucket.
+  Future<void> _payNow(BuildContext context) async {
+    final res = await PaymentSheet.show(
+      context,
+      amount: order.totalAmount,
+      entityType: 'marketplace_order',
+      entityId: order.id,
+      productName: 'Order from ${order.vendorName}',
+    );
+    if (res != null && context.mounted) {
+      context.read<OrderListProvider>().fetchOrders();
+    }
   }
 }
 

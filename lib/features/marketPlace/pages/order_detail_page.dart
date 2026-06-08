@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:everywhere/constraints/constants.dart';
 import 'package:everywhere/features/marketPlace/widgets/navigation.dart';
 import 'package:everywhere/providers/user_provider.dart';
+import 'package:everywhere/features/payment/widgets/payment_sheet.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -161,21 +162,21 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
               ),
               child: const Row(
                 children: [
-                  Icon(Icons.gavel_rounded,
+                  Icon(Icons.support_agent_rounded,
                       color: VendorTheme.warning, size: 16),
                   SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Dispute in Progress',
+                        Text('Issue under review',
                             style: TextStyle(
                                 color: VendorTheme.warning,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 13)),
                         SizedBox(height: 2),
                         Text(
-                            'Payment is paused while an admin reviews this dispute.',
+                            'Your payment is on hold while our team helps sort this out.',
                             style: TextStyle(
                                 color: VendorTheme.warning,
                                 fontSize: 11)),
@@ -191,7 +192,8 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
             Padding(
               padding:
               const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: _PendingBanner(deadline: _order.autoCancelAt),
+              child: _PendingBanner(
+                  deadline: _order.autoCancelAt, isPod: _order.isPod),
             ),
 
           // Main scroll content
@@ -618,7 +620,7 @@ class _ActionPanelState extends State<_ActionPanel> {
     if (order.status == OrderStatus.appealed) {
       if (iAmAppellant) {
         actions.add(_PanelBtn(
-          label: 'Cancel My Appeal',
+          label: 'Withdraw my report',
           icon: Icons.undo_rounded,
           color: VendorTheme.warning,
           outlined: true,
@@ -626,7 +628,7 @@ class _ActionPanelState extends State<_ActionPanel> {
         ));
       } else {
         actions.add(_PanelBtn(
-          label: 'Concede Appeal',
+          label: 'Accept & resolve',
           icon: Icons.handshake_outlined,
           color: VendorTheme.accent,
           onTap: () => _run(() => _concedeAppeal(context, userProvider)),
@@ -637,11 +639,20 @@ class _ActionPanelState extends State<_ActionPanel> {
     // ── BUYER actions ────────────────────────────────────────────────────────
     if (isUser && order.status != OrderStatus.appealed) {
       if (!order.isPod) {
+        // Unpaid prepaid order — buyer completes payment here.
+        if (order.status == OrderStatus.pending) {
+          actions.add(_PanelBtn(
+            label: 'Complete payment',
+            icon: Icons.account_balance_wallet_outlined,
+            color: VendorTheme.primary,
+            onTap: () => _payNow(context),
+          ));
+        }
         if (order.status.canAppeal) {
           actions.add(_PanelBtn(
-            label: 'Raise Appeal',
-            icon: Icons.gavel_rounded,
-            color: VendorTheme.error,
+            label: 'Report an issue',
+            icon: Icons.flag_outlined,
+            color: VendorTheme.warning,
             outlined: true,
             onTap: () => vendorPush(context,
                 AppealWidget(orderListProvider: userProvider, order: order)),
@@ -649,7 +660,7 @@ class _ActionPanelState extends State<_ActionPanel> {
         }
         if (order.status.canConfirm) {
           actions.add(_PanelBtn(
-            label: 'Confirm Delivery',
+            label: 'Confirm Receipt',
             icon: Icons.check_circle_outline,
             color: VendorTheme.accent,
             onTap: () => _showReleasePin(context, userProvider),
@@ -726,9 +737,9 @@ class _ActionPanelState extends State<_ActionPanel> {
           order.status != OrderStatus.outForDelivery) {
 
         actions.add(_PanelBtn(
-          label: 'Appeal',
-          icon: Icons.gavel_rounded,
-          color: VendorTheme.error,
+          label: 'Report an issue',
+          icon: Icons.flag_outlined,
+          color: VendorTheme.warning,
           outlined: true,
           onTap: () {
             print(order.status.canAppealForVendor);
@@ -790,7 +801,7 @@ class _ActionPanelState extends State<_ActionPanel> {
   Future<void> _cancelAppeal(
       BuildContext context, OrderListProvider p) async {
     final ok = await _confirm(
-        context, 'Cancel your appeal? Your payment stays protected until the order settles.');
+        context, 'Withdraw your report? Your payment stays protected until the order settles.');
     if (!ok) return;
     final success = await p.cancelAppeal(order.id);
     if (!success && context.mounted) {
@@ -803,7 +814,7 @@ class _ActionPanelState extends State<_ActionPanel> {
   Future<void> _concedeAppeal(
       BuildContext context, OrderListProvider p) async {
     final ok = await _confirm(context,
-        'Concede this appeal? Funds will be directed accordingly and cannot be undone.');
+        'Accept and resolve this? Funds will be directed accordingly and cannot be undone.');
     if (!ok) return;
     final success = await p.concedeAppeal(order.id);
     if (!success && context.mounted) {
@@ -898,6 +909,21 @@ class _ActionPanelState extends State<_ActionPanel> {
     );
   }
 
+  // Re-open the universal PaymentSheet for an UNPAID order (entityId = order.id);
+  // on success the backend confirms this order. Refresh so it leaves "pending".
+  Future<void> _payNow(BuildContext context) async {
+    final res = await PaymentSheet.show(
+      context,
+      amount: order.totalAmount,
+      entityType: 'marketplace_order',
+      entityId: order.id,
+      productName: 'Order from ${order.vendorName}',
+    );
+    if (res != null && context.mounted) {
+      await context.read<OrderListProvider>().fetchOrders();
+    }
+  }
+
   Future<bool> _confirm(BuildContext context, String message) async {
     return await showDialog<bool>(
       context: context,
@@ -934,7 +960,8 @@ class _ActionPanelState extends State<_ActionPanel> {
 
 class _PendingBanner extends StatefulWidget {
   final DateTime deadline;
-  const _PendingBanner({required this.deadline});
+  final bool isPod;
+  const _PendingBanner({required this.deadline, this.isPod = false});
 
   @override
   State<_PendingBanner> createState() => _PendingBannerState();
@@ -1001,9 +1028,11 @@ class _PendingBannerState extends State<_PendingBanner> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                    expired
-                        ? 'Auto-cancel triggered'
-                        : 'Vendor must accept in',
+                    widget.isPod
+                        ? (expired ? 'Order expired' : 'Vendor must accept in')
+                        : (expired
+                        ? 'Payment window closed'
+                        : 'Complete payment in'),
                     style: TextStyle(
                         color: color,
                         fontWeight: FontWeight.bold,
@@ -1017,7 +1046,9 @@ class _PendingBannerState extends State<_PendingBanner> {
                   ),
                 if (expired)
                   Text(
-                      'Your order will be cancelled and funds returned.',
+                      widget.isPod
+                          ? 'This order will be cancelled.'
+                          : 'This order was cancelled — you can place it again.',
                       style: TextStyle(
                           color: color.withOpacity(0.8),
                           fontSize: 11)),

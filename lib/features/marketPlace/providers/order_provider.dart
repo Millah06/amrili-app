@@ -121,7 +121,7 @@ class CheckoutProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  String paymentMethod = 'escrow'; // default
+  String paymentMethod = 'prepaid'; // was 'escrow'
 
   void setPaymentMethod(String method) {
     paymentMethod = method;
