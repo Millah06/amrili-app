@@ -12,6 +12,7 @@ import '../../pages/edit_vendor_profile.dart';
 import '../../pages/manage_branches_page.dart';
 import '../../pages/merchant_balance_page.dart';
 import '../../pages/merchant_trust_page.dart';
+import '../../pages/table_management_page.dart';
 import '../../pages/verified_merchant_page.dart';
 import '../../providers/vendor_center_provider.dart';
 import '../../widgets/navigation.dart';
@@ -120,6 +121,17 @@ class ProfileTab extends StatelessWidget {
                     {vendorPush(context, ManageBranchesPage());}),
                     _tile(Icons.add_business_outlined, 'Add Branch', () {
                       vendorPush(context, AddBranchPage());
+                    }),
+                    _tile(Icons.table_restaurant_outlined, 'Dine-in Tables', () {
+                      final v = p.myVendor!;
+                      vendorPush(context, TableManagementPage(
+                        vendorId: v.id,
+                        vendorName: v.name,
+                        vendorLogo: v.logo,
+                        branches: v.branches
+                            .map((b) => TableBranchOption(id: b.id, label: '${b.area}, ${b.lga}'))
+                            .toList(),
+                      ));
                     }),
                     if (!p.myVendor!.verified)
                     _tile(Icons.verified_outlined, 'Apply for Verified Merchant', () {

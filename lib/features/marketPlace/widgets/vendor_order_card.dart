@@ -212,7 +212,7 @@ class _VendorOrderCardState extends State<VendorOrderCard> {
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Text(
-                      order.id.substring(0, 8).toUpperCase(),
+                      order.displayRef,
                       style: const TextStyle(
                           color: VendorTheme.textMuted,
                           fontSize: 11,
@@ -236,7 +236,7 @@ class _VendorOrderCardState extends State<VendorOrderCard> {
                     ),
                   ],
                   const Spacer(),
-                  _StatusChip(status: order.status),
+                  _StatusChip(status: order.status, label: order.statusLabel,),
                 ],
               ),
             ),
@@ -252,7 +252,8 @@ class _VendorOrderCardState extends State<VendorOrderCard> {
                       color: VendorTheme.textMuted, size: 13),
                   const SizedBox(width: 4),
                   Expanded(
-                    child: Text(order.deliveryAddress.full,
+                    child: Text(order.isDineIn ? 'Dine-in · Table ${order.tableNumber}'
+                        : order.deliveryAddress.full,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
@@ -481,7 +482,8 @@ class _CardBtn extends StatelessWidget {
 
 class _StatusChip extends StatelessWidget {
   final OrderStatus status;
-  const _StatusChip({required this.status});
+  final String? label;
+  const _StatusChip({required this.status, this.label});
 
   Color get _color {
     switch (status) {
@@ -506,7 +508,7 @@ class _StatusChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: _color.withOpacity(0.4)),
       ),
-      child: Text(status.label,
+      child: Text(label ?? status.label,
           style: TextStyle(
               color: _color, fontSize: 10, fontWeight: FontWeight.bold)),
     );

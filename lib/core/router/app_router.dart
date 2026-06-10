@@ -181,6 +181,8 @@ final GoRouter appRouter = GoRouter(
       builder: (c, s) => VendorScope(
         child: VendorDetailPage(
           vendorId: s.pathParameters['storeId']!,
+          tableId: s.pathParameters['tableId'], // NEW — see step 6
+
           // NOTE (Phase 6): add `tableId:` param to VendorDetailPage and read
           // s.pathParameters['tableId'] here. Forwarded via `extra` for now.
         ),

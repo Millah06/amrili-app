@@ -12,6 +12,8 @@ import '../../../features/marketPlace/providers/vendor_center_provider.dart';
 import '../../../features/marketPlace/providers/vendor_provider.dart';
 import "package:flutter/material.dart";
 
+import '../providers/table_session_provider.dart';
+
 Future<T?> vendorPush<T>(BuildContext context, Widget page) {
   // Capture all providers from the current context before pushing
   final cart          = context.read<CartProvider>();
@@ -22,6 +24,7 @@ Future<T?> vendorPush<T>(BuildContext context, Widget page) {
   final orderChat = context.read<OrderChatProvider>();
   final vendorCenter  = context.read<VendorCenterProvider>();
   final location = context.read<LocationProvider>();
+  final table = context.read<TableSessionProvider>();
 
   return Navigator.push<T>(
     context,
@@ -36,6 +39,7 @@ Future<T?> vendorPush<T>(BuildContext context, Widget page) {
           ChangeNotifierProvider.value(value: orderChat),
           ChangeNotifierProvider.value(value: vendorCenter),
           ChangeNotifierProvider.value(value: location),
+          ChangeNotifierProvider.value(value: table),
         ],
         child: page,
       ),

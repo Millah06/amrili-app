@@ -257,10 +257,14 @@ class _OrderCard extends StatelessWidget {
                         Text(order.branchName,
                             style: const TextStyle(
                                 color: VendorTheme.textMuted, fontSize: 11)),
+                        if (order.isDineIn)
+                          Text(order.displayRef,
+                              style: const TextStyle(color: VendorTheme.primary,
+                                  fontWeight: FontWeight.bold, fontSize: 12)),
                       ],
                     ),
                   ),
-                  _StatusChip(status: order.status),
+                  _StatusChip(status: order.status, label: order.statusLabel),
                 ],
               ),
             ),
@@ -561,7 +565,8 @@ class _StepBar extends StatelessWidget {
 
 class _StatusChip extends StatelessWidget {
   final OrderStatus status;
-  const _StatusChip({required this.status});
+  final String? label;
+  const _StatusChip({required this.status, this.label});
 
   Color get _color {
     switch (status) {
@@ -587,7 +592,7 @@ class _StatusChip extends StatelessWidget {
         border: Border.all(color: _color.withOpacity(0.4)),
       ),
       child: Text(
-        status.label,
+        label ?? status.label,
         style: TextStyle(
             color: _color,
             fontSize: 10,

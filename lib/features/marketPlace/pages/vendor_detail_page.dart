@@ -8,6 +8,7 @@ import '../../../constraints/vendor_theme.dart';
 import '../../../core/constant/api_constants.dart';
 import '../../../features/marketPlace/providers/vendor_provider.dart';
 import '../models/vendor_model.dart';
+import '../providers/table_session_provider.dart';
 import '../widgets/navigation.dart';
 import '../widgets/qr_share_sheet.dart';
 import '../widgets/shared_widgets.dart';
@@ -16,7 +17,8 @@ import 'checkout.dart';
 
 class VendorDetailPage extends StatefulWidget {
   final String vendorId;
-  const VendorDetailPage({super.key, required this.vendorId});
+  final String? tableId;
+  const VendorDetailPage({super.key, required this.vendorId, this.tableId});
 
   @override
   State<VendorDetailPage> createState() => _VendorDetailPageState();
@@ -29,12 +31,22 @@ class _VendorDetailPageState extends State<VendorDetailPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       context.read<VendorDetailProvider>().loadVendor(widget.vendorId);
     });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final session = context.read<TableSessionProvider>();
+      if (widget.tableId != null) {
+        session.attachTable(vendorId: widget.vendorId, tableId: widget.tableId!);
+      } else {
+        // Opened normally — drop any dine-in session from another store.
+        session.clearIfOtherStore(widget.vendorId);
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    return Consumer2<VendorDetailProvider, CartProvider>(
-      builder: (context, detail, cart, _) {
+    return Consumer3<VendorDetailProvider, CartProvider, TableSessionProvider>(
+      builder: (context, detail, cart, session, _) {
         if (detail.loading) {
           return const Scaffold(
             backgroundColor: VendorTheme.background,
@@ -59,6 +71,30 @@ class _VendorDetailPageState extends State<VendorDetailPage> {
               _sliverAppBar(vendor),
               SliverToBoxAdapter(child: _vendorInfo(vendor)),
               SliverToBoxAdapter(child: _branchSelector(vendor, detail)),
+              if (session.isDineIn || session.storeId == widget.vendorId)
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+                    child: Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      color: VendorTheme.primary.withOpacity(0.12),
+                      child: Row(
+                        children: [
+                          const Icon(Icons.table_restaurant, size: 18, color: VendorTheme.primary),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Dine-in · Ordering for Table ${session.tableNumber ?? ''}',
+                              style: const TextStyle(
+                                  color: VendorTheme.primary, fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
               SliverToBoxAdapter(
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
@@ -237,13 +273,21 @@ class _VendorDetailPageState extends State<VendorDetailPage> {
 
   Widget _branchSelector(VendorModel vendor, VendorDetailProvider detail) {
     if (vendor.branches.isEmpty) return const SizedBox.shrink();
+    final session = context.watch<TableSessionProvider>();
+    final dineIn = session.isDineIn && session.storeId == widget.vendorId;
+    if (dineIn && session.branchId != null &&
+        detail.selectedBranchId != session.branchId) {
+      WidgetsBinding.instance.addPostFrameCallback(
+              (_) => detail.selectBranch(session.branchId!));
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
-          child: Text('Select Branch',
-              style: TextStyle(color: VendorTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 15)),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+          child: Text(dineIn ? 'Your table' : 'Select Branch',
+              style: const TextStyle(color: VendorTheme.textPrimary, fontWeight: FontWeight.bold, fontSize: 15)),
         ),
         SizedBox(
           height: 72,
@@ -256,7 +300,7 @@ class _VendorDetailPageState extends State<VendorDetailPage> {
               final branch = vendor.branches[i];
               final sel = detail.selectedBranchId == branch.id;
               return GestureDetector(
-                onTap: () => detail.selectBranch(branch.id),
+                onTap: dineIn ? null : () => detail.selectBranch(branch.id),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 150),
                   width: 160,

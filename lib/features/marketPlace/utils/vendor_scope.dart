@@ -29,6 +29,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../providers/order_provider.dart';
+import '../providers/table_session_provider.dart';
 import '../providers/vendor_center_provider.dart';
 import '../providers/vendor_provider.dart';
 import '../../../services/api_service.dart';
@@ -51,6 +52,7 @@ class VendorScope extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => OrderChatProvider(api: api)),
         ChangeNotifierProvider(create: (_) => VendorCenterProvider(api: api)..init()),
         ChangeNotifierProvider(create: (_) => LocationProvider(api: api)),
+        ChangeNotifierProvider(create: (_) => TableSessionProvider()),
       ],
       child: child,
     );

@@ -46,6 +46,8 @@ class ApiConstants {
   static String tableUrl(String vendorId, String tableId) =>
       '$webBaseUrl/store/$vendorId/table/$tableId';
 
+
+
   static String postUrl(String postId) => '$webBaseUrl/post/$postId';
 
   static String profileUrl(String userHandle) => '$webBaseUrl/u/$userHandle';

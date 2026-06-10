@@ -15,6 +15,7 @@ enum OrderStatus {
 }
 
 extension OrderStatusX on OrderStatus {
+
   String get label {
     switch (this) {
       case OrderStatus.pending:            return 'Pending';
@@ -82,6 +83,26 @@ extension OrderStatusX on OrderStatus {
   static OrderStatus from(String v) =>
       OrderStatus.values.firstWhere((e) => e.name == v,
           orElse: () => OrderStatus.pending);
+}
+
+extension OrderDisplayX on OrderModel {
+  /// Card/detail headline. Dine-in → "#4827 · Table 5"; else the short id.
+  String get displayRef => isDineIn
+      ? '#${orderNumber ?? ''}${tableNumber != null ? ' · Table $tableNumber' : ''}'
+      : id.substring(0, 8).toUpperCase();
+
+  /// Fulfillment-aware status text. Dine-in relabels two states; everything
+  /// else (Preparing/Completed/Pending…) already reads right via status.label.
+  String get statusLabel {
+    if (isDineIn) {
+      switch (status) {
+        case OrderStatus.outForDelivery: return 'Ready';
+        case OrderStatus.delivered:      return 'Served';
+        default: break;
+      }
+    }
+    return status.label;
+  }
 }
 
 // ─── OrderItemModel ───────────────────────────────────────────────────────────
@@ -158,6 +179,14 @@ class OrderModel {
   final double totalAmount;
   final OrderStatus status;
   final String escrowStatus;
+
+  final int? orderNumber;
+  final String? tableNumber;
+  final String fulfillmentType;
+  bool get isDineIn => fulfillmentType == 'dine_in';
+// in fromJson:
+
+
   final DeliveryAddress deliveryAddress;
   final String paymentMethod;
   final bool podConfirmed;
@@ -181,6 +210,9 @@ class OrderModel {
     required this.status,
     required this.escrowStatus,
     required this.deliveryAddress,
+    this.orderNumber,
+    required this.fulfillmentType,
+    this.tableNumber,
     required this.paymentMethod,
     required this.podConfirmed,
     required this.createdAt,
@@ -211,6 +243,11 @@ class OrderModel {
     totalAmount: (j['totalAmount'] as num).toDouble(),
     status: OrderStatusX.from(j['status']),
     escrowStatus: j['escrowStatus'] ?? 'held',
+
+    orderNumber: (j['orderNumber'] as num?)?.toInt(),
+    tableNumber: j['tableNumber'],
+    fulfillmentType: j['fulfillmentType'] ?? 'delivery',
+
     paymentMethod: j['paymentMethod'] ?? 'escrow',
     podConfirmed: j['podConfirmed'] ?? false,
     appealedBy: j['appealedBy'],

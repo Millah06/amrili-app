@@ -130,8 +130,8 @@ class CheckoutProvider extends ChangeNotifier {
   }
 
   Future<bool> placeOrder({required String vendorId, required String branchId,
-    required List<CartItem> items,}) async {
-    if (!canCheckout) {
+    required List<CartItem> items, required String  fulfillmentType, String? tableId, bool isDine = false}) async {
+    if (!canCheckout && !isDine) {
       error = 'Please select a delivery zone';
       notifyListeners();
       return false;
@@ -144,6 +144,8 @@ class CheckoutProvider extends ChangeNotifier {
         'vendorId': vendorId,
         'branchId': branchId,
         'items': items.map((i) => i.toOrderPayload()).toList(),
+        'fulfillmentType':  fulfillmentType,
+        if (tableId != null) 'tableId': tableId,
         'deliveryAddress': {
           'state': selectedZone!.state,
           'lga': selectedZone!.lga,

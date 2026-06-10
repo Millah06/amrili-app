@@ -7,18 +7,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../../../components/transacrtion_pin.dart';
 import '../../../constraints/vendor_theme.dart';
-import '../../../services/brain.dart';
-import '../../../shared/utils/flush_bar_message.dart';
 import '../models/order_model.dart';
 import '../pages/order_chat_page.dart';
 import '../providers/order_provider.dart';
 import '../providers/vendor_center_provider.dart';
 import '../widgets/appeal_widget.dart';
 import '../widgets/review_bottom_sheet.dart';
-import '../widgets/shared_widgets.dart';
 
 class OrderDetailPage extends StatefulWidget {
   final OrderModel order;
@@ -102,7 +98,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                     fontWeight: FontWeight.bold,
                     fontSize: 15)),
             Text(
-              _order.id.substring(0, 8).toUpperCase(),
+              _order.displayRef,
               style: const TextStyle(
                   color: VendorTheme.textMuted, fontSize: 11),
             ),
@@ -201,6 +197,20 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
             child: ListView(
               padding: const EdgeInsets.fromLTRB(16, 12, 16, 120),
               children: [
+                if (_order.isDineIn) ...[
+                  _InfoCard(
+                    child: Row(children: [
+                      const Icon(Icons.table_restaurant, color: VendorTheme.primary, size: 22),
+                      const SizedBox(width: 12),
+                      Expanded(child: Text('Table ${_order.tableNumber ?? ''}',
+                          style: const TextStyle(color: VendorTheme.textSecondary, fontSize: 13))),
+                      Text('#${_order.orderNumber ?? ''}',
+                          style: const TextStyle(color: VendorTheme.primary,
+                              fontWeight: FontWeight.bold, fontSize: 22, letterSpacing: 1)),
+                    ]),
+                  ),
+                  const SizedBox(height: 10),
+                ],
                 // Counterparty card
                 _InfoCard(
                   child: Row(
@@ -326,6 +336,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
                 const SizedBox(height: 10),
 
                 // Delivery address
+                if (!_order.isDineIn)
                 _InfoCard(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,

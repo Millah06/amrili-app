@@ -9,6 +9,7 @@ import '../../../features/marketPlace/providers/order_provider.dart';
 import '../../../features/marketPlace/providers/vendor_provider.dart';
 import '../../payment/widgets/payment_sheet.dart';
 import '../models/order_model.dart';
+import '../providers/table_session_provider.dart';
 import '../widgets/navigation.dart';
 import '../widgets/shared_widgets.dart';
 
@@ -50,17 +51,34 @@ class _CheckoutPageState extends State<CheckoutPage> {
       ),
       body: Consumer2<CheckoutProvider, CartProvider>(
         builder: (context, checkout, cart, _) {
+          final session = context.watch<TableSessionProvider>();
+          print('❤️🔥${session.isDineIn}');
+          print('❤️🔥${session.storeId == cart.vendorId}');
+          final dineIn = session.isDineIn && session.storeId == cart.vendorId;
           return ListView(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
             children: [
-              _Section(
+              dineIn
+                  ? _Section(
+                title: 'Dine-in',
+                child: Row(children: [
+                  const Icon(Icons.table_restaurant,
+                      color: VendorTheme.primary, size: 18),
+                  const SizedBox(width: 8),
+                  Text('Table ${session.tableNumber ?? ''}',
+                      style: const TextStyle(
+                          color: VendorTheme.textPrimary,
+                          fontSize: 14, fontWeight: FontWeight.w600)),
+                ]),
+              )
+                  : _Section(
                 title: 'Delivery Address',
                 child: _DeliveryForm(checkout: checkout, cart: cart),
               ),
               const SizedBox(height: 16),
               _Section(
                 title: 'Order Summary',
-                child: _OrderSummary(cart: cart, checkout: checkout),
+                child: _OrderSummary(cart: cart, checkout: checkout,  dineIn: dineIn),
               ),
               if (checkout.error != null) ...[
                 const SizedBox(height: 12),
@@ -81,7 +99,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
       ),
       bottomNavigationBar: Consumer2<CheckoutProvider, CartProvider>(
         builder: (context, checkout, cart, _) {
-          final total = cart.subtotal + checkout.deliveryFee;
+          final session = context.watch<TableSessionProvider>();
+          final dineIn = session.isDineIn && session.storeId == cart.vendorId;
+          final total = dineIn ? cart.subtotal : cart.subtotal + checkout.deliveryFee;
           return Container(
             padding: EdgeInsets.fromLTRB(
                 16, 12, 16, MediaQuery.of(context).padding.bottom + 12),
@@ -111,7 +131,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 VButton(
                   label: 'Place Order',
                   loading: checkout.placingOrder,
-                  onTap:  checkout.canCheckout && !checkout.placingOrder
+                  onTap: (dineIn || checkout.canCheckout) && !checkout.placingOrder
                       ? () => GuestHelper.guardAction(
                       context, action: () => _placeOrder(context, checkout, cart),
                       reason: 'create post') : null,
@@ -127,38 +147,20 @@ class _CheckoutPageState extends State<CheckoutPage> {
     );
   }
 
-  // void _placeOrder(
-  //     BuildContext context, CheckoutProvider checkout, CartProvider cart) async {
-  //   final success = await checkout.placeOrder(
-  //     vendorId: cart.vendorId!,
-  //     branchId: cart.branchId!,
-  //     items: cart.items.toList(),
-  //   );
-  //   if (success && context.mounted) {
-  //     cart.clear();
-  //     checkout.reset();
-  //     showDialog(
-  //       context: context,
-  //       barrierDismissible: false,
-  //       builder: (_) => _OrderPlacedDialog(
-  //         onDone: () {
-  //           Navigator.of(context).pop(); // dialog
-  //           Navigator.of(context).pop(); // checkout
-  //           Navigator.of(context).pop(); // vendor detail
-  //           vendorPush(context, OrdersTab());
-  //         },
-  //       ),
-  //     );
-  //   }
-  // }
-  void _placeOrder(
-      BuildContext context, CheckoutProvider checkout, CartProvider cart) async {
+
+  void _placeOrder(BuildContext context, CheckoutProvider checkout, CartProvider cart,) async {
     final isPod = checkout.paymentMethod == 'pay_on_delivery';
+
+    final session = context.read<TableSessionProvider>();
+    final dineIn = session.isDineIn && session.storeId == cart.vendorId;
 
     final success = await checkout.placeOrder(
       vendorId: cart.vendorId!,
-      branchId: cart.branchId!,
+      branchId: dineIn ? session.branchId! : cart.branchId!,
       items: cart.items.toList(),
+      fulfillmentType: dineIn ? 'dine_in' : 'delivery',
+      tableId: dineIn ? session.tableId : null,
+      isDine: dineIn
     );
     if (!success || !context.mounted) return;
 
@@ -167,8 +169,11 @@ class _CheckoutPageState extends State<CheckoutPage> {
     final orderId = order?.id ?? '';
     final vendorName = order?.vendorName ?? 'your order';
 
+    session.clear(); // end the dine-in session on success
     cart.clear();
     checkout.reset();
+
+
 
     // POD: nothing to charge — confirm placement.
     if (isPod) {
@@ -452,8 +457,9 @@ class _PaymentMethodSelector extends StatelessWidget {
 class _OrderSummary extends StatelessWidget {
   final CartProvider cart;
   final CheckoutProvider checkout;
+  final bool dineIn;
 
-  const _OrderSummary({required this.cart, required this.checkout});
+  const _OrderSummary({required this.cart, required this.checkout, this.dineIn = false});
 
   @override
   Widget build(BuildContext context) {
@@ -483,13 +489,17 @@ class _OrderSummary extends StatelessWidget {
         const SizedBox(height: 6),
         _row(
           'Delivery fee',
-          checkout.selectedZone != null
+          dineIn ? '₦0'
+              : (checkout.selectedZone != null
               ? '₦${kFormatter.format(checkout.deliveryFee)}'
-              : '—',
-          valueColor: checkout.selectedZone != null
+              : '—'),
+          valueColor: dineIn
+              ? VendorTheme.accent
+              : (checkout.selectedZone != null
               ? VendorTheme.textSecondary
-              : VendorTheme.textMuted,
+              : VendorTheme.textMuted),
         ),
+
         const SizedBox(height: 6),
         _row('Transaction fee', '₦0', valueColor: VendorTheme.accent),
         // Selected zone summary

@@ -2,6 +2,7 @@ import 'package:everywhere/constraints/constants.dart';
 import 'package:flutter/material.dart';
 import '../../../../constraints/vendor_theme.dart';
 import '../../pages/merchant_balance_page.dart';
+import '../../pages/table_management_page.dart';
 import '../../providers/vendor_center_provider.dart';
 import '../../widgets/metrics_grid.dart';
 import '../../widgets/shared_widgets.dart';
@@ -65,6 +66,102 @@ class OverviewTab extends StatelessWidget {
                         ? '₦${kFormatter.format(m.releasedEarnings)}'
                         : '—',
                     VendorTheme.accent),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        // Dine-in — the headline feature. Gradient tile (echoes the Earnings card's
+        // shape) that opens table management + QR generation.
+        GestureDetector(
+          onTap: () {
+            final v = p.myVendor!;
+            vendorPush(context, TableManagementPage(
+              vendorId: v.id,
+              vendorName: v.name,
+              vendorLogo: v.logo,
+              branches: v.branches
+                  .map((b) => TableBranchOption(id: b.id, label: '${b.area}, ${b.lga}'))
+                  .toList(),
+            ));
+          },
+          child: Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              // Subtle brand gradient so it reads as premium, not just another row.
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  VendorTheme.primary.withOpacity(0.18),
+                  VendorTheme.accent.withOpacity(0.10),
+                ],
+              ),
+              border: Border.all(color: VendorTheme.primary.withOpacity(0.35)),
+            ),
+            child: Row(
+              children: [
+                // Icon medallion
+                Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: VendorTheme.primary.withOpacity(0.18),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.qr_code_2_rounded,
+                      color: VendorTheme.primary, size: 24),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(children: [
+                        const Text('Dine-in Ordering',
+                            style: TextStyle(
+                                color: VendorTheme.textPrimary,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15)),
+                        const SizedBox(width: 6),
+                        Container(
+                          padding:
+                          const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: VendorTheme.primary.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: const Text('NEW',
+                              style: TextStyle(
+                                  color: VendorTheme.primary,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w700)),
+                        ),
+                      ]),
+                      const SizedBox(height: 3),
+                      const Text(
+                        'Print a QR for each table — guests scan, order, and pay '
+                            'without waiting on staff.',
+                        style: TextStyle(
+                            color: VendorTheme.textSecondary,
+                            fontSize: 12,
+                            height: 1.3),
+                      ),
+                      const SizedBox(height: 8),
+                      const Row(children: [
+                        Text('Set up tables',
+                            style: TextStyle(
+                                color: VendorTheme.primary,
+                                fontWeight: FontWeight.w600,
+                                fontSize: 12)),
+                        SizedBox(width: 2),
+                        Icon(Icons.arrow_forward_rounded,
+                            color: VendorTheme.primary, size: 14),
+                      ]),
+                    ],
+                  ),
+                ),
               ],
             ),
           ),
