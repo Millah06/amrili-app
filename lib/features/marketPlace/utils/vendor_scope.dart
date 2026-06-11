@@ -45,7 +45,10 @@ class VendorScope extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(create: (_) => CartProvider()),
-        ChangeNotifierProvider(create: (_) => VendorListProvider(api: api)..fetchVendors()),
+        // No eager fetch: VendorsTab.initState triggers the first, correctly
+        // category-filtered load via setVendorType()/refresh(). Eager-fetching
+        // here raced that typed fetch and showed the wrong category.
+        ChangeNotifierProvider(create: (_) => VendorListProvider(api: api)),
         ChangeNotifierProvider(create: (_) => VendorDetailProvider(api: api)),
         ChangeNotifierProvider(create: (_) => CheckoutProvider(api: api)..loadStates()),
         ChangeNotifierProvider(create: (_) => OrderListProvider(api: api)..fetchOrders()),

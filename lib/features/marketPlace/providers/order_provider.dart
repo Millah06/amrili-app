@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart';
 
+import '../../../core/pagination/cursor_page.dart';
 import '../../../services/api_service.dart';
 import '../models/order_model.dart';
 
@@ -62,7 +63,7 @@ class CheckoutProvider extends ChangeNotifier {
   double get deliveryFee => selectedZone?.deliveryFee ?? 0;
 
   // Ready to place order when a zone is selected
-  bool get canCheckout => selectedZone != null;
+  bool  get  canCheckout => selectedZone != null;
 
   Future<void> loadStates() async {
     loadingLocation = true;
@@ -146,7 +147,7 @@ class CheckoutProvider extends ChangeNotifier {
         'items': items.map((i) => i.toOrderPayload()).toList(),
         'fulfillmentType':  fulfillmentType,
         if (tableId != null) 'tableId': tableId,
-        'deliveryAddress': {
+        'deliveryAddress': isDine ? null : {
           'state': selectedZone!.state,
           'lga': selectedZone!.lga,
           'area': selectedZone!.area,
@@ -155,9 +156,11 @@ class CheckoutProvider extends ChangeNotifier {
         'paymentMethod': paymentMethod,
       });
       placedOrder = OrderModel.fromJson(data);
+      print(data);
       return true;
     } catch (e) {
       error = e.toString();
+      print(e);
       return false;
     } finally {
       placingOrder = false;
@@ -180,38 +183,119 @@ class OrderListProvider extends ChangeNotifier {
   final ApiService api;
   OrderListProvider({required this.api});
 
-  List<OrderModel> orders = [];
-  bool loading = false;
+  static const int _pageSize = 20;
+
+  /// Tab order — index-aligned with the TabBar in OrdersTab.
+  static const List<String> buckets = [
+    'ongoing',
+    'completed',
+    'cancelled',
+    'appealed',
+  ];
+
+  final Map<String, _OrderBucket> _b = {
+    'ongoing': _OrderBucket(),
+    'completed': _OrderBucket(),
+    'cancelled': _OrderBucket(),
+    'appealed': _OrderBucket(),
+  };
+
+  String activeBucket = 'ongoing';
   String? error;
 
-  List<OrderModel> get ongoing =>
-      orders.where((o) => o.status.isOngoing).toList();
-  List<OrderModel> get completed =>
-      orders.where((o) => o.status == OrderStatus.completed).toList();
-  List<OrderModel> get cancelled =>
-      orders.where((o) => o.status == OrderStatus.cancelled).toList();
-  List<OrderModel> get appealed =>
-      orders.where((o) => o.status == OrderStatus.appealed).toList();
+  // ── Backward-compatible getters (used across the orders UI) ──────────────
+  List<OrderModel> get ongoing => _b['ongoing']!.items;
+  List<OrderModel> get completed => _b['completed']!.items;
+  List<OrderModel> get cancelled => _b['cancelled']!.items;
+  List<OrderModel> get appealed => _b['appealed']!.items;
 
-  Future<void> fetchOrders() async {
-    loading = true;
+  /// All currently-loaded orders across buckets (drives the header count). This
+  /// is "loaded", not an absolute total — it grows as the user paginates.
+  List<OrderModel> get orders => [for (final k in buckets) ..._b[k]!.items];
+
+  /// Mirrors the active bucket's first-page load.
+  bool get loading => _b[activeBucket]!.loading;
+
+  // ── Per-bucket accessors for the tab widgets ─────────────────────────────
+  List<OrderModel> itemsFor(String bucket) => _b[bucket]!.items;
+  bool loadingFor(String bucket) => _b[bucket]!.loading;
+  bool loadingMoreFor(String bucket) => _b[bucket]!.loadingMore;
+  bool hasMoreFor(String bucket) => _b[bucket]!.hasMore;
+  bool loadedOnceFor(String bucket) => _b[bucket]!.loadedOnce;
+
+  Map<String, String> _query(String bucket, {String? cursor}) => {
+    'bucket': bucket,
+    'limit': '$_pageSize',
+    if (cursor != null) 'cursor': cursor,
+  };
+
+  /// Load page 1 of [bucket]. Resets the cursor so pages never mix.
+  Future<void> refreshBucket(String bucket) async {
+    final b = _b[bucket]!;
+    b.loading = true;
+    b.cursor = null;
+    b.hasMore = true;
     error = null;
     notifyListeners();
     try {
-      final data = await api.get('/order/mine') as List;
-      orders = data.map((o) => OrderModel.fromJson(o)).toList();
+      final res = await api.get('/order/mine', query: _query(bucket));
+      final page = CursorPage.fromJson(res, (j) => OrderModel.fromJson(j));
+      b.items = page.items;
+      b.cursor = page.nextCursor;
+      b.hasMore = page.hasMore;
     } catch (e) {
       error = e.toString();
     } finally {
-      loading = false;
+      b.loading = false;
+      b.loadedOnce = true;
       notifyListeners();
     }
   }
 
+  /// Append the next page of [bucket].
+  Future<void> fetchMoreBucket(String bucket) async {
+    final b = _b[bucket]!;
+    if (b.loadingMore || b.loading || !b.hasMore || b.cursor == null) return;
+    b.loadingMore = true;
+    notifyListeners();
+    try {
+      final res =
+      await api.get('/order/mine', query: _query(bucket, cursor: b.cursor));
+      final page = CursorPage.fromJson(res, (j) => OrderModel.fromJson(j));
+      b.items = [...b.items, ...page.items];
+      b.cursor = page.nextCursor;
+      b.hasMore = page.hasMore;
+    } catch (e) {
+      error = e.toString();
+    } finally {
+      b.loadingMore = false;
+      notifyListeners();
+    }
+  }
+
+  /// Switch tabs: lazy-load the bucket's first page the first time it's shown.
+  void setActiveBucket(String bucket) {
+    activeBucket = bucket;
+    final b = _b[bucket]!;
+    if (!b.loadedOnce && !b.loading) {
+      refreshBucket(bucket);
+    } else {
+      notifyListeners();
+    }
+  }
+
+  /// Initial entry / retry — loads the active bucket (ongoing by default).
+  Future<void> fetchOrders() => refreshBucket(activeBucket);
+
+  // ── Order actions (signatures unchanged) ─────────────────────────────────
+  // A successful action usually moves the order to a different bucket, so we
+  // refresh the active bucket (the item leaves it). The destination bucket
+  // refreshes when visited or via the realtime ping.
+
   Future<bool> confirmDelivery(String orderId) async {
     try {
-      final data = await api.post('/order/$orderId/confirm', {});
-      _replace(OrderModel.fromJson(data));
+      await api.post('/order/$orderId/confirm', {});
+      await refreshBucket(activeBucket);
       return true;
     } catch (e) {
       error = e.toString().replaceAll('Exception: ', '');
@@ -222,8 +306,8 @@ class OrderListProvider extends ChangeNotifier {
 
   Future<bool> appealOrder(String orderId, String reason) async {
     try {
-      final data = await api.post('/order/$orderId/appeal', {'reason': reason});
-      _replace(OrderModel.fromJson(data));
+      await api.post('/order/$orderId/appeal', {'reason': reason});
+      await refreshBucket(activeBucket);
       return true;
     } catch (e) {
       error = e.toString().replaceAll('Exception: ', '');
@@ -235,7 +319,7 @@ class OrderListProvider extends ChangeNotifier {
   Future<bool> cancelAppeal(String orderId) async {
     try {
       await api.post('/order/$orderId/cancel-appeal', {});
-      await fetchOrders();
+      await refreshBucket(activeBucket);
       return true;
     } catch (e) {
       error = e.toString().replaceAll('Exception: ', '');
@@ -245,11 +329,10 @@ class OrderListProvider extends ChangeNotifier {
   }
 
   /// Called by the counterparty (not the appellant) to concede the appeal.
-  /// Backend resolves fund direction based on who originally appealed.
   Future<bool> concedeAppeal(String orderId) async {
     try {
       await api.post('/order/$orderId/concede-appeal', {});
-      await fetchOrders();
+      await refreshBucket(activeBucket);
       return true;
     } catch (e) {
       error = e.toString().replaceAll('Exception: ', '');
@@ -258,24 +341,18 @@ class OrderListProvider extends ChangeNotifier {
     }
   }
 
-  void _replace(OrderModel updated) {
-    final i = orders.indexWhere((o) => o.id == updated.id);
-    if (i != -1) {
-      orders[i] = updated;
-      notifyListeners();
-    }
-  }
-
+  // ── Realtime ping ────────────────────────────────────────────────────────
   StreamSubscription<DocumentSnapshot>? _pingSubscription;
 
-  /// Call once after login, passing the current user's backend userId.
+  /// Call once after login with the current user's backend userId. On a ping we
+  /// refresh only the active bucket — 1 request, same cost as pre-pagination.
   void watchRealtime(String userId) {
     _pingSubscription?.cancel();
     _pingSubscription = FirebaseFirestore.instance
         .doc('orderPings/$userId')
         .snapshots()
-        .skip(1) // skip the initial snapshot so we don't double-fetch on startup
-        .listen((_) => fetchOrders());
+        .skip(1) // skip initial snapshot so we don't double-fetch on startup
+        .listen((_) => refreshBucket(activeBucket));
   }
 
   @override
@@ -283,7 +360,16 @@ class OrderListProvider extends ChangeNotifier {
     _pingSubscription?.cancel();
     super.dispose();
   }
+}
 
+/// Per-tab pagination state.
+class _OrderBucket {
+  List<OrderModel> items = [];
+  String? cursor;
+  bool hasMore = true;
+  bool loading = false;
+  bool loadingMore = false;
+  bool loadedOnce = false;
 }
 
 // ─── OrderChatProvider ────────────────────────────────────────────────────────

@@ -1,77 +1,197 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import '../../../services/api_service.dart';
+import '../../../core/pagination/cursor_page.dart';
 import '../models/order_model.dart';
 import '../models/vendor_model.dart';
 
 // ─── VendorListProvider ───────────────────────────────────────────────────────
 
+// class VendorListProvider extends ChangeNotifier {
+//   final ApiService api;
+//   VendorListProvider({required this.api});
+//
+//   List<VendorModel> vendors = [];
+//   bool loading = false;
+//   String? error;
+//   String? selectedVendorType;
+//   String? selectedState;
+//   String? selectedLga;
+//   String sortBy = 'rating';
+//   String search = '';
+//
+//   Future<void> fetchVendors() async {
+//     loading = true;
+//     error = null;
+//     notifyListeners();
+//     try {
+//       final query = <String, String>{
+//         'sortBy': sortBy,
+//         if (selectedVendorType != null) 'vendorType': selectedVendorType!,
+//         if (selectedState != null) 'state': selectedState!,
+//         if (selectedLga != null) 'lga': selectedLga!,
+//         if (search.isNotEmpty) 'search': search,
+//       };
+//       final data = await api.get('/vendor/list', query: query) as List;
+//       vendors = data.map((v) => VendorModel.fromJson(v)).toList();
+//       print(vendors);
+//     } catch (e) {
+//       print(e);
+//       error = e.toString();
+//     } finally {
+//       loading = false;
+//       notifyListeners();
+//     }
+//   }
+//
+//   void setVendorType(String? type) {
+//     selectedVendorType = type;
+//     fetchVendors();
+//   }
+//
+//   void setState(String? state) {
+//     selectedState = state;
+//     selectedLga = null;
+//     fetchVendors();
+//   }
+//
+//   void setLga(String? lga) {
+//     selectedLga = lga;
+//     fetchVendors();
+//   }
+//
+//   void setSortBy(String sort) {
+//     sortBy = sort;
+//     fetchVendors();
+//   }
+//
+//   void setSearch(String q) {
+//     search = q;
+//     fetchVendors();
+//   }
+//
+//   void clearTypeFilter () {}
+// }
+
+// ─── VendorDetailProvider ─────────────────────────────────────────────────────
+
 class VendorListProvider extends ChangeNotifier {
   final ApiService api;
   VendorListProvider({required this.api});
 
+  // ── List state ──────────────────────────────────────────────────────────
   List<VendorModel> vendors = [];
-  bool loading = false;
+  bool loading = false;       // first page / refresh (drives the skeleton)
+  bool loadingMore = false;   // bottom "load more" spinner
+  bool hasMore = true;        // is there another page after what we have?
+  bool hasLoadedOnce = false; // distinguishes "not fetched yet" from "empty"
   String? error;
+
+  String? _nextCursor;        // opaque token for the next page
+
+  // ── Filters ─────────────────────────────────────────────────────────────
   String? selectedVendorType;
   String? selectedState;
   String? selectedLga;
   String sortBy = 'rating';
   String search = '';
 
-  Future<void> fetchVendors() async {
+  static const int _pageSize = 20;
+
+  Timer? _searchDebounce;
+
+  /// The filter/sort query shared by the first page and every subsequent page.
+  Map<String, String> _baseQuery() => {
+    'sortBy': sortBy,
+    'limit': '$_pageSize',
+    if (selectedVendorType != null) 'vendorType': selectedVendorType!,
+    if (selectedState != null) 'state': selectedState!,
+    if (selectedLga != null) 'lga': selectedLga!,
+    if (search.isNotEmpty) 'search': search,
+  };
+
+  /// Load page 1. Called on init and whenever a filter/sort/search changes.
+  /// Resets the cursor so we never mix pages from different filters.
+  Future<void> refresh() async {
     loading = true;
     error = null;
+    _nextCursor = null;
+    hasMore = true;
     notifyListeners();
     try {
-      final query = <String, String>{
-        'sortBy': sortBy,
-        if (selectedVendorType != null) 'vendorType': selectedVendorType!,
-        if (selectedState != null) 'state': selectedState!,
-        if (selectedLga != null) 'lga': selectedLga!,
-        if (search.isNotEmpty) 'search': search,
-      };
-      final data = await api.get('/vendor/list', query: query) as List;
-      vendors = data.map((v) => VendorModel.fromJson(v)).toList();
-      print(vendors);
+      final res = await api.get('/vendor/list', query: _baseQuery());
+      final page = CursorPage.fromJson(res, (j) => VendorModel.fromJson(j));
+      vendors = page.items;
+      _nextCursor = page.nextCursor;
+      hasMore = page.hasMore;
     } catch (e) {
-      print(e);
       error = e.toString();
     } finally {
       loading = false;
+      hasLoadedOnce = true;
       notifyListeners();
     }
   }
 
+  /// Load the next page and append. No-op while busy, out of pages, or cursorless.
+  Future<void> fetchMore() async {
+    if (loadingMore || loading || !hasMore || _nextCursor == null) return;
+    loadingMore = true;
+    notifyListeners();
+    try {
+      final res = await api.get(
+        '/vendor/list',
+        query: {..._baseQuery(), 'cursor': _nextCursor!},
+      );
+      final page = CursorPage.fromJson(res, (j) => VendorModel.fromJson(j));
+      vendors = [...vendors, ...page.items];
+      _nextCursor = page.nextCursor;
+      hasMore = page.hasMore;
+    } catch (e) {
+      error = e.toString();
+    } finally {
+      loadingMore = false;
+      notifyListeners();
+    }
+  }
+
+  // ── Filter setters (each resets to page 1) ───────────────────────────────
   void setVendorType(String? type) {
     selectedVendorType = type;
-    fetchVendors();
+    refresh();
   }
 
   void setState(String? state) {
     selectedState = state;
     selectedLga = null;
-    fetchVendors();
+    refresh();
   }
 
   void setLga(String? lga) {
     selectedLga = lga;
-    fetchVendors();
+    refresh();
   }
 
   void setSortBy(String sort) {
     sortBy = sort;
-    fetchVendors();
+    refresh();
   }
 
+  /// Debounced so typing doesn't fire a request per keystroke (cost + jank).
   void setSearch(String q) {
     search = q;
-    fetchVendors();
+    _searchDebounce?.cancel();
+    _searchDebounce = Timer(const Duration(milliseconds: 350), refresh);
   }
 
-  void clearTypeFilter () {}
-}
+  void clearTypeFilter() {}
 
-// ─── VendorDetailProvider ─────────────────────────────────────────────────────
+  @override
+  void dispose() {
+    _searchDebounce?.cancel();
+    super.dispose();
+  }
+}
 
 class VendorDetailProvider extends ChangeNotifier {
   final ApiService api;
@@ -93,13 +213,21 @@ class VendorDetailProvider extends ChangeNotifier {
     );
   }
 
-  Future<void> loadVendor(String vendorId) async {
+  Future<void> loadVendor(String vendorId, {VendorModel? seed}) async {
     loading = true;
     error = null;
 
     branchMenus.clear();
 
+    // Optimistic seed from the list: render the header immediately and clear any
+    // stale vendor when there's no seed (scan/deep-link → skeleton shows).
+    vendor = seed;
+    if (seed != null && seed.branches.isNotEmpty) {
+      selectedBranchId = seed.branches.first.id;
+    }
+
     notifyListeners();
+
     try {
       final data = await api.get('/vendor/$vendorId');
       vendor = VendorModel.fromJson(data);

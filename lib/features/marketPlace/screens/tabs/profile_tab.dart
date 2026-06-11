@@ -5,6 +5,7 @@ import 'package:everywhere/screens/pages/notification_screen.dart';
 import 'package:everywhere/screens/privacy_policy.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../../../constraints/constants.dart';
 import '../../../../constraints/vendor_theme.dart';
 import '../../../support/help_center.dart';
 import '../../pages/add_branch_page.dart';
@@ -34,8 +35,12 @@ class ProfileTab extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           children: [
             const SizedBox(height: 8),
-            const Text('Profile',
-                style: TextStyle(color: VendorTheme.textPrimary, fontSize: 22, fontWeight: FontWeight.bold)),
+            Text('Profile',
+              style: kTopAppbars.copyWith(
+                  fontFamily:  'DejaVu Sans', fontSize: 23),
+                // style: TextStyle(color: VendorTheme.textPrimary,
+                //     fontSize: 22, fontWeight: FontWeight.bold),
+            ),
             const SizedBox(height: 20),
             // Avatar + name
             Center(

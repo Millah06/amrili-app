@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../../core/pagination/cursor_page.dart';
 import '../../../services/api_service.dart';
 import '../../../services/dio_client.dart';
 import '../../social/services/social_api_service.dart';
@@ -19,6 +20,11 @@ class VendorCenterProvider extends ChangeNotifier {
   List<MenuItemModel> menuItems = [];
   bool loading = false;
   String? error;
+
+  // Menu cursor pagination state.
+  String? _menuCursor;
+  bool menuHasMore = true;
+  bool menuLoadingMore = false;
 
   bool get isApprovedVendor => myVendor?.status == 'approved';
 
@@ -63,12 +69,43 @@ class VendorCenterProvider extends ChangeNotifier {
     } catch (_) {} // silently fail for non-main branch managers
   }
 
+  /// Loads page 1 of the manager's menu (also used as the refresh path by
+  /// init() / uploadImages() / item mutations).
   Future<void> loadMenuForBranch() async {
     try {
-      final data = await api.get('/menu/manager/branches') as List;
-      menuItems = data.map((m) => MenuItemModel.fromJson(m)).toList();
+      _menuCursor = null;
+      menuHasMore = true;
+      final res =
+      await api.get('/menu/manager/branches', query: {'limit': '50'});
+      final page = CursorPage.fromJson(res, (m) => MenuItemModel.fromJson(m));
+      menuItems = page.items;
+      _menuCursor = page.nextCursor;
+      menuHasMore = page.hasMore;
       notifyListeners();
-    } catch (e) { error = e.toString(); notifyListeners(); }
+    } catch (e) {
+      error = e.toString();
+      notifyListeners();
+    }
+  }
+
+  /// Appends the next page of menu items.
+  Future<void> fetchMoreMenu() async {
+    if (menuLoadingMore || !menuHasMore || _menuCursor == null) return;
+    menuLoadingMore = true;
+    notifyListeners();
+    try {
+      final res = await api.get('/menu/manager/branches',
+          query: {'limit': '50', 'cursor': _menuCursor!});
+      final page = CursorPage.fromJson(res, (m) => MenuItemModel.fromJson(m));
+      menuItems = [...menuItems, ...page.items];
+      _menuCursor = page.nextCursor;
+      menuHasMore = page.hasMore;
+    } catch (e) {
+      error = e.toString();
+    } finally {
+      menuLoadingMore = false;
+      notifyListeners();
+    }
   }
 
   Future<bool> addMenuItem(String branchId, Map<String, dynamic> item) async {

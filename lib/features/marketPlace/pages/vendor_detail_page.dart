@@ -18,7 +18,17 @@ import 'checkout.dart';
 class VendorDetailPage extends StatefulWidget {
   final String vendorId;
   final String? tableId;
-  const VendorDetailPage({super.key, required this.vendorId, this.tableId});
+
+  /// Optional pre-fetched vendor (from the list) so the header renders instantly
+  /// instead of showing a spinner. Null when opened via QR/deep link.
+  final VendorModel? initialVendor;
+
+  const VendorDetailPage({
+    super.key,
+    required this.vendorId,
+    this.tableId,
+    this.initialVendor,
+  });
 
   @override
   State<VendorDetailPage> createState() => _VendorDetailPageState();
@@ -29,7 +39,9 @@ class _VendorDetailPageState extends State<VendorDetailPage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<VendorDetailProvider>().loadVendor(widget.vendorId);
+      context
+          .read<VendorDetailProvider>()
+          .loadVendor(widget.vendorId, seed: widget.initialVendor);
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -47,21 +59,22 @@ class _VendorDetailPageState extends State<VendorDetailPage> {
   Widget build(BuildContext context) {
     return Consumer3<VendorDetailProvider, CartProvider, TableSessionProvider>(
       builder: (context, detail, cart, session, _) {
-        if (detail.loading) {
-          return const Scaffold(
-            backgroundColor: VendorTheme.background,
-            body: Center(child: CircularProgressIndicator(color: VendorTheme.primary)),
-          );
-        }
-        if (detail.error != null || detail.vendor == null) {
-          return Scaffold(
-            backgroundColor: VendorTheme.background,
-            appBar: AppBar(backgroundColor: VendorTheme.background, elevation: 0),
-            body: VErrorState(
-              message: detail.error ?? 'Vendor not found',
-              onRetry: () => detail.loadVendor(widget.vendorId),
-            ),
-          );
+        // Only block the whole screen when we have NOTHING to show (no seed, e.g.
+        // QR/deep link). With a seed we fall straight through and render header
+        // + branches instantly; the menu fills in once the full load returns.
+        if (detail.vendor == null) {
+          if (detail.error != null) {
+            return Scaffold(
+              backgroundColor: VendorTheme.background,
+              appBar:
+              AppBar(backgroundColor: VendorTheme.background, elevation: 0),
+              body: VErrorState(
+                message: detail.error ?? 'Vendor not found',
+                onRetry: () => detail.loadVendor(widget.vendorId),
+              ),
+            );
+          }
+          return const _VendorDetailSkeleton();
         }
         final vendor = detail.vendor!;
         return Scaffold(
@@ -74,7 +87,7 @@ class _VendorDetailPageState extends State<VendorDetailPage> {
               if (session.isDineIn || session.storeId == widget.vendorId)
                 SliverToBoxAdapter(
                   child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+                    padding: const EdgeInsets.fromLTRB(0, 16, 0, 4),
                     child: Container(
                       width: double.infinity,
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -116,22 +129,30 @@ class _VendorDetailPageState extends State<VendorDetailPage> {
                     child: LinearProgressIndicator(color: VendorTheme.primary, backgroundColor: VendorTheme.surface,),
                   ),
                 ),
-              detail.menuItems.isEmpty
-                  ? const SliverFillRemaining(
-                  child: VEmptyState(icon: Icons.restaurant_menu, title: 'No menu items yet'))
-                  : SliverPadding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                        (_, i) => _MenuItemTile(
-                      item: detail.menuItems[i],
-                      vendor: vendor,
-                      branchId: detail.selectedBranchId!,
+              // Loading (seed→full window) + nothing yet → menu skeleton. Only
+              // show the real "empty" state once loading settles.
+              if ((detail.loading || detail.isBranchLoading) &&
+                  detail.menuItems.isEmpty)
+                const _MenuSkeletonSliver()
+              else if (detail.menuItems.isEmpty)
+                const SliverFillRemaining(
+                    child: VEmptyState(
+                        icon: Icons.restaurant_menu,
+                        title: 'No menu items yet'))
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
+                  sliver: SliverList(
+                    delegate: SliverChildBuilderDelegate(
+                          (_, i) => _MenuItemTile(
+                        item: detail.menuItems[i],
+                        vendor: vendor,
+                        branchId: detail.selectedBranchId!,
+                      ),
+                      childCount: detail.menuItems.length,
                     ),
-                    childCount: detail.menuItems.length,
                   ),
                 ),
-              ),
             ],
           ),
           bottomNavigationBar: cart.isEmpty || cart.vendorId != widget.vendorId
@@ -1123,6 +1144,209 @@ class _Placeholder extends StatelessWidget {
       height: 78,
       color: VendorTheme.surfaceVariant,
       child: const Icon(Icons.fastfood_outlined, color: VendorTheme.textMuted),
+    );
+  }
+}
+
+// ─── Full-page skeleton (shown only when there's no seed: QR / deep link) ─────
+class _VendorDetailSkeleton extends StatefulWidget {
+  const _VendorDetailSkeleton();
+
+  @override
+  State<_VendorDetailSkeleton> createState() => _VendorDetailSkeletonState();
+}
+
+class _VendorDetailSkeletonState extends State<_VendorDetailSkeleton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 900),
+  )..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  Widget _box(double w, double h, {double r = 8}) => Container(
+    width: w,
+    height: h,
+    decoration: BoxDecoration(
+      color: VendorTheme.surfaceVariant,
+      borderRadius: BorderRadius.circular(r),
+    ),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: VendorTheme.background,
+      body: FadeTransition(
+        opacity: Tween(begin: 0.5, end: 0.9).animate(_c),
+        child: SingleChildScrollView(
+          physics: const NeverScrollableScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Cover banner
+              _box(double.infinity, 170, r: 0),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Logo overlapping the cover
+                    Transform.translate(
+                      offset: const Offset(0, -28),
+                      child: Container(
+                        width: 72,
+                        height: 72,
+                        decoration: BoxDecoration(
+                          color: VendorTheme.surfaceVariant,
+                          borderRadius: BorderRadius.circular(16),
+                          border:
+                          Border.all(color: VendorTheme.background, width: 3),
+                        ),
+                      ),
+                    ),
+                    _box(180, 20),
+                    const SizedBox(height: 10),
+                    _box(240, 12),
+                    const SizedBox(height: 6),
+                    _box(160, 12),
+                    const SizedBox(height: 16),
+                    // Badge chips
+                    Row(
+                      children: [
+                        _box(70, 28, r: 8),
+                        const SizedBox(width: 8),
+                        _box(110, 28, r: 8),
+                        const SizedBox(width: 8),
+                        _box(80, 28, r: 8),
+                      ],
+                    ),
+                    const SizedBox(height: 22),
+                    // Branch selector label + chips
+                    _box(110, 14),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        _box(140, 64, r: 12),
+                        const SizedBox(width: 10),
+                        _box(140, 64, r: 12),
+                      ],
+                    ),
+                    const SizedBox(height: 22),
+                    // Menu rows
+                    _box(90, 14),
+                    const SizedBox(height: 12),
+                    ...List.generate(
+                      4,
+                          (_) => Padding(
+                        padding: const EdgeInsets.only(bottom: 14),
+                        child: Row(
+                          children: [
+                            _box(64, 64, r: 12),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _box(140, 14),
+                                  const SizedBox(height: 8),
+                                  _box(90, 11),
+                                  const SizedBox(height: 8),
+                                  _box(60, 12),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─── Menu loading skeleton (sliver) ──────────────────────────────────────────
+class _MenuSkeletonSliver extends StatefulWidget {
+  const _MenuSkeletonSliver();
+
+  @override
+  State<_MenuSkeletonSliver> createState() => _MenuSkeletonSliverState();
+}
+
+class _MenuSkeletonSliverState extends State<_MenuSkeletonSliver>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 900),
+  )..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  Widget _box(double w, double h, {double r = 6}) => Container(
+    width: w,
+    height: h,
+    decoration: BoxDecoration(
+      color: VendorTheme.surfaceVariant,
+      borderRadius: BorderRadius.circular(r),
+    ),
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    return SliverToBoxAdapter(
+      child: FadeTransition(
+        opacity: Tween(begin: 0.5, end: 0.9).animate(_c),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
+          child: Column(
+            children: List.generate(
+              5,
+                  (_) => Container(
+                margin: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: VendorTheme.surface,
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: VendorTheme.divider),
+                ),
+                child: Row(
+                  children: [
+                    _box(64, 64, r: 10),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _box(150, 14),
+                          const SizedBox(height: 8),
+                          _box(100, 11),
+                          const SizedBox(height: 10),
+                          _box(70, 13),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

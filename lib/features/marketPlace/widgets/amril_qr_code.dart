@@ -57,6 +57,9 @@ class AmrilQRCode extends StatelessWidget {
           ? PrettyQrDecorationImage(
         image: CachedNetworkImageProvider(logoUrl!),
         position: PrettyQrDecorationImagePosition.embedded,
+        scale: 0.22,
+        fit: BoxFit.cover,
+        padding: const EdgeInsets.all(6),
       )
           : null,
     );
@@ -77,7 +80,9 @@ class AmrilQRCode extends StatelessWidget {
           SizedBox(
             width: size,
             height: size,
-            child: PrettyQrView.data(data: data, decoration: decoration),
+            child: PrettyQrView.data(data: data,
+              decoration: decoration,  // High error correction tolerates the centre logo occlusion.
+              errorCorrectLevel: QrErrorCorrectLevel.H,),
           ),
           const SizedBox(height: 18),
           // Store / product name.

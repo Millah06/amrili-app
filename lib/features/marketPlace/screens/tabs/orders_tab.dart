@@ -30,6 +30,13 @@ class _OrdersTabState extends State<OrdersTab>
   void initState() {
     super.initState();
     _tabs = TabController(length: 4, vsync: this);
+    // Tell the provider which bucket is visible so lazy-load + ping target it.
+    _tabs.addListener(() {
+      if (_tabs.indexIsChanging) return;
+      context
+          .read<OrderListProvider>()
+          .setActiveBucket(OrderListProvider.buckets[_tabs.index]);
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final userId = context.read<UserProvider>().user?.userId ?? '';
       context.read<OrderListProvider>()
@@ -60,15 +67,18 @@ class _OrdersTabState extends State<OrdersTab>
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Text('My Orders',
-                          style: TextStyle(
-                              color: VendorTheme.textPrimary,
-                              fontSize: 22,
-                              fontWeight: FontWeight.bold)),
+                      Text('My Orders',
+                          style: kTopAppbars.copyWith(
+                              fontFamily:  'DejaVu Sans', fontSize: 23),
+                          // style: TextStyle(
+                          //     color: VendorTheme.textPrimary,
+                          //     fontSize: 22,
+                          //     fontWeight: FontWeight.bold),
+                      ),
                       const SizedBox(height: 2),
                       Consumer<OrderListProvider>(
                         builder: (_, p, __) => Text(
-                          '${p.orders.length} total orders',
+                          '${p.orders.length} orders',
                           style: const TextStyle(
                               color: VendorTheme.textMuted, fontSize: 12),
                         ),
@@ -122,41 +132,30 @@ class _OrdersTabState extends State<OrdersTab>
               ],
             ),
 
-            // Content
+            // Content — each tab paginates its own bucket and owns its
+            // loading / empty / error / load-more states.
             Expanded(
-              child: Consumer<OrderListProvider>(
-                builder: (context, p, _) {
-                  if (p.loading && p.orders.isEmpty) {
-                    return const Center(
-                        child: CircularProgressIndicator(
-                            color: VendorTheme.primary));
-                  }
-                  if (p.error != null && p.orders.isEmpty) {
-                    return VErrorState(
-                        message: p.error!, onRetry: p.fetchOrders);
-                  }
-                  return TabBarView(
-                    controller: _tabs,
-                    children: [
-                      _OrderList(
-                          orders: p.ongoing,
-                          emptyTitle: 'No ongoing orders',
-                          emptySubtitle: 'Your active orders will appear here'),
-                      _OrderList(
-                          orders: p.completed,
-                          emptyTitle: 'No completed orders',
-                          emptySubtitle: 'Completed orders will appear here'),
-                      _OrderList(
-                          orders: p.cancelled,
-                          emptyTitle: 'No cancelled orders'),
-                      _OrderList(
-                          orders: p.appealed,
-                          emptyTitle: 'No reported orders'),
-                    ],
-                  );
-                },
+              child: TabBarView(
+                controller: _tabs,
+                children: const [
+                  _OrderList(
+                      bucket: 'ongoing',
+                      emptyTitle: 'No ongoing orders',
+                      emptySubtitle: 'Your active orders will appear here'),
+                  _OrderList(
+                      bucket: 'completed',
+                      emptyTitle: 'No completed orders',
+                      emptySubtitle: 'Completed orders will appear here'),
+                  _OrderList(
+                      bucket: 'cancelled',
+                      emptyTitle: 'No cancelled orders'),
+                  _OrderList(
+                      bucket: 'appealed',
+                      emptyTitle: 'No reported orders'),
+                ],
               ),
             ),
+
           ],
         ),
       ),
@@ -167,33 +166,85 @@ class _OrdersTabState extends State<OrdersTab>
 // ─── Order List ───────────────────────────────────────────────────────────────
 
 class _OrderList extends StatelessWidget {
-  final List<OrderModel> orders;
+  final String bucket; // 'ongoing' | 'completed' | 'cancelled' | 'appealed'
   final String emptyTitle;
   final String? emptySubtitle;
 
-  const _OrderList(
-      {required this.orders,
-        required this.emptyTitle,
-        this.emptySubtitle});
+  const _OrderList({
+    required this.bucket,
+    required this.emptyTitle,
+    this.emptySubtitle,
+  });
 
   @override
   Widget build(BuildContext context) {
-    if (orders.isEmpty) {
-      return VEmptyState(
-        icon: Icons.receipt_long_outlined,
-        title: emptyTitle,
-        subtitle: emptySubtitle,
-      );
-    }
-    return RefreshIndicator(
-      color: VendorTheme.primary,
-      backgroundColor: VendorTheme.surface,
-      onRefresh: () => context.read<OrderListProvider>().fetchOrders(),
-      child: ListView.builder(
-        padding: const EdgeInsets.fromLTRB(16, 14, 16, 90),
-        itemCount: orders.length,
-        itemBuilder: (_, i) => _OrderCard(order: orders[i]),
-      ),
+    return Consumer<OrderListProvider>(
+      builder: (context, p, _) {
+        final items = p.itemsFor(bucket);
+
+        // First load for this tab → skeletons, not a bare spinner.
+        if ((!p.loadedOnceFor(bucket) || p.loadingFor(bucket)) &&
+            items.isEmpty) {
+          return const _OrderListSkeleton();
+        }
+        if (p.error != null && items.isEmpty) {
+          return VErrorState(
+              message: p.error!, onRetry: () => p.refreshBucket(bucket));
+        }
+        if (items.isEmpty) {
+          return VEmptyState(
+            icon: Icons.receipt_long_outlined,
+            title: emptyTitle,
+            subtitle: emptySubtitle,
+          );
+        }
+        return RefreshIndicator(
+          color: VendorTheme.primary,
+          backgroundColor: VendorTheme.surface,
+          onRefresh: () => p.refreshBucket(bucket),
+          child: NotificationListener<ScrollNotification>(
+            onNotification: (n) {
+              if (n.metrics.pixels >= n.metrics.maxScrollExtent - 400) {
+                p.fetchMoreBucket(bucket);
+              }
+              return false;
+            },
+            child: ListView.builder(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 90),
+              itemCount: items.length + 1, // +1 footer slot
+              itemBuilder: (_, i) {
+                if (i == items.length) {
+                  if (p.loadingMoreFor(bucket)) {
+                    return const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 20),
+                      child: Center(
+                        child: SizedBox(
+                          height: 22,
+                          width: 22,
+                          child: CircularProgressIndicator(
+                              strokeWidth: 2, color: VendorTheme.primary),
+                        ),
+                      ),
+                    );
+                  }
+                  if (!p.hasMoreFor(bucket)) {
+                    return const Padding(
+                      padding: EdgeInsets.only(top: 16, bottom: 28),
+                      child: Center(
+                        child: Text('You’ve reached the end',
+                            style: TextStyle(
+                                color: VendorTheme.textMuted, fontSize: 12)),
+                      ),
+                    );
+                  }
+                  return const SizedBox(height: 12);
+                }
+                return _OrderCard(order: items[i]);
+              },
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -719,4 +770,83 @@ class _ActionButton extends StatelessWidget {
       ),
     );
   }
+}
+
+// ─── Loading skeleton ─────────────────────────────────────────────────────────
+class _OrderListSkeleton extends StatefulWidget {
+  const _OrderListSkeleton();
+
+  @override
+  State<_OrderListSkeleton> createState() => _OrderListSkeletonState();
+}
+
+class _OrderListSkeletonState extends State<_OrderListSkeleton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 900),
+  )..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      physics: const NeverScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 90),
+      itemCount: 5,
+      itemBuilder: (_, __) => FadeTransition(
+        opacity: Tween(begin: 0.45, end: 0.85).animate(_c),
+        child: Container(
+          height: 96,
+          margin: const EdgeInsets.only(bottom: 12),
+          decoration: BoxDecoration(
+            color: VendorTheme.surface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: VendorTheme.divider),
+          ),
+          padding: const EdgeInsets.all(14),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: VendorTheme.surfaceVariant,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _bar(120, 13),
+                    const SizedBox(height: 8),
+                    _bar(80, 11),
+                    const SizedBox(height: 14),
+                    _bar(double.infinity, 10),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _bar(double w, double h) => Container(
+    width: w,
+    height: h,
+    decoration: BoxDecoration(
+      color: VendorTheme.surfaceVariant,
+      borderRadius: BorderRadius.circular(6),
+    ),
+  );
 }

@@ -134,7 +134,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
                   onTap: (dineIn || checkout.canCheckout) && !checkout.placingOrder
                       ? () => GuestHelper.guardAction(
                       context, action: () => _placeOrder(context, checkout, cart),
-                      reason: 'create post') : null,
+                      reason: 'place order') : null,
                   // onTap: checkout.canCheckout && !checkout.placingOrder
                   //     ? () => _placeOrder(context, checkout, cart)
                   //     : null,
@@ -196,7 +196,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
     } else {
       // Abandoned/failed — order is saved unpaid; pay later from My Orders.
       Navigator.of(context).pop(); // checkout
-      Navigator.of(context).pop(); // vendor detail
+      dineIn ? null : Navigator.of(context).pop(); // vendor detail
       vendorPush(context, OrdersTab());
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
         content: Text('Order saved. You can complete payment from My Orders.'),

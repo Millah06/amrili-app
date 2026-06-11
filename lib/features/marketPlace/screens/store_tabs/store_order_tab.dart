@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import '../../../../constraints/vendor_theme.dart';
+import '../../../../core/pagination/cursor_page.dart';
 import '../../models/order_model.dart';
 import '../../providers/vendor_center_provider.dart';
 import '../../widgets/appeal_widget.dart';
@@ -23,11 +24,23 @@ class StoreOrdersTabState extends State<StoreOrdersTab> {
   String? _error;
   StreamSubscription<DocumentSnapshot>? _pingSub;
 
+  // Cursor pagination state for /order/vendor/list.
+  String? _nextCursor;
+  bool _hasMore = true;
+  bool _loadingMore = false;
+  final ScrollController _scroll = ScrollController();
+
   @override
   void initState() {
     super.initState();
     _load();
     _watchRealtime();
+    _scroll.addListener(() {
+      if (_scroll.position.pixels >=
+          _scroll.position.maxScrollExtent - 400) {
+        _loadMore();
+      }
+    });
   }
 
   void _watchRealtime() {
@@ -47,22 +60,57 @@ class StoreOrdersTabState extends State<StoreOrdersTab> {
   @override
   void dispose() {
     _pingSub?.cancel();
+    _scroll.dispose();
     super.dispose();
   }
 
   Future<void> _load() async {
     if (!mounted) return;
-    setState(() { _loading = true; _error = null; });
+    setState(() {
+      _loading = true;
+      _error = null;
+      _nextCursor = null;
+      _hasMore = true;
+    });
     try {
-      final data = await widget.vendorCenterProvider.api.get('/order/vendor/list') as List;
+      final res = await widget.vendorCenterProvider.api
+          .get('/order/vendor/list', query: {'limit': '20'});
+      final page = CursorPage.fromJson(res, (j) => OrderModel.fromJson(j));
       if (!mounted) return;
       setState(() {
-        _orders = data.map((o) => OrderModel.fromJson(o)).toList();
+        _orders = page.items;
+        _nextCursor = page.nextCursor;
+        _hasMore = page.hasMore;
         _loading = false;
       });
     } catch (e) {
       if (!mounted) return;
-      setState(() { _loading = false; _error = e.toString().replaceAll('Exception: ', ''); });
+      setState(() {
+        _loading = false;
+        _error = e.toString().replaceAll('Exception: ', '');
+      });
+    }
+  }
+
+  Future<void> _loadMore() async {
+    if (_loadingMore || _loading || !_hasMore || _nextCursor == null) return;
+    setState(() => _loadingMore = true);
+    try {
+      final res = await widget.vendorCenterProvider.api.get(
+        '/order/vendor/list',
+        query: {'limit': '20', 'cursor': _nextCursor!},
+      );
+      final page = CursorPage.fromJson(res, (j) => OrderModel.fromJson(j));
+      if (!mounted) return;
+      setState(() {
+        _orders = [..._orders, ...page.items];
+        _nextCursor = page.nextCursor;
+        _hasMore = page.hasMore;
+        _loadingMore = false;
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() => _loadingMore = false);
     }
   }
 
@@ -96,6 +144,7 @@ class StoreOrdersTabState extends State<StoreOrdersTab> {
       backgroundColor: VendorTheme.surface,
       onRefresh: _load,
       child: ListView(
+        controller: _scroll,
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 90),
         children: [
           if (_active.isNotEmpty) ...[
@@ -126,6 +175,28 @@ class StoreOrdersTabState extends State<StoreOrdersTab> {
               onStatusChanged: _load,
             )),
           ],
+          // Load-more footer
+          if (_loadingMore)
+            const Padding(
+              padding: EdgeInsets.symmetric(vertical: 18),
+              child: Center(
+                child: SizedBox(
+                  height: 22,
+                  width: 22,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: VendorTheme.primary),
+                ),
+              ),
+            )
+          else if (!_hasMore && _orders.isNotEmpty)
+            const Padding(
+              padding: EdgeInsets.only(top: 12, bottom: 20),
+              child: Center(
+                child: Text('You’ve reached the end',
+                    style:
+                    TextStyle(color: VendorTheme.textMuted, fontSize: 12)),
+              ),
+            ),
         ],
       ),
     );
