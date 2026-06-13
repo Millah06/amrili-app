@@ -108,7 +108,9 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                   isOwnProfile: false,
                   isLoading: provider.profileLoading && displayData == null,
                   minHeight: 100,
-                  maxHeight: 290,
+                  // PHASE 9 — header shrinks to fit sparse profiles (no bio /
+                  // no meta) instead of reserving empty space.
+                  maxHeight: ProfileHeaderDelegate.computeMaxHeight(displayData),
                   onBack: () => Navigator.pop(context),
                   onFollow: () => GuestHelper.guardAction(context,
                       action: () => provider.toggleFollow(),

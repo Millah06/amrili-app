@@ -54,6 +54,7 @@ class ProfileDisplayData {
     avatar: p.avatar,
     coverImage: p.coverImage,
     location: p.location,
+    country: p.country,   // PHASE 9 fix — was dropped, killing the flag chip
     website: p.website,
     buzEmail: p.buzEmail,
     isVerified: p.isKycVerified,

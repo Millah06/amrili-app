@@ -104,7 +104,9 @@ class _MyProfileScreenState extends State<MyProfileScreen>
                   isOwnProfile: true,
                   isLoading: provider.profileLoading && !provider.hasAnyProfileData,
                   minHeight: 100,
-                  maxHeight: 290,
+                  // PHASE 9 — header shrinks to fit sparse profiles (no bio /
+                  // no meta) instead of reserving empty space.
+                  maxHeight: ProfileHeaderDelegate.computeMaxHeight(displayData),
                   onSettings: () => Navigator.push(context,
                       MaterialPageRoute(builder: (_) => const SettingsScreen())),
                   onEditProfile: () {

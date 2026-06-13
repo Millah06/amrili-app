@@ -508,7 +508,7 @@ class _PostCardState extends State<PostCard> {
                 if (isOwnPost && !_currentPost.isBoostActive)
                   _ActionButton(
                       icon: Icons.rocket_launch,
-                      label: 'Boost Post',
+                      label: 'Boost',
                       onTap: () {
                     showDialog(
                       context: context,

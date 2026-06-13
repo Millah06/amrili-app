@@ -41,7 +41,7 @@ class _EditVendorProfilePageState extends State<EditProfilePage> {
       final user = context.read<MyProfileProvider>().cached;
       if (user != null) {
         _bio.text  = user.bio!;
-        _website.text = user.website!;
+        _website.text = user.website ?? '';
         _userName.text = user.userName;
         _buzEmail.text = user.buzEmail!;
         _location.text = user.location!;

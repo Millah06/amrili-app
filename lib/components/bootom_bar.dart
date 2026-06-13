@@ -1,20 +1,50 @@
+// lib/components/bootom_bar.dart
+//
+// PHASE 9 — Navigation restructure.
+// ─────────────────────────────────────────────────────────────────────────────
+// BEFORE: 5 tabs [Explore, Messages, Services(center), Wallet, Profile] on a
+//         CurvedNavigationBar.
+// AFTER:  4 tabs [Explore, Messages, Wallet, Profile] on a flat BottomAppBar,
+//         with a floating SCANNER button docked in the center notch (the
+//         X-style "pop"). The Services screen is no longer a tab — it lives on
+//         as a pushed page reached from the Wallet hub's "Bills & Top-ups"
+//         card (NG-tied users only).
+//
+// Design intent:
+//  - Flat dark bar (app background 0xFF0F172A) with a 1px hairline top border
+//    instead of a curved cutout — quieter, more professional, and it stops
+//    fighting the content for attention.
+//  - The scanner FAB is the ONE loud element: brand gradient (0xFF21D3ED →
+//    0xFF177E85), soft teal glow. It is the app's universal verb (table QR,
+//    store QR, product QR) and deliberately reachable by GUESTS — scans and
+//    deep links bypass every gate (binding Phase 9 rule).
+//  - Scroll-to-hide retained: FeedScreen reports scroll direction; the bar
+//    collapses via AnimatedContainer (same Wrap trick as before, which avoids
+//    overflow errors mid-animation) and the FAB scales away in sync.
+//
+// Guest gating: Wallet (2) and Profile (3) require auth → gate is now
+// `index >= 2` (was `index > 2` when Services held the center slot).
+// The old _bottomNavKey/UniqueKey reset hack existed only to force the curved
+// bar to snap back after a blocked swipe; the flat bar renders purely from
+// selectedIndex, so the hack is gone.
+// ─────────────────────────────────────────────────────────────────────────────
 
 import 'dart:async';
-import 'package:curved_navigation_bar/curved_navigation_bar.dart';
+
 import 'package:flutter/material.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+
+import '../core/analytics/analytics.dart';
 import '../core/auth/guest_helper.dart';
 import '../features/bottom_navigation/chat_screen.dart';
-import '../features/bottom_navigation/profile_screen.dart';
-import '../features/bottom_navigation/services_screen.dart';
 import '../features/bottom_navigation/feed_screen.dart';
+import '../features/bottom_navigation/profile_screen.dart';
 import '../features/bottom_navigation/wallet_screen.dart';
 import '../shared/widgets/auth_gate_bottom_sheet.dart';
 
-
 class BottomBar extends StatefulWidget {
-
   final Function(bool isScrollingDown)? onScrollDirectionChanged;
 
   const BottomBar({super.key, this.onScrollDirectionChanged});
@@ -24,260 +54,413 @@ class BottomBar extends StatefulWidget {
 }
 
 class _BottomBarState extends State<BottomBar> {
-
   late List<Widget> screens;
-
-  Key _bottomNavKey = UniqueKey();
 
   final PageController _pageController = PageController();
 
   bool _isBottomBarVisible = true;
 
-  void _hideBottomBar() {
-    if (_isBottomBarVisible) {
-      setState(() => _isBottomBarVisible = false);
-    }
-  }
-
-  void _showBottomBar() {
-    if (!_isBottomBarVisible) {
-      setState(() => _isBottomBarVisible = true);
-    }
-  }
-
-
   int selectedIndex = 0;
   int lastAllowedIndex = 0;
 
-
-  void _onPageChange(int index) {
-
-    if (index > 2  && GuestHelper.isGuest) {
-
-      // instantly move back
-      _pageController.jumpToPage(lastAllowedIndex);
-
-      // reset selected tab
-      setState(() {
-        selectedIndex = lastAllowedIndex;
-        _bottomNavKey = UniqueKey();
-      });
-
-      AuthGateBottomSheet.show(
-        context,
-        reason: 'access ${buildReason(index)}',
-      );
-
-      return;
-    }
-
-    setState(() {
-      selectedIndex = index;
-      lastAllowedIndex = index;
-      if (!_isBottomBarVisible) {
-        _isBottomBarVisible = true;
-      }
-    });
-  }
-
-  String buildReason(int index) {
-    switch (index) {
-      case 1:
-       return 'messages';
-
-      case 2:
-         return 'services';
-
-      case 3:
-        return 'wallet';
-
-      case 4:
-        return 'profile';
-
-      default:
-        return 'marketplace';
-    }
-  }
-
-  void _onItemTapped(int indexSelected) {
-
-    if (indexSelected > 2  && GuestHelper.isGuest) {
-
-      // rebuild navbar back to original state
-      setState(() {
-        selectedIndex = lastAllowedIndex;
-        _bottomNavKey = UniqueKey();
-      });
-
-      AuthGateBottomSheet.show(
-        context,
-        reason: 'access ${buildReason(indexSelected)}',
-      );
-
-      return;
-    }
-
-    setState(() {
-      selectedIndex = indexSelected;
-      lastAllowedIndex = indexSelected;
-    });
-
-    _pageController.jumpToPage(indexSelected);
-  }
-
-
-  Color selectedColor = Color(0xFF6F7E90);
-
-  @override
-  void initState() {
-    super.initState();
-
-    screens = [
-      FeedScreen(
-        onScrollDirectionChanged: _onScrollChange
-      ),
-      const Messages(),
-      const HomeScreen(),
-      const WalletScreen(),
-      const ProfileScreen(),
-    ];
-  }
-
+  // ── Scroll-to-hide (unchanged behavior, debounced) ────────────────────────
   Timer? _scrollDebounce;
 
   void _onScrollChange(bool isScrollingDown) {
     _scrollDebounce?.cancel();
     _scrollDebounce = Timer(const Duration(milliseconds: 100), () {
       if (isScrollingDown) {
-        _hideBottomBar();
+        if (_isBottomBarVisible) setState(() => _isBottomBarVisible = false);
       } else {
-        _showBottomBar();
+        if (!_isBottomBarVisible) setState(() => _isBottomBarVisible = true);
       }
     });
   }
 
   @override
+  void initState() {
+    super.initState();
+    // PHASE 9: 4 pages. HomeScreen (Services) is OUT of the shell — it is now
+    // pushed from the Wallet hub's "Bills & Top-ups" card.
+    screens = [
+      FeedScreen(onScrollDirectionChanged: _onScrollChange),
+      const Messages(),
+      const WalletScreen(),
+      const ProfileScreen(),
+    ];
+  }
+
+  @override
+  void dispose() {
+    _scrollDebounce?.cancel();
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  // ── Guest gating ───────────────────────────────────────────────────────────
+  // New index map: 0 Explore · 1 Messages · 2 Wallet · 3 Profile.
+  // Wallet + Profile remain auth-only → gate at index >= 2.
+
+  String buildReason(int index) {
+    switch (index) {
+      case 1:
+        return 'messages';
+      case 2:
+        return 'wallet';
+      case 3:
+        return 'profile';
+      default:
+        return 'explore';
+    }
+  }
+
+  bool _blockForGuest(int index) {
+    if (index >= 2 && GuestHelper.isGuest) {
+      AuthGateBottomSheet.show(
+        context,
+        reason: 'access ${buildReason(index)}',
+      );
+      return true;
+    }
+    return false;
+  }
+
+  void _onPageChange(int index) {
+    if (_blockForGuest(index)) {
+      // Snap back instantly — the flat bar re-renders purely from
+      // selectedIndex, so no key-reset hack is needed.
+      _pageController.jumpToPage(lastAllowedIndex);
+      setState(() => selectedIndex = lastAllowedIndex);
+      return;
+    }
+    setState(() {
+      selectedIndex = index;
+      lastAllowedIndex = index;
+      if (!_isBottomBarVisible) _isBottomBarVisible = true;
+    });
+    Analytics.I.logTabView(buildReason(index));
+  }
+
+  void _onItemTapped(int index) {
+    if (_blockForGuest(index)) {
+      setState(() => selectedIndex = lastAllowedIndex);
+      return;
+    }
+    setState(() {
+      selectedIndex = index;
+      lastAllowedIndex = index;
+    });
+    _pageController.jumpToPage(index);
+    Analytics.I.logTabView(buildReason(index));
+  }
+
+  // ── Build ──────────────────────────────────────────────────────────────────
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body:  PageView(
+      body: PageView(
         controller: _pageController,
         onPageChanged: _onPageChange,
         physics: const BouncingScrollPhysics(),
         children: screens,
       ),
+
+      // The scanner pops above the bar via the native docking mechanism —
+      // this handles hit-testing and the notch overlap correctly on every
+      // platform, unlike a hand-rolled Stack overflow. The custom location
+      // sinks it 8px below stock centerDocked: present, not towering.
+      floatingActionButtonLocation: const _LoweredCenterDocked(8),
+      floatingActionButton: _ScanFab(
+        visible: _isBottomBarVisible,
+        // Guests scan too — QR resolution is gate-free by design (binding).
+        onTap: () {
+          Analytics.I.logScanOpen();
+          context.push('/scan');
+        },
+      ),
+
       bottomNavigationBar: AnimatedContainer(
         duration: const Duration(milliseconds: 300),
-        height: _isBottomBarVisible ? 60 : 0,
+        height: _isBottomBarVisible ? 62 : 0,
+        // Wrap + conditional child: the same overflow-safe collapse trick the
+        // old bar used — the child is removed entirely while hidden instead of
+        // being squeezed (which would throw RenderFlex overflows mid-anim).
         child: Wrap(
-          children: [
-            if (_isBottomBarVisible) _bottomNavigationBar(),
-          ],
+          children: [if (_isBottomBarVisible) _flatBar()],
         ),
       ),
     );
   }
 
-  CurvedNavigationBar _bottomNavigationBar () {
-    return CurvedNavigationBar(
-        color: Color(0xFF334155),
-        key: _bottomNavKey,
-        backgroundColor: Color(0xFF0F172A),
-        animationCurve: Curves.decelerate,
-        height: 60,
-        index: selectedIndex,
-        onTap: _onItemTapped,
-        items:
-        [
-          Container(
-            margin: EdgeInsets.only(bottom: selectedIndex == 0 ? 0 : 15),
-            child: Padding(
-              padding: const EdgeInsets.all(4.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  FaIcon(FontAwesomeIcons.compass,
-                    size: selectedIndex == 0 ? 15 : 20,
-                    color: selectedIndex == 0 ? Color(0xFF21D3ED) :
-                    Colors.white38,),
-                  SizedBox(height: 3.5,),
-                  Text('Explore', style: GoogleFonts.inter(fontSize: 9,
-                      fontWeight: FontWeight.w900, color: selectedIndex == 0 ? Colors.white : Colors.white60),)
-                ],
-              ),
-            ),
+  /// Flat 4-item bar with a notched gap for the docked scanner.
+  Widget _flatBar() {
+    return BottomAppBar(
+      color: const Color(0xFF0F172A),
+      elevation: 0,
+      height: 62,
+      padding: EdgeInsets.zero,
+      // The notch hugs the FAB circle; 6px margin — tight, machined seam.
+      shape: const CircularNotchedRectangle(),
+      notchMargin: 6,
+      child: Container(
+        // Hairline top border = the entire "design" of the bar. Flat, quiet,
+        // professional — the FAB carries the brand color, not the bar.
+        decoration: const BoxDecoration(
+          border: Border(
+            top: BorderSide(color: Color(0x0FFFFFFF), width: 1),
           ),
-          Container(
-            margin: EdgeInsets.only(bottom: selectedIndex == 1 ? 0 : 14),
-            child: Padding(
-              padding: const EdgeInsets.all(4.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  FaIcon(FontAwesomeIcons.message,
-                    size: selectedIndex == 1 ? 15 : 20, color: selectedIndex == 1 ? Color(0xFF21D3ED) :
-                      Colors.white38),
-                  SizedBox(height: 3.5,),
-                  Text('Messages',
-                  style: GoogleFonts.inter(fontSize: 9,
-                      fontWeight: FontWeight.w900, color: selectedIndex == 1 ? Colors.white : Colors.white60)),
-                ],
-              ),
+        ),
+        child: Row(
+          children: [
+            _NavItem(
+              icon: FontAwesomeIcons.compass,
+              label: 'Explore',
+              selected: selectedIndex == 0,
+              onTap: () => _onItemTapped(0),
             ),
-          ),
-          Container(
-            margin: EdgeInsets.only(bottom: selectedIndex == 2 ? 0 : 15),
-            child: Padding(
-              padding: const EdgeInsets.all(4.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  FaIcon(FontAwesomeIcons.layerGroup,
-                      size: selectedIndex == 2 ? 15 : 20, color: selectedIndex == 2 ? Color(0xFF21D3ED) :
-                      Colors.white38),
-                  SizedBox(height: 3.5,),
-                  Text('Services',
-                    style: GoogleFonts.inter(fontSize: 9,
-                        fontWeight: FontWeight.w900,  color: selectedIndex == 2 ? Colors.white : Colors.white60),)
-                ],
-              ),
+            _NavItem(
+              icon: FontAwesomeIcons.message,
+              label: 'Messages',
+              selected: selectedIndex == 1,
+              onTap: () => _onItemTapped(1),
             ),
-          ),
-          Container(
-            margin: EdgeInsets.only(bottom: selectedIndex == 3 ? 0 : 15),
-            child: Padding(
-              padding: const EdgeInsets.all(4.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  FaIcon(FontAwesomeIcons.wallet,
-                    size: selectedIndex == 3 ? 15 : 20, color: selectedIndex == 3 ? Color(0xFF21D3ED) :
-                    Colors.white38,),
-                  SizedBox(height: 3.5,),
-                  Text('Wallet',
-                    style: GoogleFonts.inter(fontSize: 9,
-                        fontWeight: FontWeight.w900,  color: selectedIndex == 3 ? Colors.white : Colors.white60),)
-                ],
-              ),
+            // Center gap: real layout space for the docked FAB, so the four
+            // items split 2 | 2 around the scanner instead of crowding it.
+            const SizedBox(width: 72),
+            _NavItem(
+              icon: FontAwesomeIcons.wallet,
+              label: 'Wallet',
+              selected: selectedIndex == 2,
+              onTap: () => _onItemTapped(2),
             ),
-          ),
-          Container(
-            margin: EdgeInsets.only(bottom: selectedIndex == 4 ? 0 : 15),
-            child: Padding(
-              padding: const EdgeInsets.all(4.0),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  FaIcon(FontAwesomeIcons.circleUser,
-                    size: selectedIndex == 4 ? 15 : 20, color: selectedIndex == 4 ? Color(0xFF21D3ED) :
-                      Colors.white38),
-                  SizedBox(height: 3.5,),
-                  Text('Profile', style: GoogleFonts.inter(fontSize: 9,
-                      fontWeight: FontWeight.w900,  color: selectedIndex == 4 ? Colors.white : Colors.white60),)
-                ],
-              ),
+            _NavItem(
+              icon: FontAwesomeIcons.circleUser,
+              label: 'Profile',
+              selected: selectedIndex == 3,
+              onTap: () => _onItemTapped(3),
             ),
-          ),
-        ]
+          ],
+        ),
+      ),
     );
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Single nav item. Expanded so the four items share the remaining width
+// equally; HitTestBehavior.opaque makes the WHOLE cell tappable, keeping the
+// effective tap target ≥48dp tall for accessibility.
+// ─────────────────────────────────────────────────────────────────────────────
+class _NavItem extends StatelessWidget {
+  final FaIconData icon;
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _NavItem({
+    required this.icon,
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Semantics(
+        button: true,
+        selected: selected,
+        label: label,
+        child: GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: onTap,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Subtle scale on selection — motion confirms the tap without
+              // the bar jumping around like the old curved cutout did.
+              AnimatedScale(
+                scale: selected ? 1.0 : 0.9,
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOut,
+                child: FaIcon(
+                  icon,
+                  size: 20,
+                  color: selected ? const Color(0xFF21D3ED) : Colors.white38,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                label,
+                style: GoogleFonts.inter(
+                  fontSize: 9,
+                  fontWeight: FontWeight.w900,
+                  color: selected ? Colors.white : Colors.white60,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Custom FAB location: stock centerDocked, sunk [lower] px. The stock dock
+// floats the button half-above the bar, which read as "towering"; sinking it
+// keeps the pop without the periscope effect. The notch follows the FAB's
+// real geometry automatically, so the seam stays perfect.
+// ─────────────────────────────────────────────────────────────────────────────
+class _LoweredCenterDocked extends FloatingActionButtonLocation {
+  final double lower;
+  const _LoweredCenterDocked(this.lower);
+
+  @override
+  Offset getOffset(ScaffoldPrelayoutGeometry geometry) {
+    final base = FloatingActionButtonLocation.centerDocked.getOffset(geometry);
+    return Offset(base.dx, base.dy + lower);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// The floating scanner — the app's universal entry verb (table QR, store QR,
+// product QR). v2 design:
+//   · 52px core inside a 60px dark ring — the ring matches the scaffold
+//     background, so the button looks MACHINED into the notch instead of
+//     pasted over it (this is what made v1 feel "plain": gradient met notch
+//     edge with no seam).
+//   · top-left white sheen overlay → reads as a physical convex button.
+//   · corner-bracket "viewfinder" frame around the QR glyph — says *scanner*,
+//     not just "a QR code exists".
+//   · tactile: scales to .88 while pressed (Listener, no extra state mgmt).
+//   · tight glow (blur 10) instead of v1's wide halo.
+// Scales away in sync with the bar's scroll-to-hide.
+// ─────────────────────────────────────────────────────────────────────────────
+class _ScanFab extends StatefulWidget {
+  final bool visible;
+  final VoidCallback onTap;
+
+  const _ScanFab({required this.visible, required this.onTap});
+
+  @override
+  State<_ScanFab> createState() => _ScanFabState();
+}
+
+class _ScanFabState extends State<_ScanFab> {
+  bool _pressed = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedScale(
+      // Hide with the bar; while visible, dip on press for tactility.
+      scale: !widget.visible ? 0.0 : (_pressed ? 0.88 : 1.0),
+      duration: Duration(milliseconds: _pressed ? 80 : 220),
+      curve: _pressed ? Curves.easeOut : Curves.easeOutBack,
+      child: Semantics(
+        button: true,
+        label: 'Scan QR code',
+        child: Listener(
+          onPointerDown: (_) => setState(() => _pressed = true),
+          onPointerUp: (_) => setState(() => _pressed = false),
+          onPointerCancel: (_) => setState(() => _pressed = false),
+          child: GestureDetector(
+            onTap: widget.onTap,
+            child: Container(
+              width: 55,
+              height: 55,
+              // The dark seam ring — same color as the scaffold so the notch
+              // gap reads as intentional negative space.
+              decoration: const BoxDecoration(
+                shape: BoxShape.circle,
+                color: Color(0xFF0F172A),
+              ),
+              padding: const EdgeInsets.all(4),
+              child: Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: const LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF21D3ED), Color(0xFF177E85)],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF21D3ED).withOpacity(0.4),
+                      blurRadius: 10,
+                      offset: const Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // Convex sheen: a soft white wash on the upper-left makes
+                    // the surface read as curved glass instead of flat fill.
+                    Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.center,
+                          colors: [
+                            Colors.white.withOpacity(0.28),
+                            Colors.white.withOpacity(0.0),
+                          ],
+                        ),
+                      ),
+                    ),
+                    // Viewfinder brackets + glyph — the "scanner" identity.
+                    CustomPaint(
+                      size: const Size(25, 25),
+                      painter: _ViewfinderPainter(),
+                    ),
+                    const FaIcon(
+                      FontAwesomeIcons.qrcode,
+                      size: 15,
+                      color: Colors.white,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Four corner brackets, 2px rounded strokes — the universal "viewfinder"
+/// mark. Drawn instead of using an icon so the brackets can frame the qrcode
+/// glyph at exactly the right inset.
+class _ViewfinderPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withOpacity(0.9)
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round
+      ..style = PaintingStyle.stroke;
+
+    const len = 7.0; // arm length of each bracket
+    final w = size.width, h = size.height;
+
+    // Top-left
+    canvas.drawLine(const Offset(0, len), Offset.zero, paint);
+    canvas.drawLine(Offset.zero, const Offset(len, 0), paint);
+    // Top-right
+    canvas.drawLine(Offset(w - len, 0), Offset(w, 0), paint);
+    canvas.drawLine(Offset(w, 0), Offset(w, len), paint);
+    // Bottom-left
+    canvas.drawLine(Offset(0, h - len), Offset(0, h), paint);
+    canvas.drawLine(Offset(0, h), Offset(len, h), paint);
+    // Bottom-right
+    canvas.drawLine(Offset(w - len, h), Offset(w, h), paint);
+    canvas.drawLine(Offset(w, h), Offset(w, h - len), paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

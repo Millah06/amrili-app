@@ -84,6 +84,7 @@ class CachedProfileData {
         avatar: p.avatar,
         coverImage: p.coverImage,
         location: p.location,
+        country: p.country,   // PHASE 9 fix — was dropped, killing the flag chip
         website: p.website,
         // NOTE: swap buzEmail for businessEmail if your model uses that field
         buzEmail: p.buzEmail,

@@ -54,6 +54,37 @@ class ProfileHeaderDelegate extends SliverPersistentHeaderDelegate {
   @override
   double get maxExtent => maxHeight;
 
+  /// PHASE 9 — content-aware header height.
+  ///
+  /// The expanded header's only variable-height pieces are the bio block and
+  /// the meta (country/location/email/website) row; everything else is fixed.
+  /// So instead of always reserving the worst case (290), start from it and
+  /// subtract the blocks that won't render. While data is still null
+  /// (skeleton) we keep the full height — the skeleton draws all blocks.
+  ///
+  /// TUNING: _kBioBlock / _kMetaBlock are the measured heights of those two
+  /// blocks including their bottom padding. If a device ever shows a sliver
+  /// of leftover space (or a 1–2px overflow stripe), adjust these two numbers
+  /// — nothing else.
+  static const double _kFullHeight = 290;
+  static const double _kBioBlock = 42;  // 2-line bio text + bottom padding
+  static const double _kMetaBlock = 30; // meta Wrap single run + padding
+
+  static double computeMaxHeight(ProfileDisplayData? d) {
+    if (d == null) return _kFullHeight; // skeleton draws everything
+
+    double h = _kFullHeight;
+    final hasBio = d.bio != null && d.bio!.isNotEmpty;
+    final hasMeta = d.country != null ||
+        d.location != null ||
+        (d.buzEmail != null && d.buzEmail!.isNotEmpty) ||
+        d.website != null;
+
+    if (!hasBio) h -= _kBioBlock;
+    if (!hasMeta) h -= _kMetaBlock;
+    return h;
+  }
+
   @override
   Widget build(BuildContext context, double shrinkOffset, bool overlapsContent) {
     final progress = (shrinkOffset / maxExtent).clamp(0.0, 1.0);

@@ -63,6 +63,7 @@ import '../../features/marketPlace/pages/product_landing_page.dart';
 import '../../features/marketPlace/pages/order_detail_landing_page.dart';
 import '../../features/referral/pages/referral_landing_page.dart';
 import '../../shared/pages/not_found_page.dart';
+import '../analytics/analytics.dart';
 
 /// Set by main.dart BEFORE the router is first built, from a cold-start App Link.
 /// Lets the very first routed frame be the deep-linked page (no '/' or welcome
@@ -117,7 +118,7 @@ final GoRouter appRouter = GoRouter(
   initialLocation: bootDeepLinkLocation,
   redirect: _globalRedirect,
   debugLogDiagnostics: false,
-
+  observers: [Analytics.I.observer],
   routes: [
     // ── Entry shell ──────────────────────────────────────────────────────────
     GoRoute(

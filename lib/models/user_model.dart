@@ -3,6 +3,9 @@ class User {
   final String name;
   final String email;
   final String phone;
+  // PHASE 9 — region. Nullable: legacy payloads may omit them.
+  final String? country;   // ISO 3166-1 alpha-2, e.g. 'NG'
+  final String? currency;  // ISO 4217, e.g. 'NGN'
   final String role;
   final bool active;
   final String referralCode;
@@ -19,6 +22,8 @@ class User {
     required this.name,
     required this.email,
     required this.phone,
+    this.country,
+    this.currency,
     required this.role,
     required this.active,
     required this.referralCode,
@@ -36,6 +41,8 @@ class User {
       name: json['name'] ?? '',
       email: json['email'] ?? '',
       phone: json['phone'] ?? '',
+      country: json['country'],
+      currency: json['currency'],
       role: json['role'] ?? '',
       active: json['active'] ?? false,
       referralCode: json['referralCode'] ?? '',
@@ -56,6 +63,8 @@ class User {
         name: name,
         email: email,
         phone: phone ?? this.phone,
+        country: country,
+        currency: currency,
         role: role,
         active: active,
         referralCode: referralCode,

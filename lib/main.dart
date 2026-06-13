@@ -11,7 +11,9 @@ import 'package:hive_flutter/adapters.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'app.dart';
+import 'core/analytics/analytics.dart';
 import 'core/auth/auth_provider.dart' show AuthProvider;
+import 'core/region/region_provider.dart';
 import 'features/communication/providers/sync_contact_provider.dart';
 import 'package:flutter_ios_preview/flutter_ios_preview.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -36,6 +38,9 @@ void main() async {
     await Firebase.initializeApp();
   }
 
+  // PHASE 9 — analytics. Safe no-op if Analytics is unavailable.
+  Analytics.I.init();
+
   // App Check: debug provider on Android. Skip on web for now — it would need a
 // reCAPTCHA v3 site key, and the public web reads don't require App Check.
   if (!kIsWeb) {
@@ -56,6 +61,12 @@ void main() async {
 
   final prefs = await SharedPreferences.getInstance();
   final isGuest = prefs.getBool('isGuest') ?? false;
+
+  // PHASE 9 — region flag, read synchronously so the first frame gates
+  // correctly with zero flicker. Fresh installs default to NG (pre-Phase-9
+  // behavior); the value self-corrects after the first /users/me sync.
+  final initialIsNgTied =
+      (prefs.getString(RegionProvider.prefsKey) ?? 'NG') == 'NG';
 
   await AppLinkHandler.init();
 
@@ -93,6 +104,14 @@ void main() async {
               create: (_) => AuthProvider(api: ApiService(), initialGuest: bootGuest,)),
           ChangeNotifierProvider(
             create: (_) => UserProvider(api: ApiService())..initIfAuthenticated(),
+          ),
+
+          // PHASE 9 — region gate. Re-evaluates on every UserProvider update,
+          // so login, /users/me refresh, and Home-country changes all flow
+          // through automatically.
+          ChangeNotifierProxyProvider<UserProvider, RegionProvider>(
+            create: (_) => RegionProvider(initialIsNgTied: initialIsNgTied),
+            update: (_, userProv, region) => region!..syncFromUser(userProv.user),
           ),
 
         ],

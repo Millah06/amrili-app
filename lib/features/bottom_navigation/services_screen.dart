@@ -21,6 +21,7 @@ import '../../components/promotion_screen.dart';
 import '../../components/reusable_card.dart';
 import '../../components/service_fraame.dart';
 import '../../constraints/constants.dart';
+import '../../core/money/money.dart';
 import '../../models/notification_model.dart';
 
 import '../../services/brain.dart';
@@ -51,8 +52,7 @@ class _HomeScreenState extends State<HomeScreen>
   bool get wantKeepAlive => true;
 
   bool hasTouched = false;
-  bool canPop = false;
-  DateTime ? _lastBackTap;
+
   @override
   Widget build(BuildContext context) {
 
@@ -1140,26 +1140,7 @@ class _HomeScreenState extends State<HomeScreen>
     ];
 
     return PopScope(
-      canPop: false,
-      onPopInvokedWithResult: (bool didPop, Object? result) async {
-        final now = DateTime.now();
-        if (_lastBackTap == null || now.difference(_lastBackTap!) > Duration(seconds: 2)) {
 
-          _lastBackTap = now;
-
-          Fluttertoast.showToast(
-              msg: 'Tap again to exit',
-            toastLength: Toast.LENGTH_SHORT,
-            gravity: ToastGravity.BOTTOM,
-          );
-
-
-        }
-        else {
-          SystemNavigator.pop();
-        }
-
-      },
       child: PullRevealOverlayWrapper(
         controller: PullToRevealController(),
         child: Scaffold(
@@ -1167,58 +1148,33 @@ class _HomeScreenState extends State<HomeScreen>
           appBar: AppBar(
             elevation: 0,
             backgroundColor: const Color(0xFF1E293B),
-            title:  Text(
-              'Services',
+            // Pushed page now — give it a real back affordance.
+            leading: IconButton(
+              icon: const Icon(Icons.arrow_back_ios_rounded,
+                  color: Colors.white, size: 20),
+              onPressed: () => Navigator.pop(context),
+            ),
+            title: Text(
+              'Bills & Top-ups',
               style: kTopAppbars.copyWith(
-                  fontFamily:  'DejaVu Sans', fontSize: 23),
+                  fontFamily: 'DejaVu Sans', fontSize: 23),
             ),
             actions: [
+              // History stays — it's bills-specific and useful here.
+              // The Scan action is GONE: the global scanner FAB owns that verb
+              // now; a second entry point here was noise.
               GestureDetector(
-                onTap: () => context.push('/scan'),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      padding: EdgeInsets.all(1.5),
-                      decoration: BoxDecoration(
-                          color: Colors.pink,
-                          borderRadius: BorderRadius.circular(5)
-                      ),
-                      child: Text('Scan', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold),),
-                    ),
-                    SizedBox(height: 2,),
-                    Iconify(Ph.qr_code_duotone, size: 20, color: Colors.white,),
-                  ],
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                      builder: (_) => const TransactionHistoryScreen()),
+                ),
+                child: const Padding(
+                  padding: EdgeInsets.only(right: 16),
+                  child: Icon(Icons.receipt_long_outlined,
+                      color: Colors.white, size: 22),
                 ),
               ),
-              SizedBox(width: 20,),
-              GestureDetector(
-                onTap: () async {
-                  Navigator.push(context, MaterialPageRoute(builder:
-                      (context) => NotificationScreen()));
-                },
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      padding: EdgeInsets.all(1.5),
-                      decoration: BoxDecoration(
-                          color: Colors.pink,
-                          borderRadius: BorderRadius.circular(5)
-                      ),
-                      child: Text('${Hive.box<AppNotification>('notifications').length}', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold),),
-                    ),
-                    SizedBox(height: 2,),
-                    FaIcon(FontAwesomeIcons.bell, size: 20, color: Colors.white,),
-                  ],
-                ),
-              ),
-              
-              SizedBox(width: 20,),
             ],
           ),
           body: Column(
@@ -1230,52 +1186,7 @@ class _HomeScreenState extends State<HomeScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       SizedBox(height: 10,),
-                      Container(
-                          height: 100,
-                          width: double.infinity,
-                          margin: EdgeInsets.only(left: 10, right: 10, top: 5, bottom: 10),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(10),
-                            color: Color(0xFF1E293B),
-                          ),
-                          child:  Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceAround,
-                            children: [
-                              ServiceFrame(
-                                title: 'To NexPay',
-                                icon: FontAwesomeIcons.bank,
-                                onTap: () {
-                                  Navigator.push(context, MaterialPageRoute(builder: (context) => P2PTransferScreen()));
-                                },
-                                isNew: false,
-                                titleFont: 12,
-                              ),
-                              ServiceFrame(
-                                title: 'To Bank',
-                                icon: FontAwesomeIcons.bank,
-                                onTap: () {
-                                  Navigator.push(context,
-                                      MaterialPageRoute(builder: (context) =>
-                                          WithdrawBankScreen()));
-                                },
-                                isNew: false,
-                                titleFont: 12,
-                              ),
-                              ServiceFrame(
-                                title: 'Withdraw',
-                                icon: FontAwesomeIcons.moneyBill,
-                                onTap: () {
-                                  Navigator.push(context,
-                                      MaterialPageRoute(builder: (context) =>
-                                          WithdrawBankScreen()));
-                                },
-                                isNew: false,
-                                titleFont: 12,
 
-                              ),
-                            ],
-                          )
-                      ),
                       Container(
                           width: double.infinity,
                           padding: EdgeInsets.only(bottom: 10, left: 15, right: 15, top: 10),
@@ -1335,12 +1246,15 @@ class _HomeScreenState extends State<HomeScreen>
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
 
-                                      Row(
-                                        children: [
-                                          Text(kNaira, style: TextStyle(fontSize: 12, color: Colors.white, fontWeight: FontWeight.bold),),
-                                          SizedBox(width: 3,),
-                                          BalanceText(pov.totalMonthlySpent, 16, 8)
-                                        ],
+                                      // PHASE 9 — first MoneyText adoption. Currency-aware now,
+                                      // so Phase 10 flips display from one place.
+                                      MoneyText(
+                                        pov.totalMonthlySpent,
+                                        style: const TextStyle(
+                                          fontSize: 14,
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
                                     ],
                                   ),

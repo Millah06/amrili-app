@@ -21,6 +21,7 @@ import '../../../screens/welcome_screen.dart';
 import '../../../services/brain.dart';
 import '../../../services/session_service.dart';
 import '../../../shared/functions/shared_functions.dart';
+import '../../../shared/widgets/home_country_sheet.dart';
 import '../../support/help_center.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -123,6 +124,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
               Navigator.push(context, MaterialPageRoute(builder:
                   (context) => NotificationScreen()));
             },
+          ),
+          _SettingsTile(
+            icon: Icons.public,
+            title: 'Home Country',
+            subtitle: 'Set the region Amril tailors services to',
+            onTap: () => HomeCountrySheet.show(context),
           ),
           _SettingsTile(
             icon: Icons.language,
