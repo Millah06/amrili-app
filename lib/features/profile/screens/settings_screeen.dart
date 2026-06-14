@@ -22,6 +22,7 @@ import '../../../services/brain.dart';
 import '../../../services/session_service.dart';
 import '../../../shared/functions/shared_functions.dart';
 import '../../../shared/widgets/home_country_sheet.dart';
+import '../../social/providers/reward_provider.dart';
 import '../../support/help_center.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -130,6 +131,37 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: 'Home Country',
             subtitle: 'Set the region Amril tailors services to',
             onTap: () => HomeCountrySheet.show(context),
+          ),
+          ListTile(
+            title: const Text('Hide me from Spotlight', style: TextStyle(color: Colors.white)),
+            subtitle: const Text('Don’t show me on public creator/supporter boards',
+                style: TextStyle(color: Colors.white54, fontSize: 12)),
+            leading:
+            TinySwitch(value: false,
+                onChanged: (_) async {
+
+                  showDialog(context: context,
+                      barrierDismissible: false, builder: (_) => const Dialog(
+                        backgroundColor: VendorTheme.background,
+                        child: Padding(
+                          padding: EdgeInsets.all(20),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              CircularProgressIndicator(color: VendorTheme.circularProgressColor,),
+                              SizedBox(width: 16),
+                              Text("Toggling user privacy..."),
+                            ],
+                          ),
+                        ),
+                      ));
+                  await context.read<RewardProvider>().toggleLeaderboardVisibility(true);
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                  }
+
+                }),
+
           ),
           _SettingsTile(
             icon: Icons.language,
@@ -428,7 +460,10 @@ class _PrivacySettingsSheetState extends State<_PrivacySettingsSheet> {
                 'Only approved followers can see your posts',
                 style: TextStyle(color: Colors.grey[500], fontSize: 12),
               ),
-              leading: TinySwitch(value: provider.profile?.isPrivate ?? false, onChanged: (_) async {
+              leading:
+              TinySwitch(value:
+              provider.profile?.isPrivate ?? false,
+                  onChanged: (_) async {
 
                 showDialog(context: context,
                     barrierDismissible: false, builder: (_) => const Dialog(

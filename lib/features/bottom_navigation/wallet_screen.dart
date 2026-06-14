@@ -54,7 +54,7 @@ import '../../shared/widgets/home_country_sheet.dart';
 import '../marketPlace/utils/vendor_engine_entry.dart';
 import '../wallet/pages/p2p_transfer_screen.dart';
 import '../wallet/pages/withdraw_bank_screen.dart';
-import 'services_screen.dart'; // HomeScreen — the Services page, now pushed
+import '../../screens/services_screen.dart'; // HomeScreen — the Services page, now pushed
 
 class WalletScreen extends StatefulWidget {
   const WalletScreen({super.key});

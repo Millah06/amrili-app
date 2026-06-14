@@ -37,6 +37,8 @@ import '../../core/auth/auth_provider.dart';
 // Shell + entry screens
 import '../../components/bootom_bar.dart';
 import '../../features/marketPlace/pages/qr_scanner_screen.dart';
+import '../../features/communication/screens/chat_user_landing_page.dart';
+import '../../features/communication/screens/my_chat_qr_screen.dart';
 import '../../features/marketPlace/utils/vendor_scope.dart';
 import '../../features/payment/pages/checkout_return_page.dart';
 import '../../features/social/pages/post_detail_page.dart';
@@ -44,7 +46,7 @@ import '../../features/social/pages/public_profile_page.dart';
 import '../../screens/welcome_screen.dart';
 
 // Utility screens (moved here from app.dart's old routes map)
-import '../../features/bottom_navigation/services_screen.dart'; // HomeScreen
+import '../../screens/services_screen.dart'; // HomeScreen
 import '../../features/bottom_navigation/wallet_screen.dart'; // WalletScreen
 import '../../screens/first_screen.dart';
 import '../../features/utility/screens/utility_screens/cable_suscription.dart';
@@ -228,6 +230,20 @@ final GoRouter appRouter = GoRouter(
     GoRoute(
       path: '/scan',
       builder: (c, s) => const QrScannerScreen(),
+    ),
+
+    // Personal chat QR landing — scanning amril.app/chat-user/:id opens a
+    // confirm card then the conversation.
+    GoRoute(
+      path: '/chat-user/:userId',
+      builder: (c, s) =>
+          ChatUserLandingPage(userId: s.pathParameters['userId']!),
+    ),
+
+    // My chat QR ("My Code" + "Scan" tabs).
+    GoRoute(
+      path: '/my-chat-qr',
+      builder: (c, s) => const MyChatQrScreen(),
     ),
 
     // OPay return landing — verifies the in-flight payment, then goes home.

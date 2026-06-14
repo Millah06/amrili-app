@@ -1,14 +1,29 @@
-import 'package:everywhere/constraints/constants.dart';
-import 'package:everywhere/providers/user_provider.dart';
-import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../../../components/transacrtion_pin.dart';
-import '../../../constraints/vendor_theme.dart';
-import '../../../services/brain.dart';
-import '../../../shared/utils/flush_bar_message.dart';
-import '../models/gift_type.dart';
-import '../providers/reward_provider.dart';
+// lib/features/social/screens/buy_coins_screen.dart
+//
+// PHASE 10 — Buy Coins. FULL REPLACEMENT.
+//
+// Region-aware, two rails (decided by RegionProvider.isNgTied):
+//   • NG-tied   → packs priced in ₦ (from /coins/catalog); tapping opens the
+//                 universal PaymentSheet with entityType "coin_purchase", so the
+//                 user pays with Wallet OR OPay — same sheet as every order.
+//   • non-NG    → packs come from the app store via in_app_purchase; the price
+//                 shown is the STORE's localized price (e.g. $4.99). Tapping
+//                 launches the native purchase; the backend verifies the receipt
+//                 and mints the coins.
+//
+// Both rails mint PURCHASED (spend-only) coins. The old wallet→coins conversion
+// at ₦1=10 is GONE — that round-trip is not allowed.
 
+import 'package:everywhere/core/region/region_provider.dart';
+import 'package:everywhere/features/payment/widgets/payment_sheet.dart';
+import 'package:flutter/material.dart';
+import 'package:in_app_purchase/in_app_purchase.dart';
+import 'package:provider/provider.dart';
+
+import '../../../constraints/vendor_theme.dart';
+import '../../../shared/utils/flush_bar_message.dart';
+import '../providers/reward_provider.dart';
+import '../services/coin_purchase_services.dart';
 
 class BuyCoinsScreen extends StatefulWidget {
   const BuyCoinsScreen({super.key});
@@ -18,589 +33,320 @@ class BuyCoinsScreen extends StatefulWidget {
 }
 
 class _BuyCoinsScreenState extends State<BuyCoinsScreen> {
-  int? _selectedAmount;
-  final TextEditingController _customController = TextEditingController();
-  bool _isProcessing = false;
-  int _coinBalance = 0;
-  double _walletBalance = 0;
+  // Non-NG (store) state.
+  final _store = CoinPurchaseService.instance;
+  List<ProductDetails> _products = [];
+  bool _storeAvailable = false;
+  bool _loadingProducts = false;
+  String? _pendingProductId; // a buy is in flight for this SKU
 
-  final List<int> _quickAmounts = [
-    100,   // ₦10
-    500,   // ₦50
-    1000,  // ₦100
-    2000,  // ₦200
-    5000,  // ₦500
-    10000, // ₦1000
-  ];
+  bool get _isNg => context.read<RegionProvider>().isNgTied;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadBalances());
+    WidgetsBinding.instance.addPostFrameCallback((_) => _bootstrap());
   }
 
   @override
   void dispose() {
-    _customController.dispose();
+    if (!_isNg) _store.dispose();
     super.dispose();
   }
 
-  Future<void> _loadBalances() async {
-    final rewardProvider = context.read<RewardProvider>();
-    await rewardProvider.loadCoinBalance();
+  Future<void> _bootstrap() async {
+    final reward = context.read<RewardProvider>();
+    await reward.loadCoinBalance();
 
-    // Get wallet balance from Brain provider
-    final brain = context.read<UserProvider>();
-
-    if (mounted) {
-      setState(() {
-        _coinBalance = rewardProvider.coinBalance;
-        _walletBalance = brain.user!.wallet.fiat.availableBalance;
-      });
+    if (_isNg) {
+      // NG packs come from our catalog (naira pricing).
+      await reward.loadCatalog();
+    } else {
+      // Non-NG: wire the store stream + query products.
+      _store.onDelivered = _onStoreDelivered;
+      _store.init();
+      setState(() => _loadingProducts = true);
+      _storeAvailable = await _store.isAvailable;
+      if (_storeAvailable) {
+        _products = await _store.queryProducts();
+      }
+      if (mounted) setState(() => _loadingProducts = false);
     }
   }
 
-  Future<void> _buyCoins() async {
-    final amount = _selectedAmount ?? int.tryParse(_customController.text);
-    if (amount == null || amount < 10) {
-      _showError('Minimum purchase is 10 coins (₦1)');
-      return;
+  // ── NG: pay a pack through the universal sheet (Wallet / OPay) ───────────────
+  Future<void> _buyNg(CoinPack pack) async {
+    final result = await PaymentSheet.show(
+      context,
+      amount: pack.nairaWallet,
+      entityType: 'coin_purchase',
+      entityId: pack.productId, // pack SKU doubles as the engine entityId
+      productName: pack.label,
+    );
+    if (result != null && mounted) {
+      // The coin_purchase handler already minted the coins on SUCCESS.
+      await context.read<RewardProvider>().loadCoinBalance();
+      FlushBarMessage.showFlushBar(context: context, message: '${pack.coins} coins added!');
     }
+  }
 
-    final nairaAmount = amount / 10;
-    if (nairaAmount > _walletBalance) {
-      _showError('Insufficient wallet balance');
-      return;
-    }
-
-    setState(() => _isProcessing = true);
-
+  // ── Non-NG: launch the native store purchase ─────────────────────────────────
+  Future<void> _buyStore(ProductDetails product) async {
+    setState(() => _pendingProductId = product.id);
     try {
-      // Deduct from wallet and credit coins
-      final brain = context.read<UserProvider>();
-      // await brain.deductWallet(nairaAmount);
-
-      final rewardProvider = context.read<RewardProvider>();
-      await rewardProvider.loadCoinBalance();
-
-      if (mounted) {
-        setState(() {
-          _coinBalance = rewardProvider.coinBalance;
-          _walletBalance = brain.user!.wallet.fiat.availableBalance;
-        });
-
-        _showSuccess('₦${nairaAmount.toStringAsFixed(2)} converted to $amount coins!');
-
-        // Reset selection
-        setState(() {
-          _selectedAmount = null;
-          _customController.clear();
-        });
-      }
+      await _store.buy(product);
+      // Result arrives asynchronously on the purchase stream → _onStoreDelivered.
     } catch (e) {
       if (mounted) {
-        _showError(e.toString());
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isProcessing = false);
+        setState(() => _pendingProductId = null);
+        FlushBarMessage.showFlushBar(context: context, message: 'Could not start purchase');
       }
     }
   }
 
-  void _showError(String message) {
-    FlushBarMessage.showFlushBar(
-      context: context,
-      message: message,
-      title: 'Error',
-      icon: const Icon(Icons.error_outline, color: Colors.white),
-    );
-  }
-
-  void _showSuccess(String message) {
-    FlushBarMessage.showFlushBar(
-      context: context,
-      message: message,
-      title: 'Success',
-      icon: const Icon(Icons.check_circle, color: Colors.white),
-    );
+  Future<void> _onStoreDelivered(String productId, bool success) async {
+    if (!mounted) return;
+    setState(() => _pendingProductId = null);
+    if (success) {
+      await context.read<RewardProvider>().loadCoinBalance();
+      FlushBarMessage.showFlushBar(context: context, message: '${coinsForProduct(productId)} coins added!');
+    } else {
+      FlushBarMessage.showFlushBar(context: context, message:  'Purchase could not be verified');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final selectedAmount = _selectedAmount ?? int.tryParse(_customController.text) ?? 0;
-    final nairaAmount = selectedAmount / 10;
+    final reward = context.watch<RewardProvider>();
 
     return Scaffold(
       backgroundColor: VendorTheme.background,
       appBar: AppBar(
         backgroundColor: VendorTheme.background,
         elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          'Buy Coins',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        title: const Text('Buy Coins', style: TextStyle(fontWeight: FontWeight.bold)),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Balance cards
-            Row(
-              children: [
-                Expanded(
-                  child: _BalanceCard(
-                    icon: Icons.account_balance_wallet,
-                    label: 'Wallet',
-                    amount: '₦${kFormatter.format(_walletBalance)}',
-                    color: VendorTheme.primary,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: _BalanceCard(
-                    icon: Icons.stars_rounded,
-                    label: 'Coins',
-                    amount: kFormatterNo.format(_coinBalance),
-                    color: VendorTheme.gold,
-                  ),
-                ),
-              ],
-            ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          _BalanceHeader(
+            purchased: reward.purchasedCoins,
+            earned: reward.earnedCoins,
+          ),
+          const SizedBox(height: 20),
+          // Plain-language explainer — purchased coins are for gifting/boosting.
+          _InfoNote(
+            text: _isNg
+                ? 'Coins are for sending gifts and boosting posts. Pay with your '
+                'wallet or OPay. Coins you buy can\'t be withdrawn — only coins '
+                'you receive as gifts can be converted.'
+                : 'Coins are for sending gifts and boosting posts. Prices are set '
+                'by the App Store / Google Play in your local currency.',
+          ),
+          const SizedBox(height: 24),
+          const Text('Choose a pack',
+              style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 14),
+          if (_isNg)
+            _buildNgPacks(reward)
+          else
+            _buildStorePacks(),
+        ],
+      ),
+    );
+  }
 
-            const SizedBox(height: 32),
+  // NG packs — coins + ₦ price.
+  Widget _buildNgPacks(RewardProvider reward) {
+    if (reward.packs.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 40),
+        child: Center(child: CircularProgressIndicator(color: VendorTheme.primary)),
+      );
+    }
+    return Column(
+      children: reward.packs
+          .map((p) => _PackTile(
+        coins: p.coins,
+        priceLabel: '₦${p.nairaWallet.toStringAsFixed(0)}',
+        onTap: () => _buyNg(p),
+      ))
+          .toList(),
+    );
+  }
 
-            // Conversion info
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    VendorTheme.primary.withOpacity(0.15),
-                    VendorTheme.primary.withOpacity(0.05),
-                  ],
-                ),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: VendorTheme.primary.withOpacity(0.3),
-                ),
+  // Non-NG packs — coins + store-localized price.
+  Widget _buildStorePacks() {
+    if (_loadingProducts) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(vertical: 40),
+        child: Center(child: CircularProgressIndicator(color: VendorTheme.primary)),
+      );
+    }
+    if (!_storeAvailable || _products.isEmpty) {
+      // NOT_CONFIGURED era (no store products yet) or store unavailable (e.g. web).
+      return const _EmptyStore();
+    }
+    // Store returns products unsorted-by-coins; the service already sorted them.
+    return Column(
+      children: _products
+          .map((prod) => _PackTile(
+        coins: coinsForProduct(prod.id),
+        priceLabel: prod.price, // localized by the store, shown verbatim
+        loading: _pendingProductId == prod.id,
+        onTap: _pendingProductId == null ? () => _buyStore(prod) : null,
+      ))
+          .toList(),
+    );
+  }
+}
+
+// ── Widgets ─────────────────────────────────────────────────────────────────
+
+class _BalanceHeader extends StatelessWidget {
+  final int purchased;
+  final int earned;
+  const _BalanceHeader({required this.purchased, required this.earned});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [VendorTheme.primary, Color(0xFF177E85)],
+        ),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.stars_rounded, color: Colors.white, size: 26),
+              const SizedBox(width: 8),
+              Text('${purchased + earned}',
+                  style: const TextStyle(color: Colors.white, fontSize: 30, fontWeight: FontWeight.w900)),
+              const SizedBox(width: 6),
+              const Padding(
+                padding: EdgeInsets.only(top: 8),
+                child: Text('coins', style: TextStyle(color: Colors.white70, fontSize: 14)),
               ),
-              child: Row(
-                children: [
+            ],
+          ),
+          const SizedBox(height: 10),
+          // Show the split so the convertibility rule is visible.
+          Row(
+            children: [
+              _miniStat('Purchased', purchased, 'spend only'),
+              const SizedBox(width: 20),
+              _miniStat('Earned', earned, 'convertible'),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _miniStat(String label, int value, String sub) => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text('$label · $value',
+          style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 13)),
+      Text(sub, style: const TextStyle(color: Colors.white60, fontSize: 11)),
+    ],
+  );
+}
+
+class _PackTile extends StatelessWidget {
+  final int coins;
+  final String priceLabel;
+  final VoidCallback? onTap;
+  final bool loading;
+  const _PackTile({required this.coins, required this.priceLabel, this.onTap, this.loading = false});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: Material(
+        color: VendorTheme.surface,
+        borderRadius: BorderRadius.circular(14),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            child: Row(
+              children: [
+                const Icon(Icons.stars_rounded, color: VendorTheme.gold, size: 26),
+                const SizedBox(width: 14),
+                Text('$coins coins',
+                    style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w700)),
+                const Spacer(),
+                if (loading)
+                  const SizedBox(
+                    width: 20, height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2.4, color: VendorTheme.primary),
+                  )
+                else
                   Container(
-                    padding: const EdgeInsets.all(10),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                     decoration: BoxDecoration(
-                      color: VendorTheme.primary.withOpacity(0.2),
+                      color: VendorTheme.primary.withOpacity(0.15),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(
-                      Icons.info_outline,
-                      color: VendorTheme.primary,
-                      size: 24,
-                    ),
+                    child: Text(priceLabel,
+                        style: const TextStyle(color: VendorTheme.primary, fontWeight: FontWeight.w800)),
                   ),
-                  const SizedBox(width: 14),
-                  const Expanded(
-                    child: Text(
-                      '₦1 = 10 coins\nBuy coins to send gifts',
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 14,
-                        height: 1.4,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+              ],
             ),
-
-            const SizedBox(height: 28),
-
-            // Quick amounts
-            const Text(
-              'Quick Buy',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 14),
-
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: 1.3,
-              ),
-              itemCount: _quickAmounts.length,
-              itemBuilder: (context, index) {
-                final coins = _quickAmounts[index];
-                final isSelected = _selectedAmount == coins;
-
-                return _QuickAmountCard(
-                  coins: coins,
-                  naira: coins / 10,
-                  isSelected: isSelected,
-                  onTap: () {
-                    setState(() {
-                      _selectedAmount = isSelected ? null : coins;
-                      _customController.clear();
-                    });
-                  },
-                );
-              },
-            ),
-
-            const SizedBox(height: 28),
-
-            // Custom amount
-            const Text(
-              'Custom Amount',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 14),
-
-            TextField(
-              controller: _customController,
-              keyboardType: TextInputType.number,
-              style: const TextStyle(color: Colors.white, fontSize: 16),
-              decoration: InputDecoration(
-                hintText: 'Enter coins amount',
-                hintStyle: TextStyle(color: Colors.grey[600]),
-                prefixIcon: const Icon(Icons.stars_rounded, color: VendorTheme.gold),
-                filled: true,
-                fillColor: VendorTheme.surface,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: BorderSide.none,
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(14),
-                  borderSide: const BorderSide(color: VendorTheme.primary, width: 2),
-                ),
-              ),
-              onChanged: (value) {
-                setState(() {
-                  _selectedAmount = null;
-                });
-              },
-            ),
-
-            const SizedBox(height: 28),
-
-            // Preview popular gifts
-            const Text(
-              'Popular Gifts',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 14),
-
-            SizedBox(
-              height: 80,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: 6,
-                separatorBuilder: (_, __) => const SizedBox(width: 10),
-                itemBuilder: (context, index) {
-                  final gift = GiftType.allGifts[index];
-                  return _GiftPreview(gift: gift);
-                },
-              ),
-            ),
-
-            const SizedBox(height: 32),
-
-            // Buy summary
-            if (selectedAmount > 0)
-              Container(
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: VendorTheme.surface,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: VendorTheme.primary.withOpacity(0.3),
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'You Pay',
-                          style: TextStyle(color: Colors.white70, fontSize: 15),
-                        ),
-                        Text(
-                          '₦${nairaAmount.toStringAsFixed(2)}',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'You Get',
-                          style: TextStyle(color: Colors.white70, fontSize: 15),
-                        ),
-                        Row(
-                          children: [
-                            const Icon(Icons.stars_rounded, color: VendorTheme.gold, size: 18),
-                            const SizedBox(width: 6),
-                            Text(
-                              '$selectedAmount coins',
-                              style: const TextStyle(
-                                color: VendorTheme.gold,
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-
-            const SizedBox(height: 20),
-
-            // Buy button
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton(
-                onPressed: (selectedAmount > 0 && !_isProcessing)
-                    ? () {
-                  showModalBottomSheet(
-                    isScrollControlled: true,
-                    context: context,
-                    isDismissible: false,
-                    builder: (_) => TransactionPin(
-                      onSuccess: () async {
-                          Navigator.pop(context);
-                          _buyCoins();
-                        }
-
-                    ),
-                  );
-                }
-                    : null,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: VendorTheme.primary,
-                  disabledBackgroundColor: Colors.grey[800],
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  elevation: 8,
-                  shadowColor: VendorTheme.primary.withOpacity(0.4),
-                ),
-                child: _isProcessing
-                    ? const SizedBox(
-                  width: 24,
-                  height: 24,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2.5,
-                    valueColor: AlwaysStoppedAnimation(Colors.black),
-                  ),
-                )
-                    : const Text(
-                  'Buy Coins',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.black,
-                  ),
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
 }
 
-class _BalanceCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String amount;
-  final Color color;
-
-  const _BalanceCard({
-    required this.icon,
-    required this.label,
-    required this.amount,
-    required this.color,
-  });
-
+class _InfoNote extends StatelessWidget {
+  final String text;
+  const _InfoNote({required this.text});
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            color.withOpacity(0.15),
-            color.withOpacity(0.05),
-          ],
-        ),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: color.withOpacity(0.3),
-        ),
+        color: VendorTheme.primary.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: VendorTheme.primary.withOpacity(0.25)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Icon(icon, color: color, size: 24),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: TextStyle(
-              color: Colors.grey[400],
-              fontSize: 12,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            amount,
-            style: TextStyle(
-              color: color,
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+          const Icon(Icons.info_outline, color: VendorTheme.primary, size: 20),
+          const SizedBox(width: 12),
+          Expanded(child: Text(text, style: const TextStyle(color: Colors.white70, fontSize: 13, height: 1.4))),
         ],
       ),
     );
   }
 }
 
-class _QuickAmountCard extends StatelessWidget {
-  final int coins;
-  final double naira;
-  final bool isSelected;
-  final VoidCallback onTap;
-
-  const _QuickAmountCard({
-    required this.coins,
-    required this.naira,
-    required this.isSelected,
-    required this.onTap,
-  });
-
+class _EmptyStore extends StatelessWidget {
+  const _EmptyStore();
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        decoration: BoxDecoration(
-          gradient: isSelected
-              ? const LinearGradient(
-            colors: [VendorTheme.primary, Color(0xFF177E85)],
-          )
-              : null,
-          color: isSelected ? null : VendorTheme.surface,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: isSelected
-                ? Colors.transparent
-                : VendorTheme.primary.withOpacity(0.2),
-            width: 1.5,
-          ),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.stars_rounded,
-                  color: isSelected ? Colors.white : VendorTheme.gold,
-                  size: 18,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  kFormatterNo.format(coins),
-                  style: TextStyle(
-                    color: isSelected ? Colors.white : VendorTheme.gold,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Text(
-              '₦${naira.toStringAsFixed(0)}',
-              style: TextStyle(
-                color: isSelected ? Colors.white70 : Colors.grey[500],
-                fontSize: 13,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _GiftPreview extends StatelessWidget {
-  final GiftType gift;
-
-  const _GiftPreview({required this.gift});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 70,
-      padding: const EdgeInsets.all(8),
-      decoration: BoxDecoration(
-        color: VendorTheme.surface,
-        borderRadius: BorderRadius.circular(12),
-      ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 40),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(gift.emoji, style: const TextStyle(fontSize: 28)),
-          const SizedBox(height: 4),
-          Text(
-            '${gift.coins}',
-            style: const TextStyle(
-              color: VendorTheme.gold,
-              fontSize: 11,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
+        children: const [
+          Icon(Icons.shopping_bag_outlined, color: Colors.white38, size: 48),
+          SizedBox(height: 12),
+          Text('Coin purchases are coming soon',
+              style: TextStyle(color: Colors.white70, fontWeight: FontWeight.w700)),
+          SizedBox(height: 6),
+          Text('Check back shortly.', style: TextStyle(color: Colors.white38, fontSize: 13)),
         ],
       ),
     );

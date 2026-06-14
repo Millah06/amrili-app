@@ -23,6 +23,10 @@ class ChatModel {
   final String name;
   final String? avatarUrl;
 
+  /// Postgres id of the other participant — kept so a cached row can open the
+  /// conversation offline without re-reading Firestore participantInfo.
+  final String otherUserId;
+
   final String? lastMessage;
   final MessageType lastMessageType;
 
@@ -41,12 +45,21 @@ class ChatModel {
   final bool isOnline;
   final bool isTyping;
 
+  /// Message-requests: 'accepted' | 'pending' | 'blocked'. Legacy rooms with no
+  /// field are treated as 'accepted'.
+  final String requestState;
+
+  /// Postgres id of whoever initiated the chat (the recipient is the *other*
+  /// participant, and is the one who sees/acts on a pending request).
+  final String requestedBy;
+
   final MessageStatus? messageStatus;
 
   const ChatModel({
     required this.id,
     required this.name,
     this.avatarUrl,
+    this.otherUserId = '',
     this.lastMessage,
     this.lastMessageType = MessageType.text,
     this.lastMessageAt,
@@ -59,6 +72,8 @@ class ChatModel {
     this.isFavourite = false,
     this.isOnline = false,
     this.isTyping = false,
+    this.requestState = 'accepted',
+    this.requestedBy = '',
     this.messageStatus,
   });
 
@@ -110,6 +125,8 @@ class ChatModel {
 
       avatarUrl: otherUser['avatar'],
 
+      otherUserId: otherUid,
+
       lastMessage: data['lastMessage'] ?? '',
 
       lastMessageType: messageType,
@@ -126,7 +143,62 @@ class ChatModel {
       isOfficial: data['isOfficial'] ?? false,
 
       isGroup: (participants.length > 2),
+
+      requestState: data['requestState'] ?? 'accepted',
+
+      requestedBy: data['requestedBy'] ?? '',
     );
   }
+
+  /// Plain-map serialization for the Hive cache (JSON-safe primitives only).
+  Map<String, dynamic> toMap() => {
+        'id': id,
+        'name': name,
+        'avatarUrl': avatarUrl,
+        'otherUserId': otherUserId,
+        'lastMessage': lastMessage,
+        'lastMessageType': lastMessageType.name,
+        'lastMessageAt': lastMessageAt?.millisecondsSinceEpoch,
+        'unreadCount': unreadCount,
+        'isPinned': isPinned,
+        'isArchived': isArchived,
+        'isOfficial': isOfficial,
+        'isSystem': isSystem,
+        'isGroup': isGroup,
+        'isFavourite': isFavourite,
+        'requestState': requestState,
+        'requestedBy': requestedBy,
+        'messageStatus': messageStatus?.name,
+      };
+
+  factory ChatModel.fromMap(Map<String, dynamic> map) => ChatModel(
+        id: map['id'] ?? '',
+        name: map['name'] ?? 'Unknown',
+        avatarUrl: map['avatarUrl'],
+        otherUserId: map['otherUserId'] ?? '',
+        lastMessage: map['lastMessage'] ?? '',
+        lastMessageType: MessageType.values.firstWhere(
+          (e) => e.name == map['lastMessageType'],
+          orElse: () => MessageType.text,
+        ),
+        lastMessageAt: map['lastMessageAt'] != null
+            ? DateTime.fromMillisecondsSinceEpoch(map['lastMessageAt'])
+            : null,
+        unreadCount: map['unreadCount'] ?? 0,
+        isPinned: map['isPinned'] ?? false,
+        isArchived: map['isArchived'] ?? false,
+        isOfficial: map['isOfficial'] ?? false,
+        isSystem: map['isSystem'] ?? false,
+        isGroup: map['isGroup'] ?? false,
+        isFavourite: map['isFavourite'] ?? false,
+        requestState: map['requestState'] ?? 'accepted',
+        requestedBy: map['requestedBy'] ?? '',
+        messageStatus: map['messageStatus'] != null
+            ? MessageStatus.values.firstWhere(
+                (e) => e.name == map['messageStatus'],
+                orElse: () => MessageStatus.sent,
+              )
+            : null,
+      );
 
 }

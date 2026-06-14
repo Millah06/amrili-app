@@ -96,6 +96,7 @@ dependencies:
   qr_flutter: ^4.1.0
   pretty_qr_code: ^3.3.0
   firebase_analytics: ^11.6.0
+  in_app_purchase: ^3.3.0
 
 dev_dependencies:
   flutter_test:

@@ -1,5 +1,6 @@
 import 'package:everywhere/components/formatters.dart';
 import 'package:everywhere/models/notification_model.dart';
+import 'package:everywhere/features/communication/services/chat_cache_service.dart';
 import 'package:everywhere/providers/user_provider.dart';
 import 'package:everywhere/services/api_service.dart';
 import 'package:everywhere/services/session_service.dart';
@@ -88,6 +89,10 @@ void main() async {
 
   Hive.registerAdapter(AppNotificationAdapter());
   await Hive.openBox<AppNotification>('notifications');
+
+  // Phase 3 — local-first chat cache (instant load + offline history that
+  // survives server-side message expiry/cleanup).
+  await ChatCacheService.instance.init();
 
   SystemChrome.setSystemUIOverlayStyle(
       SystemUiOverlayStyle(

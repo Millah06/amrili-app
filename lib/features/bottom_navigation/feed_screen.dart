@@ -22,6 +22,8 @@ import '../social/widgets/search_widget.dart';
 import '../social/screens/create_post_screen.dart';
 import 'package:pull_to_reveal_flutter/pull_to_reveal_flutter.dart';
 
+import '../social/widgets/spotlight_entry_card.dart';
+
 class FeedScreen extends StatefulWidget {
 
   final Function(bool isScrollingDown)? onScrollDirectionChanged;
@@ -309,9 +311,7 @@ class _FeedScreenState extends State<FeedScreen> with AutomaticKeepAliveClientMi
                         controller: _scrollController,
                         slivers: [
                           // Compact Leaderboard
-                          const SliverToBoxAdapter(
-                            child: CompactLeaderboard(),
-                          ),
+                          const SliverToBoxAdapter(child: SpotlightEntryCard()),
                           // Posts List
                           Consumer<FeedProvider>(
                             builder: (context, feedProvider, _) {

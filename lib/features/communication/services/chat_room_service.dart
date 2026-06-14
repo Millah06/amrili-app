@@ -62,14 +62,27 @@ class ChatRoomService {
   //   return roomRef.id;
   // }
 
-  Future<String> createOrGetChatRoom({required String otherId}) async {
-    
+  Future<String> createOrGetChatRoom({required String otherId, String? initiatedVia}) async {
+
     try {
-      final data = await api.post('/chat/create-or-get-room', {'otherUserId' : otherId});
+      final data = await api.post('/chat/create-or-get-room', {
+        'otherUserId': otherId,
+        if (initiatedVia != null) 'initiatedVia': initiatedVia,
+      });
       return data['roomId'];
     }
     catch (e) {
       rethrow;
+    }
+  }
+
+  /// Respond to a message request: 'accept' | 'decline' | 'block'.
+  Future<bool> respondToRequest({required String roomId, required String action}) async {
+    try {
+      await api.post('/chat/room/$roomId/respond', {'action': action});
+      return true;
+    } catch (_) {
+      return false;
     }
   }
 
@@ -110,6 +123,20 @@ class ChatRoomService {
         '/chat/find-by-phone?phone=${Uri.encodeComponent(phone)}', optionalHeader: true
       );
 
+      if (data == null) return null;
+      return Map<String, dynamic>.from(data['user']);
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Resolve a Postgres User.id → profile card (for the chat-QR landing).
+  Future<Map<String, dynamic>?> findUserById(String userId) async {
+    try {
+      final data = await api.get(
+        '/chat/user/${Uri.encodeComponent(userId)}',
+        optionalHeader: true,
+      );
       if (data == null) return null;
       return Map<String, dynamic>.from(data['user']);
     } catch (_) {

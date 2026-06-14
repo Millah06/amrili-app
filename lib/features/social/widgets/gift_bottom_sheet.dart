@@ -20,6 +20,7 @@ import '../models/post_model.dart';
 import '../models/gift_type.dart';
 import '../providers/feed_provider.dart';
 import '../providers/reward_provider.dart';
+import '../screens/buy_coins_screen.dart';
 
 // 10 coins = ₦1 (matches the existing conversion used across the app).
 const double _kCoinsPerNaira = 10;
@@ -90,19 +91,16 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
       coinCost: _totalCoins,
       coinBalance: _coinBalance,
       productName: '$_quantity ${gift.name}${_quantity > 1 ? "s" : ""}',
-      // Coins-else-wallet: tell the sheet the shortfall comes from the wallet so
-      // it proceeds (with PIN) instead of blocking.
-      walletFallbackNaira: _coinsShort ? _walletShortfallNaira : null,
+      onGetCoins: () {
+        Navigator.pop(context); // close gift sheet
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const BuyCoinsScreen()));
+      },
       onConfirm: () async {
-        final rewardProvider = context.read<RewardProvider>();
-        // Send one gift per quantity (backend decides coins vs wallet each time).
+        final reward = context.read<RewardProvider>();
         for (int i = 0; i < _quantity; i++) {
-          await rewardProvider.sendGift(
-            postId: widget.post.postId,
-            giftType: gift.id,
-          );
+          await reward.sendGift(postId: widget.post.postId, giftType: gift.id);
         }
-        return true; // any failure throws → the sheet shows the error
+        return true;
       },
     );
 

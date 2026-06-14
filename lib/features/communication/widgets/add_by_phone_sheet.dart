@@ -364,7 +364,7 @@ class AddByPhoneNumberState extends State<AddByPhoneNumber> {
                           onPressed: () =>  GuestHelper.guardAction(context, action: () async {
 
                             final roomId =
-                            await ChatRoomService().createOrGetChatRoom(otherId: _user!['id'],
+                            await ChatRoomService().createOrGetChatRoom(otherId: _user!['id'], initiatedVia: 'phone',
                             );
 
                             if (!mounted) return;
@@ -378,11 +378,11 @@ class AddByPhoneNumberState extends State<AddByPhoneNumber> {
                                     Peer2PeerChat(
                                       roomId: roomId,
                                       otherUid:
-                                      _user!['uid'],
+                                      _user!['id'],
                                       otherUserName:
                                       _user!['name'],
-                                      currentUserUid:
-                                      widget.pov.currentUser,
+                                      otherAvatarUrl:
+                                      _user!['avatarUrl'],
                                     ),
                               ),
                             );

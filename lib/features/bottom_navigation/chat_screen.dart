@@ -14,14 +14,13 @@ import 'package:iconify_flutter/icons/ph.dart';
 import 'package:provider/provider.dart';
 import 'package:pull_to_reveal_flutter/pull_to_reveal_flutter.dart';
 import '../../constraints/constants.dart';
-import '../../constraints/vendor_theme.dart';
 import '../communication/providers/chat_provider.dart';
+import '../../providers/user_provider.dart';
 import '../../services/brain.dart';
-import '../../shared/widgets/country_code_picker_field.dart';
-import '../communication/services/chat_room_service.dart';
 import '../communication/widgets/add_by_phone_sheet.dart';
 import '../communication/widgets/add_by_username_sheet.dart';
 import '../communication/screens/message_screen.dart';
+import '../communication/screens/message_requests_screen.dart';
 
 
 class Messages extends StatefulWidget {
@@ -39,6 +38,11 @@ class _MessagesState extends State<Messages> {
   Widget build(BuildContext context) {
     final pov = Provider.of<Brain>(context);
     final chatsProvider = context.watch<ChatsProvider>();
+    // Postgres user id — chat rooms store Postgres ids in `participants`,
+    // so the list must be queried with this, not the Firebase uid.
+    final myId = context.watch<UserProvider>().user?.userId;
+    // Paint instantly from the Hive cache while Firestore catches up.
+    if (myId != null) chatsProvider.seedFromCache(myId);
      return PullRevealOverlayWrapper(
        controller: PullToRevealController(),
        child: Scaffold(
@@ -53,7 +57,7 @@ class _MessagesState extends State<Messages> {
            ),
            actions: [
              GestureDetector(
-               onTap: () => context.push('/scan'),
+               onTap: () => context.push('/my-chat-qr'),
                child: Column(
                  mainAxisAlignment: MainAxisAlignment.end,
                  crossAxisAlignment: CrossAxisAlignment.end,
@@ -107,13 +111,20 @@ class _MessagesState extends State<Messages> {
              if (!GuestHelper.isGuest) ...[
                Expanded(
                  child: StreamBuilder<QuerySnapshot>(
-                   stream: chatsProvider.chatStream(pov.currentUser),
+                   stream: chatsProvider.chatStream(myId),
                    builder: (context, snapshot) {
 
                      if (!snapshot.hasData) {
-                       return const Center(
-                         child: CircularProgressIndicator(),
-                       );
+                       // Offline / first frame: show cached chats if we have
+                       // them, otherwise a skeleton.
+                       if (chatsProvider.chats.isNotEmpty) {
+                         return ValueListenableBuilder(
+                           valueListenable: filter,
+                           builder: (_, value, __) =>
+                               _buildCachedList(context, pov, value, chatsProvider),
+                         );
+                       }
+                       return const _ChatListSkeleton();
                      }
 
                      final docs = snapshot.data!.docs;
@@ -126,61 +137,11 @@ class _MessagesState extends State<Messages> {
                        );
                      }
 
-                     chatsProvider.updateFromSnapshot(snapshot.data!, pov.currentUser);
+                     chatsProvider.updateFromSnapshot(snapshot.data!, myId ?? '');
 
                      return ValueListenableBuilder(valueListenable: filter,
-                         builder: (_, value, _) {
-                           final chats = chatsProvider.filtered(value);
-                           return ListView.separated(
-                             separatorBuilder: (_, __) => Divider(
-                               indent: 16,
-                               endIndent: 16,
-                               color: Colors.white.withOpacity(0.05),
-                               height: 1,
-                             ),
-                             itemCount: chats.length + 1,
-                             itemBuilder: (context, index) {
-
-                               if (index == chats.length) {
-                                 return ChatListFooter(
-                                   onAddFriends: () {
-                                     showAddFriendsSheet(context, pov);
-                                   },
-                                 );
-                               }
-
-                               final data = docs[index];
-
-                               final participantInfo = data['participantInfo'] as Map;
-
-                               final otherUser =
-                               participantInfo.entries.firstWhere(
-                                     (e) => e.key != pov.currentUser,
-                               );
-
-                               final name = otherUser.value['name'];
-
-                               final chat = chats[index];
-
-                               return ChatCard(
-                                 chat: chat,
-                                 onTap: () {
-                                   Navigator.push(
-                                     context,
-                                     MaterialPageRoute(
-                                       builder: (_) => Peer2PeerChat(
-                                         roomId: data.id,
-                                         otherUserName: name,
-                                         currentUserUid: pov.currentUser,
-                                         otherUid: otherUser.key,
-                                       ),
-                                     ),
-                                   );
-                                 },
-                               );
-                             },
-                           );
-                         });
+                         builder: (_, value, __) =>
+                             _buildCachedList(context, pov, value, chatsProvider));
 
                    },
                  ),
@@ -190,6 +151,79 @@ class _MessagesState extends State<Messages> {
          ),
        ),
      );
+  }
+
+  /// Renders the chat list straight from cached [ChatModel]s (no Firestore
+  /// docs) — used for the offline / first-frame path.
+  Widget _buildCachedList(
+    BuildContext context,
+    Brain pov,
+    String value,
+    ChatsProvider chatsProvider,
+  ) {
+    final chats = chatsProvider.filtered(value);
+    final requestCount = chatsProvider.requestCount;
+    final banner = requestCount > 0 && value == 'All'
+        ? _RequestsBanner(
+            count: requestCount,
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const MessageRequestsScreen()),
+            ),
+          )
+        : null;
+
+    if (chats.isEmpty) {
+      return Column(
+        children: [
+          if (banner != null) banner,
+          Expanded(
+            child: EmptyChatView(
+                onAddFriends: () => showAddFriendsSheet(context, pov)),
+          ),
+        ],
+      );
+    }
+    return Column(
+      children: [
+        if (banner != null) banner,
+        Expanded(
+          child: ListView.separated(
+            separatorBuilder: (_, __) => Divider(
+              indent: 16,
+              endIndent: 16,
+              color: Colors.white.withValues(alpha: 0.05),
+              height: 1,
+            ),
+            itemCount: chats.length + 1,
+            itemBuilder: (context, index) {
+              if (index == chats.length) {
+                return ChatListFooter(
+                  onAddFriends: () => showAddFriendsSheet(context, pov),
+                );
+              }
+              final chat = chats[index];
+              return ChatCard(
+                chat: chat,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => Peer2PeerChat(
+                        roomId: chat.id,
+                        otherUserName: chat.name,
+                        otherUid: chat.otherUserId,
+                        otherAvatarUrl: chat.avatarUrl,
+                      ),
+                    ),
+                  );
+                },
+              );
+            },
+          ),
+        ),
+      ],
+    );
   }
 
   void showAddFriendsSheet(BuildContext context, Brain pov) {
@@ -275,6 +309,16 @@ class _MessagesState extends State<Messages> {
                   // show your contacts list
                   _showSyncFromContact(context, pov);
 
+                },
+              ),
+
+              _MinimalActionTile(
+                icon: Icons.qr_code_scanner_rounded,
+                title: 'Scan QR code',
+                subtitle: 'Scan a friend’s chat code',
+                onTap: () {
+                  Navigator.pop(context);
+                  context.push('/scan');
                 },
               ),
             ],
@@ -596,6 +640,96 @@ class ChatListFooter extends StatelessWidget {
       ),
     );
   }
+}
+
+/// Banner shown atop the chat list when there are pending message requests.
+class _RequestsBanner extends StatelessWidget {
+  const _RequestsBanner({required this.count, required this.onTap});
+
+  final int count;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        child: Container(
+          margin: const EdgeInsets.fromLTRB(12, 4, 12, 8),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF177E85).withValues(alpha: 0.14),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+                color: const Color(0xFF177E85).withValues(alpha: 0.4)),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.mark_email_unread_outlined,
+                  color: Color(0xFF2DD4BF), size: 22),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  count == 1
+                      ? '1 message request'
+                      : '$count message requests',
+                  style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600),
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded, color: Colors.white54),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Lightweight skeleton shown while the chat list is loading — a calmer,
+/// more premium first paint than a lone spinner.
+class _ChatListSkeleton extends StatelessWidget {
+  const _ChatListSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: 8,
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      itemBuilder: (_, __) => Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        child: Row(
+          children: [
+            _box(50, 50, radius: 25),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _box(140, 13, radius: 6),
+                  const SizedBox(height: 8),
+                  _box(double.infinity, 11, radius: 6),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _box(double w, double h, {double radius = 8}) => Container(
+        width: w,
+        height: h,
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(radius),
+        ),
+      );
 }
 
 // ─────────────────────────────────────────────────────────────

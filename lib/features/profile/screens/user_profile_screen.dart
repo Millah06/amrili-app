@@ -5,6 +5,7 @@ import 'package:everywhere/features/profile/providers/user_profile_provider.dart
 import 'package:everywhere/features/profile/widgets/profile_posts_tab.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../social/screens/gift_user_screen.dart';
 import '../widgets/about_placeholder.dart';
 import '../widgets/about_tab.dart';
 import '../widgets/profile_header_delegate.dart';
@@ -117,6 +118,15 @@ class _UserProfileScreenState extends State<UserProfileScreen>
                       reason: 'follow creators'),
                   isFollowing: provider.isFollowing,
                   onMessage: () {/* your existing message logic */},
+                  onGift: () => GuestHelper.guardAction(context,
+                      action: () => Navigator.push(context, MaterialPageRoute(
+                        builder: (_) => GiftUserScreen(
+                          receiverId: displayData?.userId ?? provider.profile!.userId,        // or provider.profile!.userId
+                          displayName: displayData?.userName ?? provider.profile!.userName,
+                          avatarUrl: displayData?.avatar ?? provider.profile!.avatar,
+                        ),
+                      )),
+                      reason: 'send a gift'),
                 ),
               ),
               SliverPersistentHeader(

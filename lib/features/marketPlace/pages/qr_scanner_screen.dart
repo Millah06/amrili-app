@@ -91,7 +91,8 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
 
   bool _matches(String path) {
     return RegExp(r'^/store/[^/]+(/table/[^/]+)?$').hasMatch(path) ||
-        RegExp(r'^/product/[^/]+$').hasMatch(path);
+        RegExp(r'^/product/[^/]+$').hasMatch(path) ||
+        RegExp(r'^/chat-user/[^/]+$').hasMatch(path);
   }
 
   // ── Zoom ────────────────────────────────────────────────────────────────────
@@ -193,7 +194,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
                     borderRadius: BorderRadius.circular(100),
                   ),
                   child: Text(
-                    'Point at an Amril store, product or table QR',
+                    'Point at an Amril store, product, table or chat QR',
                     textAlign: TextAlign.center,
                     style: GoogleFonts.inter(
                         color: Colors.white,

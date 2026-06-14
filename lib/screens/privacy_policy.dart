@@ -29,7 +29,9 @@ class _PrivacyPolicyPageState extends State<PrivacyPolicyPage> {
   Widget build(BuildContext context) {
     return Scaffold(
         appBar: AppBar(
-          title: Text('Privacy Policy', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),),
+          title: Text('Privacy Policy',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+          ),
           iconTheme: IconThemeData(
             color: Colors.white
           ),

@@ -557,19 +557,32 @@ class SocialApiService {
     }
   }
 
-  Future<Map<String, dynamic>> boostPost(String postId) async {
+  Future<Map<String, dynamic>> getCoinCatalog() async {
     final headers = await _getHeaders();
-    final response = await http.post(
-      Uri.parse('$baseUrl/rewards/boost'),
-      headers: headers,
-      body: jsonEncode({'postId': postId}),
-    );
+    final r = await http.get(Uri.parse('$baseUrl/coins/catalog'), headers: headers);
+    if (r.statusCode == 200) return jsonDecode(r.body);
+    throw Exception('Failed to load coin catalog');
+  }
 
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
-    } else {
-      throw Exception('Failed to boost post: ${response.body}');
-    }
+  Future<Map<String, dynamic>> verifyIapPurchase({
+    required String platform, required String productId, required String token,
+  }) async {
+    final headers = await _getHeaders();
+    final r = await http.post(Uri.parse('$baseUrl/coins/purchase/iap'),
+        headers: headers,
+        body: jsonEncode({'platform': platform, 'productId': productId, 'token': token}));
+    if (r.statusCode == 200) return jsonDecode(r.body);
+    final e = jsonDecode(r.body);
+    throw Exception(e['error'] ?? 'Verification failed');
+  }
+
+  Future<Map<String, dynamic>> boostPost({required String postId, required String tier}) async {
+    final headers = await _getHeaders();
+    final r = await http.post(Uri.parse('$baseUrl/social/boost'),
+        headers: headers, body: jsonEncode({'postId': postId, 'tier': tier}));
+    if (r.statusCode == 200) return jsonDecode(r.body);
+    final e = jsonDecode(r.body);
+    throw Exception(e['error'] ?? 'Boost failed');
   }
 
   Future<Map<String, dynamic>> convertRewardPoints(double amount) async {
@@ -650,6 +663,15 @@ class SocialApiService {
     }
   }
 
+  Future<Map<String, dynamic>> sendUserGift({required String receiverId, required String giftType}) async {
+    final headers = await _getHeaders();
+    final r = await http.post(Uri.parse('$baseUrl/gifts/send-user'),
+        headers: headers, body: jsonEncode({'receiverId': receiverId, 'giftType': giftType}));
+    if (r.statusCode == 200) return jsonDecode(r.body);
+    final e = jsonDecode(r.body);
+    throw Exception(e['error'] ?? 'Failed to send gift');
+  }
+
 // Get user coin balance
   Future<Map<String, dynamic>> getCoinBalance() async {
     final headers = await _getHeaders();
@@ -702,6 +724,27 @@ class SocialApiService {
     } else {
       throw Exception('Failed to fetch creator stats');
     }
+  }
+
+  Future<List<dynamic>> getSpotlightCreators() async {
+    final headers = await _getHeaders();
+    final r = await http.get(Uri.parse('$baseUrl/social/spotlight/creators'), headers: headers);
+    if (r.statusCode == 200) return jsonDecode(r.body)['creators'] ?? [];
+    throw Exception('Failed to load creators');
+  }
+
+  Future<List<dynamic>> getSpotlightSupporters() async {
+    final headers = await _getHeaders();
+    final r = await http.get(Uri.parse('$baseUrl/social/spotlight/supporters'), headers: headers);
+    if (r.statusCode == 200) return jsonDecode(r.body)['supporters'] ?? [];
+    throw Exception('Failed to load supporters');
+  }
+
+  Future<void> setLeaderboardVisibility(bool hide) async {
+    final headers = await _getHeaders();
+    final r = await http.patch(Uri.parse('$baseUrl/users/me/leaderboard-visibility'),
+        headers: headers, body: jsonEncode({'hide': hide}));
+    if (r.statusCode != 200) throw Exception('Failed to update visibility');
   }
 
 }

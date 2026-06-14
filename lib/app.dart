@@ -25,7 +25,7 @@ import 'constraints/vendor_theme.dart';
 import 'core/analytics/analytics.dart';
 import 'core/app_scroll_behavior.dart';
 import 'core/deep_link/deep_link_service.dart';
-import 'features/bottom_navigation/services_screen.dart';
+import 'screens/services_screen.dart';
 import 'features/bottom_navigation/wallet_screen.dart';
 import 'features/payment/services/payment_service.dart';
 import 'features/payment/widgets/payment_sheet.dart';

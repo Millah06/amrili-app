@@ -24,7 +24,7 @@ class _BoostDialogState extends State<BoostDialog> {
     setState(() => _isProcessing = true);
 
     try {
-      await context.read<RewardProvider>().boostPost(widget.post.postId);
+      // await context.read<RewardProvider>().boostPost(widget.post.postId);
 
       if (mounted) {
         context.read<FeedProvider>().updatePostAfterBoost(widget.post.postId);

@@ -4,8 +4,11 @@ import 'package:everywhere/features/social/widgets/verification_badge.dart';
 import 'package:everywhere/shared/functions/shared_functions.dart';
 import 'package:flutter/material.dart';
 
+import '../../../constraints/vendor_theme.dart';
+import '../../../core/auth/guest_helper.dart';
 import '../../../core/constant/app_constants.dart';
 import '../../social/screens/followers_screen.dart';
+import '../../social/screens/gift_user_screen.dart';
 
 /// Drop-in replacement for the old _ProfileHeaderDelegate.
 /// Works for both MyProfileScreen (isOwnProfile: true)
@@ -30,6 +33,7 @@ class ProfileHeaderDelegate extends SliverPersistentHeaderDelegate {
   final VoidCallback? onBack;
   final VoidCallback? onFollow;
   final VoidCallback? onMessage;
+  final VoidCallback? onGift;
   final bool isFollowing;
 
   const ProfileHeaderDelegate({
@@ -45,6 +49,7 @@ class ProfileHeaderDelegate extends SliverPersistentHeaderDelegate {
     this.onBack,
     this.onFollow,
     this.onMessage,
+    this.onGift,
     this.isFollowing = false,
   });
 
@@ -140,6 +145,7 @@ class ProfileHeaderDelegate extends SliverPersistentHeaderDelegate {
             onShare: onShare,
             onFollow: onFollow,
             onMessage: onMessage,
+            onGift: onGift,
             onCreatePost: onCreatePost,
           ),
         ),
@@ -205,6 +211,7 @@ class _ExpandedHeader extends StatelessWidget {
   final VoidCallback? onShare;
   final VoidCallback? onFollow;
   final VoidCallback? onMessage;
+  final VoidCallback? onGift;
   final VoidCallback? onCreatePost;
 
   const _ExpandedHeader({
@@ -216,6 +223,7 @@ class _ExpandedHeader extends StatelessWidget {
     this.onShare,
     this.onFollow,
     this.onMessage,
+    this.onGift,
     this.onCreatePost,
   });
 
@@ -411,6 +419,7 @@ class _ExpandedHeader extends StatelessWidget {
           onShare: onShare,
           onFollow: onFollow,
           onMessage: onMessage,
+          onGift: onGift,
         ),
       ],
     );
@@ -720,6 +729,7 @@ class _ActionButtons extends StatelessWidget {
   final VoidCallback? onShare;
   final VoidCallback? onFollow;
   final VoidCallback? onMessage;
+  final VoidCallback? onGift;
 
   const _ActionButtons({
     required this.isOwnProfile,
@@ -729,6 +739,7 @@ class _ActionButtons extends StatelessWidget {
     this.onShare,
     this.onFollow,
     this.onMessage,
+    this.onGift,
   });
 
   @override
@@ -800,7 +811,21 @@ class _ActionButtons extends StatelessWidget {
             ),
           ),
         ),
+        // in the "other user" Row, between the Follow Expanded and the Message button:
         const SizedBox(width: 10),
+        OutlinedButton(
+          onPressed: actionsEnabled ? onGift : null,
+          style: OutlinedButton.styleFrom(
+            side: BorderSide(color: Colors.grey[700]!),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          ),
+          child: const Icon(Icons.card_giftcard_rounded, color: VendorTheme.gold, size: 18),
+        ),
+        const SizedBox(width: 10),
+    // add to _ActionButtons fields + constructor:
+
+
         OutlinedButton(
           onPressed: actionsEnabled ? onMessage : null,
           style: OutlinedButton.styleFrom(

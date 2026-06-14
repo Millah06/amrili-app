@@ -99,6 +99,7 @@ class _SyncContactsSheetState extends State<SyncContactsSheet> {
   Future<void> _openChat(Map user) async {
     final roomId = await ChatRoomService().createOrGetChatRoom(
       otherId: user['id'],
+      initiatedVia: 'contact',
     );
     if (!mounted) return;
     Navigator.pop(context);
@@ -109,7 +110,7 @@ class _SyncContactsSheetState extends State<SyncContactsSheet> {
           roomId: roomId,
           otherUid: user['id'],
           otherUserName: user['name'],
-          currentUserUid: widget.pov.currentUser,
+          otherAvatarUrl: user['avatarUrl'],
         ),
       ),
     );

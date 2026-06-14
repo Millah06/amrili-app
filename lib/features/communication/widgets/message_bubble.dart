@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../constraints/constants.dart';
 import '../services/message_service.dart';
+import '../theme/chat_theme.dart';
 
 
 class MessageBubble extends StatelessWidget {
@@ -38,21 +39,7 @@ class MessageBubble extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(12, 8, 8, 6),
             width: MediaQuery.of(context).size.width * 0.75,
             height: 100,
-            decoration: BoxDecoration(
-              color: isMe ? myMessageBubbleColor : otherMessageBubbleColor,
-              borderRadius: BorderRadius.only(
-                topLeft: const Radius.circular(18),
-                topRight: const Radius.circular(18),
-                bottomLeft: isMe ? const Radius.circular(18) : Radius.zero,
-                bottomRight: isMe ? Radius.zero : const Radius.circular(18),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 4,
-                )
-              ],
-            ),
+            decoration: ChatTheme.bubbleDecoration(isMe: isMe),
             child: IntrinsicWidth(
               child: Column(
                 // crossAxisAlignment: CrossAxisAlignment.start,
@@ -135,24 +122,10 @@ class MessageBubble extends StatelessWidget {
           margin: const EdgeInsets.symmetric(vertical: 6),
           padding: const EdgeInsets.fromLTRB(12, 8, 8, 6),
           constraints: BoxConstraints(
-              maxWidth: MediaQuery.of(context).size.width * 0.75,
-              minWidth: 100
+              maxWidth: MediaQuery.of(context).size.width * 0.78,
+              minWidth: 90
           ),
-          decoration: BoxDecoration(
-            color: isMe ? myMessageBubbleColor : otherMessageBubbleColor,
-            borderRadius: BorderRadius.only(
-              topLeft: const Radius.circular(18),
-              topRight: const Radius.circular(18),
-              bottomLeft: isMe ? const Radius.circular(18) : Radius.zero,
-              bottomRight: isMe ? Radius.zero : const Radius.circular(18),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 4,
-              )
-            ],
-          ),
+          decoration: ChatTheme.bubbleDecoration(isMe: isMe),
           child: IntrinsicWidth(
             child: Column(
               // crossAxisAlignment: CrossAxisAlignment.start,
