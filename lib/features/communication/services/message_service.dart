@@ -81,6 +81,46 @@ class MessageService {
     });
   }
 
+  /// Group send: writes the message then bumps unread for every member except
+  /// the sender (p2p sendTextMessage only bumps a single receiver).
+  Future<void> sendGroupMessage({
+    required String roomId,
+    required String senderId,
+    required String text,
+    required List<String> participantIds,
+  }) async {
+    final messageRef =
+        _db.collection('chat_room').doc(roomId).collection('messages');
+    final messageDoc = messageRef.doc();
+    final localTime = Timestamp.now();
+
+    try {
+      await messageDoc.set({
+        'text': text,
+        'type': 'text',
+        'senderId': senderId,
+        'metadata': null,
+        'createdAt': FieldValue.serverTimestamp(),
+        'localCreatedAt': localTime,
+        'status': 'sent',
+        'expireAt':
+            Timestamp.fromDate(DateTime.now().add(const Duration(hours: 120))),
+      });
+    } catch (_) {}
+
+    final preview = <String, dynamic>{
+      'lastMessage': text,
+      'lastMessageType': 'text',
+      'messageStatus': 'sent',
+      'lastMessageTime': FieldValue.serverTimestamp(),
+    };
+    for (final id in participantIds) {
+      if (id == senderId) continue;
+      preview['unreadCount.$id'] = FieldValue.increment(1);
+    }
+    await _db.collection('chat_room').doc(roomId).update(preview);
+  }
+
 
   Future<void> markMessagesAsDelivered({required String roomId, required String currentUserId}) async {
     final query = await FirebaseFirestore.instance
@@ -119,25 +159,31 @@ class MessageService {
         .where('status', isEqualTo: 'delivered')
         .get();
 
-    if (query.docs.isEmpty) return;
-
-    final batch = FirebaseFirestore.instance.batch();
-
-    for (final doc in query.docs) {
-      batch.update(doc.reference, {'status': 'read'});
+    if (query.docs.isNotEmpty) {
+      final batch = FirebaseFirestore.instance.batch();
+      for (final doc in query.docs) {
+        batch.update(doc.reference, {'status': 'read'});
+      }
+      await batch.commit();
     }
 
-    await batch.commit();
+    // Always clear my unread counter for this room — independent of whether
+    // there were 'delivered' messages to flip. (Previously this lived after an
+    // early-return, so the badge never reset when messages were already read.)
+    await clearUnread(roomId: roomId, currentUserId: currentUserId);
+  }
 
-    final doc = await _db.collection('chat_room').doc(roomId).get();
-
-     
-    // update chat room preview
-    await _db.collection('chat_room').doc(roomId).update({
-      'unreadCount.$currentUserId' : 0,
-      'messageStatus' : 'read',
-    });
-
+  /// Reset only the current user's unread counter for a room. Safe to call on
+  /// every room open; does not touch message statuses.
+  Future<void> clearUnread({required String roomId, required String currentUserId}) async {
+    if (roomId.isEmpty || currentUserId.isEmpty) return;
+    try {
+      await _db.collection('chat_room').doc(roomId).update({
+        'unreadCount.$currentUserId': 0,
+      });
+    } catch (_) {
+      // Room may not exist yet / offline — ignore.
+    }
   }
 
   Stream<QuerySnapshot> messageStream(String roomId) {

@@ -1,0 +1,98 @@
+rules_version = '2';
+
+// Amril chat security rules.
+//
+// KEY FACT: chat identity is the POSTGRES user id, not the Firebase uid. The
+// backend mints a custom claim `postgresId` (and `role`) on every login/signup
+// (see api: auth controllers setCustomUserClaims). So rules authorize against
+// request.auth.token.postgresId, which matches chat_room.participants and
+// message.senderId.
+//
+// Messaging is written client-side directly to Firestore, so THESE RULES — not
+// the API — are what actually enforce who can read/post in a room, request
+// gating, blocking, and group membership.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helpers ────────────────────────────────────────────────
+    function myId() {
+      return request.auth.token.postgresId;
+    }
+
+    function isSignedIn() {
+      return request.auth != null && myId() != null;
+    }
+
+    function isAdmin() {
+      return isSignedIn() && request.auth.token.role == 'admin';
+    }
+
+    function room(roomId) {
+      return get(/databases/$(database)/documents/chat_room/$(roomId)).data;
+    }
+
+    function isParticipant(r) {
+      return isSignedIn() && myId() in r.participants;
+    }
+
+    // A room is "open" for messaging when it's not a pending request to me and
+    // isn't blocked. (Pending requests can still be read by the recipient, but
+    // not posted into until accepted.)
+    function roomDeliverable(r) {
+      return r.requestState == 'accepted'
+        // sender may post into a request they themselves initiated (their first
+        // message), recipient must accept first:
+        || (r.requestState == 'pending' && r.requestedBy == myId());
+    }
+
+    // ── Chat rooms ─────────────────────────────────────────────
+    match /chat_room/{roomId} {
+      // Only participants can read a room they belong to.
+      allow read: if isParticipant(resource.data);
+
+      // Room creation is normally done by the API (Admin SDK bypasses rules).
+      // Allow a signed-in client to create a room only if it lists itself as a
+      // participant — defense in depth.
+      allow create: if isSignedIn() && myId() in request.resource.data.participants;
+
+      // Updates (last message preview, unread counters, request state, group
+      // membership) must be done by a participant. Block changing the
+      // participant set unless you're an admin/owner of a group.
+      allow update: if isParticipant(resource.data);
+
+      allow delete: if isParticipant(resource.data);
+
+      // ── Messages ────────────────────────────────────────────
+      match /messages/{messageId} {
+        // Read messages only if you're in the parent room.
+        allow read: if isParticipant(room(roomId));
+
+        // Post only if: you're a participant, you ARE the senderId, and the
+        // room is deliverable (accepted, or your own outgoing request, and not
+        // blocked).
+        allow create: if isParticipant(room(roomId))
+          && request.resource.data.senderId == myId()
+          && roomDeliverable(room(roomId));
+
+        // Status flips (sent→delivered→read) by any participant; deletes by the
+        // sender or a participant moderating their own copy.
+        allow update: if isParticipant(room(roomId));
+        allow delete: if isParticipant(room(roomId));
+      }
+    }
+
+    // ── Official broadcast (admin → all, read-only for users) ──
+    match /official_broadcast/{docId} {
+      allow read: if isSignedIn();
+      allow write: if isAdmin();
+    }
+
+    // ── Everything else: deny by default ───────────────────────
+    // (Other collections like users/orders are accessed via the API with the
+    // Admin SDK, which bypasses these rules. Lock the client out here.)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

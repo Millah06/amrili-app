@@ -132,36 +132,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
             subtitle: 'Set the region Amril tailors services to',
             onTap: () => HomeCountrySheet.show(context),
           ),
-          ListTile(
-            title: const Text('Hide me from Spotlight', style: TextStyle(color: Colors.white)),
-            subtitle: const Text('Don’t show me on public creator/supporter boards',
-                style: TextStyle(color: Colors.white54, fontSize: 12)),
-            leading:
-            TinySwitch(value: false,
-                onChanged: (_) async {
-
-                  showDialog(context: context,
-                      barrierDismissible: false, builder: (_) => const Dialog(
-                        backgroundColor: VendorTheme.background,
-                        child: Padding(
-                          padding: EdgeInsets.all(20),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              CircularProgressIndicator(color: VendorTheme.circularProgressColor,),
-                              SizedBox(width: 16),
-                              Text("Toggling user privacy..."),
-                            ],
-                          ),
-                        ),
-                      ));
-                  await context.read<RewardProvider>().toggleLeaderboardVisibility(true);
-                  if (context.mounted) {
-                    Navigator.pop(context);
-                  }
-
-                }),
-
+          _SettingsTile(
+            icon: Icons.auto_awesome_rounded,
+            title: 'Spotlight',
+            subtitle: 'Manage your visibility on spot light',
+            onTap: () => _showSpotLightSettings(context, context.read<ProfileProvider>() ),
           ),
           _SettingsTile(
             icon: Icons.language,
@@ -294,6 +269,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (context) =>  _PrivacySettingsSheet(provider),
+    );
+  }
+
+  void _showSpotLightSettings(BuildContext context, ProfileProvider provider) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF1E293B),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) =>  _SpotSettingsSheet(provider),
     );
   }
 
@@ -451,7 +437,6 @@ class _PrivacySettingsSheetState extends State<_PrivacySettingsSheet> {
             const SizedBox(height: 24),
 
             ListTile(
-
               title: const Text(
                 'Private Account',
                 style: TextStyle(color: Colors.white),
@@ -464,28 +449,27 @@ class _PrivacySettingsSheetState extends State<_PrivacySettingsSheet> {
               TinySwitch(value:
               provider.profile?.isPrivate ?? false,
                   onChanged: (_) async {
+                    showDialog(context: context,
+                        barrierDismissible: false, builder: (_) => const Dialog(
+                          backgroundColor: VendorTheme.background,
+                          child: Padding(
+                            padding: EdgeInsets.all(20),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                CircularProgressIndicator(color: VendorTheme.circularProgressColor,),
+                                SizedBox(width: 16),
+                                Text("Toggling user privacy..."),
+                              ],
+                            ),
+                          ),
+                        ));
+                    await widget.provider.togglePrivateAccount();
+                    if (context.mounted) {
+                      Navigator.pop(context);
+                    }
 
-                showDialog(context: context,
-                    barrierDismissible: false, builder: (_) => const Dialog(
-                      backgroundColor: VendorTheme.background,
-                      child: Padding(
-                        padding: EdgeInsets.all(20),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            CircularProgressIndicator(color: VendorTheme.circularProgressColor,),
-                            SizedBox(width: 16),
-                            Text("Toggling user privacy..."),
-                          ],
-                        ),
-                      ),
-                    ));
-                await widget.provider.togglePrivateAccount();
-                if (context.mounted) {
-                  Navigator.pop(context);
-                }
-
-              }),
+                  }),
             ),
 
 
@@ -524,6 +508,124 @@ class _PrivacySettingsSheetState extends State<_PrivacySettingsSheet> {
                 }
 
               }),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SpotSettingsSheet extends StatefulWidget {
+
+  final ProfileProvider provider;
+  const _SpotSettingsSheet(this.provider);
+
+  @override
+  State<_SpotSettingsSheet> createState() => _SpotSettingsSheetState();
+}
+
+class _SpotSettingsSheetState extends State<_SpotSettingsSheet> {
+
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = context.watch<UserProvider>();
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'SpotLight Settings',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            ListTile(
+
+              title: const Text(
+                'Hide me from Creators',
+                style: TextStyle(color: Colors.white),
+              ),
+              subtitle: Text(
+                  'Don’t show me on public creator boards',
+                style: TextStyle(color: Colors.grey[500], fontSize: 12),
+              ),
+              leading: TinySwitch(
+                  value:
+              provider.user!.hideFromLeaderboardCreator ?? false,
+                  onChanged: (_) async {
+
+                showDialog(context: context,
+                    barrierDismissible: false, builder: (_) => const Dialog(
+                      backgroundColor: VendorTheme.background,
+                      child: Padding(
+                        padding: EdgeInsets.all(20),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            CircularProgressIndicator(color: VendorTheme.circularProgressColor,),
+                            SizedBox(width: 16),
+                            Text("Toggling spotlight settings..."),
+                          ],
+                        ),
+                      ),
+                    ));
+                await
+                context.read<RewardProvider>().toggleLeaderboardVisibilityCreator(!(
+                    provider.user!.hideFromLeaderboardCreator ?? false));
+                if (context.mounted) {
+                  Navigator.pop(context);
+                }
+
+              }),
+            ),
+            const SizedBox(height: 16),
+            ListTile(
+
+              title: const Text(
+                'Hide me from Supporters',
+                style: TextStyle(color: Colors.white),
+              ),
+              subtitle: Text(
+                'Don’t show me on public supporter boards',
+                style: TextStyle(color: Colors.grey[500], fontSize: 12),
+              ),
+              leading: TinySwitch(
+                  value:
+                  provider.user!.hideFromLeaderboardSupporter ?? false,
+                  onChanged: (_) async {
+
+                    showDialog(context: context,
+                        barrierDismissible: false, builder: (_) => const Dialog(
+                          backgroundColor: VendorTheme.background,
+                          child: Padding(
+                            padding: EdgeInsets.all(20),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                CircularProgressIndicator(color: VendorTheme.circularProgressColor,),
+                                SizedBox(width: 16),
+                                Text("Toggling spotlight settings..."),
+                              ],
+                            ),
+                          ),
+                        ));
+                    await
+                    context.read<RewardProvider>().toggleLeaderboardVisibilitySupporter(!(
+                        provider.user!.hideFromLeaderboardSupporter ?? false));
+                    if (context.mounted) {
+                      Navigator.pop(context);
+                    }
+
+                  }),
             ),
           ],
         ),

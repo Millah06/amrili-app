@@ -8,6 +8,9 @@ class User {
   final String? currency;  // ISO 4217, e.g. 'NGN'
   final String role;
   final bool active;
+
+  final bool ? hideFromLeaderboardCreator;
+  final bool ? hideFromLeaderboardSupporter;
   final String referralCode;
   final String transferUID;
   final bool notificationsEnabled;
@@ -26,6 +29,8 @@ class User {
     this.currency,
     required this.role,
     required this.active,
+    this.hideFromLeaderboardCreator,
+    this.hideFromLeaderboardSupporter,
     required this.referralCode,
     required this.transferUID,
     required this.notificationsEnabled,
@@ -45,6 +50,8 @@ class User {
       currency: json['currency'],
       role: json['role'] ?? '',
       active: json['active'] ?? false,
+      hideFromLeaderboardCreator: json['hideFromLeaderboardCreators'] ?? false,
+      hideFromLeaderboardSupporter: json['hideFromLeaderboardSupporters'] ?? false,
       referralCode: json['referralCode'] ?? '',
       transferUID: json['transferUid'] ?? '',
       notificationsEnabled: json['notificationsEnabled'] ?? false,

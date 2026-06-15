@@ -86,6 +86,51 @@ class ChatRoomService {
     }
   }
 
+  // ── Groups ──────────────────────────────────────────────────────────────
+  Future<String?> createGroup({
+    required String name,
+    required List<String> memberIds,
+    String? avatarUrl,
+  }) async {
+    try {
+      final data = await api.post('/chat/group', {
+        'name': name,
+        'memberIds': memberIds,
+        if (avatarUrl != null) 'avatarUrl': avatarUrl,
+      });
+      return data['roomId'] as String?;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<bool> addGroupMembers(String roomId, List<String> memberIds) async {
+    try {
+      await api.post('/chat/group/$roomId/members', {'memberIds': memberIds});
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> removeGroupMember(String roomId, String userId) async {
+    try {
+      await api.delete('/chat/group/$roomId/members/$userId');
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<bool> leaveGroup(String roomId) async {
+    try {
+      await api.post('/chat/group/$roomId/leave', {});
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
   Stream<QuerySnapshot> messageStream(String roomId) {
     return FirebaseFirestore.instance
         .collection('chat_room')

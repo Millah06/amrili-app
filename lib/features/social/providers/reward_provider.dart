@@ -136,8 +136,12 @@ class RewardProvider with ChangeNotifier {
     finally { _isLoadingSpotlightSupporters = false; safeNotify(); }
   }
 
-  Future<void> toggleLeaderboardVisibility(bool hide) async {
-    await _apiService.setLeaderboardVisibility(hide);
+  Future<void> toggleLeaderboardVisibilityCreator(bool hide) async {
+    await _apiService.setLeaderboardVisibilityCreator(hide);
+  }
+
+  Future<void> toggleLeaderboardVisibilitySupporter(bool hide) async {
+    await _apiService.setLeaderboardVisibilitySupporter(hide);
   }
 
   Future<void> loadCreatorStats() async {

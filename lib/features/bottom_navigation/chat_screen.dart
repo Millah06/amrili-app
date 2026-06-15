@@ -21,6 +21,9 @@ import '../communication/widgets/add_by_phone_sheet.dart';
 import '../communication/widgets/add_by_username_sheet.dart';
 import '../communication/screens/message_screen.dart';
 import '../communication/screens/message_requests_screen.dart';
+import '../communication/screens/official_broadcast_screen.dart';
+import '../communication/screens/group_chat_screen.dart';
+import '../communication/screens/create_group_screen.dart';
 
 
 class Messages extends StatefulWidget {
@@ -173,10 +176,22 @@ class _MessagesState extends State<Messages> {
           )
         : null;
 
+    // Pinned official announcements entry (shown on All + Official tabs).
+    final officialEntry = (value == 'All' || value == 'Official')
+        ? _OfficialEntry(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                  builder: (_) => const OfficialBroadcastScreen()),
+            ),
+          )
+        : null;
+
     if (chats.isEmpty) {
       return Column(
         children: [
           if (banner != null) banner,
+          if (officialEntry != null) officialEntry,
           Expanded(
             child: EmptyChatView(
                 onAddFriends: () => showAddFriendsSheet(context, pov)),
@@ -187,6 +202,7 @@ class _MessagesState extends State<Messages> {
     return Column(
       children: [
         if (banner != null) banner,
+        if (officialEntry != null) officialEntry,
         Expanded(
           child: ListView.separated(
             separatorBuilder: (_, __) => Divider(
@@ -209,12 +225,14 @@ class _MessagesState extends State<Messages> {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (_) => Peer2PeerChat(
-                        roomId: chat.id,
-                        otherUserName: chat.name,
-                        otherUid: chat.otherUserId,
-                        otherAvatarUrl: chat.avatarUrl,
-                      ),
+                      builder: (_) => chat.isGroup
+                          ? GroupChatScreen(roomId: chat.id)
+                          : Peer2PeerChat(
+                              roomId: chat.id,
+                              otherUserName: chat.name,
+                              otherUid: chat.otherUserId,
+                              otherAvatarUrl: chat.avatarUrl,
+                            ),
                     ),
                   );
                 },
@@ -319,6 +337,20 @@ class _MessagesState extends State<Messages> {
                 onTap: () {
                   Navigator.pop(context);
                   context.push('/scan');
+                },
+              ),
+
+              _MinimalActionTile(
+                icon: Icons.group_add_outlined,
+                title: 'New group',
+                subtitle: 'Create a group chat',
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => const CreateGroupScreen()),
+                  );
                 },
               ),
             ],
@@ -637,6 +669,64 @@ class ChatListFooter extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Pinned "Amril Official" announcements row at the top of the chat list.
+class _OfficialEntry extends StatelessWidget {
+  const _OfficialEntry({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          child: Row(
+            children: [
+              Container(
+                width: 50,
+                height: 50,
+                decoration: const BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Color(0xFF177E85),
+                ),
+                child: const Icon(Icons.campaign_rounded, color: Colors.white),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: const [
+                        Text('Amril Official',
+                            style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700)),
+                        SizedBox(width: 4),
+                        Icon(Icons.verified_rounded,
+                            size: 14, color: Color(0xFF38BDF8)),
+                      ],
+                    ),
+                    const SizedBox(height: 3),
+                    Text('Announcements & updates',
+                        style: TextStyle(
+                            color: Colors.white.withValues(alpha: 0.4),
+                            fontSize: 13)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

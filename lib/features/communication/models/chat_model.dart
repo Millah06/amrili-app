@@ -118,12 +118,18 @@ class ChatModel {
 
     final unread = unreadMap[currentUserUid] ?? 0;
 
+    // Groups use a single group identity instead of the "other" participant.
+    final bool group =
+        data['type'] == 'group' || participants.length > 2;
+
     return ChatModel(
       id: doc.id,
 
-      name: otherUser['name'] ?? 'Unknown',
+      name: group
+          ? (data['groupName'] ?? 'Group')
+          : (otherUser['name'] ?? 'Unknown'),
 
-      avatarUrl: otherUser['avatar'],
+      avatarUrl: group ? data['groupAvatar'] : otherUser['avatar'],
 
       otherUserId: otherUid,
 
@@ -142,7 +148,7 @@ class ChatModel {
 
       isOfficial: data['isOfficial'] ?? false,
 
-      isGroup: (participants.length > 2),
+      isGroup: group,
 
       requestState: data['requestState'] ?? 'accepted',
 

@@ -740,9 +740,16 @@ class SocialApiService {
     throw Exception('Failed to load supporters');
   }
 
-  Future<void> setLeaderboardVisibility(bool hide) async {
+  Future<void> setLeaderboardVisibilityCreator(bool hide) async {
     final headers = await _getHeaders();
-    final r = await http.patch(Uri.parse('$baseUrl/users/me/leaderboard-visibility'),
+    final r = await http.patch(Uri.parse('$baseUrl/users/me/leaderboard-visibility/creators'),
+        headers: headers, body: jsonEncode({'hide': hide}));
+    if (r.statusCode != 200) throw Exception('Failed to update visibility');
+  }
+
+  Future<void> setLeaderboardVisibilitySupporter(bool hide) async {
+    final headers = await _getHeaders();
+    final r = await http.patch(Uri.parse('$baseUrl/users/me/leaderboard-visibility/supporters'),
         headers: headers, body: jsonEncode({'hide': hide}));
     if (r.statusCode != 200) throw Exception('Failed to update visibility');
   }

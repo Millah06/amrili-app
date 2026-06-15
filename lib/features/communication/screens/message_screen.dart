@@ -13,7 +13,10 @@ import '../../../constraints/formatters.dart';
 import '../../../providers/user_provider.dart';
 import '../theme/chat_theme.dart';
 
+/* deploying security rule
 
+firebase deploy --only firestore:rules
+ */
 
 class Peer2PeerChat extends StatefulWidget {
 
@@ -91,10 +94,6 @@ class _Peer2PeerChatState extends State<Peer2PeerChat> {
     final myId = context.watch<UserProvider>().user?.userId ?? '';
     return Scaffold(
       backgroundColor: ChatTheme.scaffold,
-      // We lift the input bar manually by viewInsets.bottom (below), so let the
-      // body keep full height instead of double-handling the keyboard. This is
-      // robust even when the screen sits inside a nested navigator.
-      resizeToAvoidBottomInset: false,
       body: Column(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -194,18 +193,15 @@ class _Peer2PeerChatState extends State<Peer2PeerChat> {
                 topLeft: Radius.circular(32)
               ),
             ),
-            // Lift the bar above the keyboard; add safe-area inset when closed.
             padding: EdgeInsets.only(
               left: 10,
               right: 10,
               top: 5,
-              bottom: 10 +
-                  (MediaQuery.of(context).viewInsets.bottom > 0
-                      ? MediaQuery.of(context).viewInsets.bottom
-                      : MediaQuery.of(context).padding.bottom),
+              bottom: 10 + MediaQuery.of(context).padding.bottom,
             ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisAlignment: MainAxisAlignment.end,
               children: <Widget>[
                 // Attach (+) — stub hook for future utilities (media, airtime,
                 // money). Phase 2 intentionally removes the always-on shortcut
@@ -216,28 +212,34 @@ class _Peer2PeerChatState extends State<Peer2PeerChat> {
                   onPressed: () => _showAttachSheet(context),
                 ),
                 Expanded(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: ChatTheme.inputField,
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    child: TextFormField(
-                      controller: messageTextController,
-                      focusNode: _focusNode,
-                      textCapitalization: TextCapitalization.sentences,
-                      onChanged: (value) => setState(() => messageText = value),
-                      decoration: const InputDecoration(
-                        hintText: 'Message',
-                        hintStyle: TextStyle(color: Colors.white38),
-                        border: InputBorder.none,
-                        isCollapsed: true,
-                        contentPadding: EdgeInsets.symmetric(vertical: 12),
+                  child: GestureDetector(
+                    onTap: () {
+                      FocusScope.of(context).requestFocus(_focusNode);
+                    },
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: ChatTheme.inputField,
+                        borderRadius: BorderRadius.circular(24),
                       ),
-                      style: const TextStyle(color: Colors.white, fontSize: 16),
-                      cursorColor: ChatTheme.brandBright,
-                      maxLines: 5,
-                      minLines: 1,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: TextFormField(
+                        controller: messageTextController,
+                        focusNode: _focusNode,
+                        textCapitalization: TextCapitalization.sentences,
+                        onChanged: (value) => setState(() => messageText = value),
+                        decoration: const InputDecoration(
+                          hintText: 'Message',
+                          hintStyle: TextStyle(color: Colors.white38),
+                          border: InputBorder.none,
+                          isCollapsed: true,
+                          contentPadding: EdgeInsets.symmetric(vertical: 12),
+                          focusedBorder: InputBorder.none,
+                        ),
+                        style: const TextStyle(color: Colors.white, fontSize: 16),
+                        cursorColor: ChatTheme.brandBright,
+                        maxLines: 5,
+                        minLines: 1,
+                      ),
                     ),
                   ),
                 ),
@@ -305,22 +307,20 @@ class MessagesStream extends StatelessWidget {
             ..sort((a, b) => b.createdAt.compareTo(a.createdAt));
           ChatCacheService.instance.mergeAndSaveMessages(roomId, fresh);
 
-          // Delivery / read receipts (only meaningful when live).
-          for (final m in fresh) {
-            if (otherUserId == m.senderId && m.status == 'sent') {
-              MessageService().markMessagesAsDelivered(
-                  roomId: roomId, currentUserId: currentUserId);
-              break;
-            }
+          // Delivery receipts: flip the other person's 'sent' → 'delivered'.
+          final hasIncomingSent = fresh.any(
+              (m) => otherUserId == m.senderId && m.status == 'sent');
+          if (hasIncomingSent) {
+            MessageService().markMessagesAsDelivered(
+                roomId: roomId, currentUserId: currentUserId);
           }
+
+          // I'm viewing this room → always mark read + clear my unread badge,
+          // regardless of current message statuses. (The badge bug was that
+          // this only ran when an incoming 'sent' message existed.)
           WidgetsBinding.instance.addPostFrameCallback((_) {
-            for (final m in fresh) {
-              if (otherUserId == m.senderId && m.status == 'sent') {
-                MessageService().markMessagesAsRead(
-                    roomId: roomId, currentUserId: currentUserId);
-                break;
-              }
-            }
+            MessageService()
+                .markMessagesAsRead(roomId: roomId, currentUserId: currentUserId);
           });
         } else {
           messages = cached;
