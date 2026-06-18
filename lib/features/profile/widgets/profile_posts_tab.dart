@@ -28,7 +28,10 @@ class ProfilePostsTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (isLoading && posts.isEmpty) {
-      return const PostFeedShimmer(itemCount: 4);
+      return Padding(
+        padding: const EdgeInsets.only(top: 13),
+        child: PostFeedShimmer(itemCount: 4),
+      );
     }
 
     return RefreshIndicator(

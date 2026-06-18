@@ -144,6 +144,7 @@ class _MyProfileScreenState extends State<MyProfileScreen>
             ],
             body: TabBarView(
               controller: _tabController,
+
               children: [
                 // ── Posts tab (paginated + refresh) ──────────────────────
                 ProfilePostsTab(
@@ -183,7 +184,11 @@ class _SavedTab extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (provider.savedLoading) {
-      return const PostFeedShimmer(itemCount: 3);
+
+      return Padding(
+        padding: const EdgeInsets.only(top: 13),
+        child: const PostFeedShimmer(itemCount: 3),
+      );
     }
     return RefreshIndicator(
       color: const Color(0xFF177E85),

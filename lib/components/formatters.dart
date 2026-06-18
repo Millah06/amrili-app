@@ -183,6 +183,4 @@ class MyFormatManager {
 
     return '$allButLast and $last $provider';
   }
-
-
 }

@@ -193,11 +193,11 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         ChangeNotifierProvider(create: (_) => TransactionProvider()..loadInitial()),
       ],
       child: MaterialApp.router(
-        debugShowCheckedModeBanner: false,
-        title: AppConstants.appName,
-        scrollBehavior: const AppScrollBehavior(),
-        routerConfig: appRouter,
-        // PHASE 9 — auto screen_view logging for every routed page.
+          debugShowCheckedModeBanner: false,
+          title: AppConstants.appName,
+          scrollBehavior: const AppScrollBehavior(),
+          routerConfig: appRouter,
+          // PHASE 9 — auto screen_view logging for every routed page.
 
         theme: ThemeData(
           scaffoldBackgroundColor: Color(0xFF0F172A),

@@ -1,4 +1,15 @@
-// lib/widgets/post_card.dart - COMPLETE REWRITE FOR REACTIVITY
+// lib/features/social/widgets/post_card.dart
+// =============================================================================
+// PHASE 11 — PostCard (survey-aware + polish pass)
+// -----------------------------------------------------------------------------
+// Changes vs the previous version (everything else is behaviour-identical):
+//   1. SURVEY: when `post.isSurvey`, the interactive SurveyCard is rendered in
+//      the body, and the duplicate title is suppressed (SurveyCard shows it).
+//   2. POLISH: ad-hoc Colors.grey[…] swapped for VendorTheme tokens so the card
+//      is colour-cohesive with the rest of the app; a subtle avatar ring; tidier
+//      stats/action spacing. No logic, providers, carousel, gallery, gift/boost,
+//      or caption behaviour was changed.
+// =============================================================================
 
 import 'package:carousel_slider/carousel_slider.dart';
 import 'package:everywhere/core/auth/guest_helper.dart';
@@ -9,9 +20,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:timeago/timeago.dart' as timeago;
-import 'package:firebase_auth/firebase_auth.dart';
 import '../../../components/formatters.dart';
 import '../../../constraints/constants.dart';
 import '../../../constraints/vendor_theme.dart';
@@ -24,13 +33,12 @@ import '../models/post_model.dart';
 
 import '../providers/feed_provider.dart';
 import 'gift_bottom_sheet.dart';
-import 'reward_bottom_sheet.dart';
 import '../widgets/boost_dialog.dart';
 import 'comment_sheet.dart';
 import 'follow_button.dart';
 import 'verification_badge.dart';
 import 'post_options_menu.dart';
-
+import 'survey_card.dart'; // PHASE 11
 
 class PostCard extends StatefulWidget {
   final Post post;
@@ -54,7 +62,6 @@ class _PostCardState extends State<PostCard> {
 
   int _currentImageIndex = 0;
 
-  // static const double _maxImageHeight = 480.0;
   static const double _maxImageHeight = 400.0;
   final Map<int, double?> _imageAspectRatios = {};
 
@@ -112,7 +119,6 @@ class _PostCardState extends State<PostCard> {
   }
 
   void _updatePost(Post updatedPost) {
-    String currentPostId = _currentPost.userId;
     setState(() {
       _currentPost = updatedPost;
     });
@@ -125,7 +131,9 @@ class _PostCardState extends State<PostCard> {
     }
 
     try {
-      context.read<ProfileProvider>().updatePostInLists(_currentPost.postId, updatedPost);
+      context
+          .read<ProfileProvider>()
+          .updatePostInLists(_currentPost.postId, updatedPost);
     } catch (e) {
       // ProfileProvider might not be available
     }
@@ -133,7 +141,6 @@ class _PostCardState extends State<PostCard> {
     widget.onPostUpdated?.call();
   }
 
-  //consider this
   void _openFullScreen(int startIndex) {
     Navigator.push(
       context,
@@ -153,12 +160,10 @@ class _PostCardState extends State<PostCard> {
     final currentUserId = pov.user?.userId ?? '';
     final isOwnPost = currentUserId == _currentPost.userId;
 
-
     return Container(
-      // margin: const EdgeInsets.only(bottom: 12, left: 16, right: 16),
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 12),
       decoration: BoxDecoration(
-        color: const Color(0xFF1E293B),
+        color: VendorTheme.surface, // == 0xFF1E293B, now via the token
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
@@ -168,8 +173,8 @@ class _PostCardState extends State<PostCard> {
           ),
         ],
         border: _currentPost.isBoostActive
-            ? Border.all(color: Colors.amber, width: 2)
-            : null,
+            ? Border.all(color: VendorTheme.warning, width: 1.5)
+            : Border.all(color: VendorTheme.surfaceVariant.withOpacity(0.4)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -180,15 +185,15 @@ class _PostCardState extends State<PostCard> {
               padding: const EdgeInsets.only(left: 16, top: 12),
               child: Row(
                 children: [
-                  const Icon(Icons.repeat, size: 14, color: Colors.grey),
+                  const Icon(Icons.repeat, size: 14, color: VendorTheme.textMuted),
                   const SizedBox(width: 6),
                   Text(
                     _currentPost.originalUserHandle == null ||
-                        _currentPost.originalUserHandle!.isEmpty ?
-                    'Reposted from @${_currentPost.originalUserName}' :
-                    'Reposted from @${_currentPost.originalUserHandle}' ,
-                    style: TextStyle(
-                      color: Colors.grey[500],
+                        _currentPost.originalUserHandle!.isEmpty
+                        ? 'Reposted from @${_currentPost.originalUserName}'
+                        : 'Reposted from @${_currentPost.originalUserHandle}',
+                    style: const TextStyle(
+                      color: VendorTheme.textMuted,
                       fontSize: 12,
                     ),
                   ),
@@ -202,27 +207,35 @@ class _PostCardState extends State<PostCard> {
             child: Row(
               children: [
                 GestureDetector(
-                  // onTap: () => _navigateToProfile(context),
-                  onTap: () =>  openUserProfile(context,
-                    userId: _currentPost.userId,
-                    userName: _currentPost.userName,
-                    avatar: _currentPost.userAvatar,
-                  ),
-                  child: CircleAvatar(
-                    radius: 20,
-                    backgroundColor: Colors.grey[700],
-                    backgroundImage: _currentPost.userAvatar != null
-                        ? CachedNetworkImageProvider(_currentPost.userAvatar!)
-                        : null,
-                    child: _currentPost.userAvatar == null
-                        ? Text(
-                      _currentPost.userName[0].toUpperCase(),
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    )
-                        : null,
+                  onTap: () => openUserProfile(context,
+                      userId: _currentPost.userId,
+                      userName: _currentPost.userName,
+                      avatar: _currentPost.userAvatar),
+                  child: Container(
+                    // subtle ring lifts the avatar off the slate surface
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                          color: VendorTheme.surfaceVariant, width: 1.5),
+                    ),
+                    child: CircleAvatar(
+                      radius: 20,
+                      backgroundColor: VendorTheme.surfaceVariant,
+                      backgroundImage: _currentPost.userAvatar != null
+                          ? CachedNetworkImageProvider(_currentPost.userAvatar!)
+                          : null,
+                      child: _currentPost.userAvatar == null
+                          ? Text(
+                        _currentPost.userName.isNotEmpty
+                            ? _currentPost.userName[0].toUpperCase()
+                            : '?',
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      )
+                          : null,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -232,22 +245,22 @@ class _PostCardState extends State<PostCard> {
                     children: [
                       Row(
                         children: [
-                          GestureDetector(
-                            // onTap: () => _navigateToProfile(context),
-                            onTap: () =>  openUserProfile(context,
-                              userId: _currentPost.userId,
-                              userName: _currentPost.userName,
-                              avatar: _currentPost.userAvatar,
-                            ),
-                            child: Text(
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              _currentPost.userName,
-                              style: const TextStyle(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 15,
-                                color: Colors.white,
-                                letterSpacing: -0.2,
+                          Flexible(
+                            child: GestureDetector(
+                              onTap: () => openUserProfile(context,
+                                  userId: _currentPost.userId,
+                                  userName: _currentPost.userName,
+                                  avatar: _currentPost.userAvatar),
+                              child: Text(
+                                _currentPost.userName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 15,
+                                  color: VendorTheme.textPrimary,
+                                  letterSpacing: -0.2,
+                                ),
                               ),
                             ),
                           ),
@@ -259,69 +272,59 @@ class _PostCardState extends State<PostCard> {
                         const SizedBox(height: 2),
                         Text(
                           '@${_currentPost.userHandle}',
-                          style: TextStyle(
-                            color: Colors.grey[500],
+                          style: const TextStyle(
+                            color: VendorTheme.textMuted,
                             fontSize: 13,
                             fontWeight: FontWeight.w400,
                           ),
                         ),
-                        const SizedBox(height: 4),
                       ],
-                      SizedBox(height: 3,),
-                      _currentPost.isBoostActive ?
-                        // const SizedBox(width: 8),
-                        Row(
-                          children: [
-                            Text(
-                              timeago.format(_currentPost.createdAt),
-                              style: TextStyle(
-                                color: Colors.grey[500],
-                                fontSize: 12,
-                              ),
+                      const SizedBox(height: 3),
+                      _currentPost.isBoostActive
+                          ? Row(
+                        children: [
+                          Text(
+                            timeago.format(_currentPost.createdAt),
+                            style: const TextStyle(
+                              color: VendorTheme.textMuted,
+                              fontSize: 12,
                             ),
-                            SizedBox(width: 4,),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 2,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.amber,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: const Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    Icons.rocket_launch,
-                                    size: 12,
-                                    color: Colors.white,
-                                  ),
-                                  SizedBox(width: 4),
-                                  Text(
-                                    'Boosted',
+                          ),
+                          const SizedBox(width: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: VendorTheme.warning,
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.rocket_launch,
+                                    size: 12, color: Colors.white),
+                                SizedBox(width: 4),
+                                Text('Boosted',
                                     style: TextStyle(
                                       color: Colors.white,
                                       fontSize: 10,
                                       fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                                    )),
+                              ],
                             ),
-
-                          ],
-                        ) :  Text(
+                          ),
+                        ],
+                      )
+                          : Text(
                         timeago.format(_currentPost.createdAt),
-                        style: TextStyle(
-                          color: Colors.grey[500],
+                        style: const TextStyle(
+                          color: VendorTheme.textMuted,
                           fontSize: 12,
                         ),
                       ),
                     ],
                   ),
                 ),
-
 
                 // Follow button or options menu
                 if (!isOwnPost && !_currentPost.isFollowing)
@@ -330,52 +333,62 @@ class _PostCardState extends State<PostCard> {
                     mainAxisAlignment: MainAxisAlignment.start,
                     children: [
                       GestureDetector(
-                        child: const Icon(Icons.more_horiz, color: Colors.white),
-                        onTap: () {
-                          _showOptionsMenu(context);
-
-                        },
+                        child: const Icon(Icons.more_horiz,
+                            color: VendorTheme.textPrimary),
+                        onTap: () => _showOptionsMenu(context),
                       ),
-                      const SizedBox(height: 8,),
+                      const SizedBox(height: 8),
                       FollowButton(
                         userId: _currentPost.userId,
                         isFollowing: _currentPost.isFollowing,
-                        onToggle: () => GuestHelper.guardAction(context, action: _toggleFollow,
+                        onToggle: () => GuestHelper.guardAction(context,
+                            action: _toggleFollow,
                             reason: 'start following creators'),
                       ),
                     ],
                   )
                 else
                   IconButton(
-                    icon: const Icon(Icons.more_horiz, color: Colors.white),
+                    icon: const Icon(Icons.more_horiz,
+                        color: VendorTheme.textPrimary),
                     onPressed: () => _showOptionsMenu(context),
                   ),
               ],
             ),
           ),
 
-          // Caption with hashtags
-          if (_currentPost.title.isNotEmpty)
+          // Caption (title). For SURVEY posts the title is shown by SurveyCard,
+          // so we suppress it here to avoid showing it twice.
+          if (_currentPost.title.isNotEmpty && !_currentPost.isSurvey)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 2, 16, 6),
               child: Text(
                 _currentPost.title,
-                style: TextStyle(
-                  color: Colors.grey[400],
+                style: const TextStyle(
+                  color: VendorTheme.textSecondary,
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
-                  fontStyle: FontStyle.normal,
                 ),
               ),
             ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: ExpandableCaption(
-                text: _currentPost.text, hashTags: _currentPost.hashtags, hasImage: _currentPost.images.isNotEmpty,),
-          ),
-          const SizedBox(height: 10,),
+
+          // Body text + hashtags (context for surveys, the post for standard)
+          if (_currentPost.text.isNotEmpty || _currentPost.hashtags.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: ExpandableCaption(
+                text: _currentPost.text,
+                hashTags: _currentPost.hashtags,
+                hasImage: _currentPost.images.isNotEmpty,
+              ),
+            ),
+          const SizedBox(height: 10),
 
           _buildCarousel(),
+
+          // PHASE 11 — a survey post renders its interactive survey here (vote →
+          // live results), between the body and the stats/actions.
+          if (_currentPost.isSurvey) SurveyCard(post: _currentPost),
 
           // Stats Row
           Padding(
@@ -383,24 +396,24 @@ class _PostCardState extends State<PostCard> {
             child: Row(
               children: [
                 if (_currentPost.viewCount > 0) ...[
-                  Icon(Icons.remove_red_eye, size: 16, color: Colors.grey[500]),
+                  const Icon(Icons.remove_red_eye,
+                      size: 16, color: VendorTheme.textMuted),
                   const SizedBox(width: 4),
                   Text(
                     _formatCount(_currentPost.viewCount),
-                    style: TextStyle(
-                      color: Colors.grey[500],
-                      fontSize: 13,
-                    ),
+                    style: const TextStyle(
+                        color: VendorTheme.textMuted, fontSize: 13),
                   ),
                   const SizedBox(width: 16),
                 ],
                 if (_currentPost.coinTotal > 0) ...[
-                  const Icon(Icons.stars_rounded, size: 16, color: Color(0xFFFFD700)),
+                  const Icon(Icons.stars_rounded,
+                      size: 16, color: VendorTheme.gold),
                   const SizedBox(width: 4),
                   Text(
                     kFormatterNo.format(_currentPost.coinTotal),
                     style: const TextStyle(
-                      color: Color(0xFFFFD700),
+                      color: VendorTheme.gold,
                       fontSize: 13,
                       fontWeight: FontWeight.w500,
                     ),
@@ -408,21 +421,20 @@ class _PostCardState extends State<PostCard> {
                   const SizedBox(width: 16),
                 ],
                 if (isOwnPost && _currentPost.repostCount > 0) ...[
-                  Icon(Icons.repeat, size: 16, color: Colors.grey[500]),
+                  const Icon(Icons.repeat,
+                      size: 16, color: VendorTheme.textMuted),
                   const SizedBox(width: 4),
                   Text(
                     _formatCount(_currentPost.repostCount),
-                    style: TextStyle(
-                      color: Colors.grey[500],
-                      fontSize: 13,
-                    ),
+                    style: const TextStyle(
+                        color: VendorTheme.textMuted, fontSize: 13),
                   ),
                 ],
               ],
             ),
           ),
 
-          const Divider(height: 1, color: Color(0xFF0F172A)),
+          const Divider(height: 1, color: VendorTheme.background),
 
           // Action Buttons
           Padding(
@@ -436,85 +448,96 @@ class _PostCardState extends State<PostCard> {
                       icon: _currentPost.isLikedByCurrentUser
                           ? Icons.favorite
                           : Icons.favorite_outline,
-                      label: _currentPost.likeCount < 1 ? '' :_formatCount(_currentPost.likeCount),
+                      label: _currentPost.likeCount < 1
+                          ? ''
+                          : _formatCount(_currentPost.likeCount),
                       color: _currentPost.isLikedByCurrentUser
-                          ? Colors.red
-                          : Colors.grey[400],
-                      onTap: () =>
-                          GuestHelper.guardAction(context,
-                              action:  () => _toggleLike(), reason: 'like people\'s post'),
+                          ? VendorTheme.error
+                          : VendorTheme.textSecondary,
+                      onTap: () => GuestHelper.guardAction(context,
+                          action: () => _toggleLike(),
+                          reason: 'like people\'s post'),
                     ),
-                    SizedBox(width: 16,),
+                    const SizedBox(width: 16),
                     _ActionButton(
                       icon: Icons.chat_bubble_outline,
-                      label: _currentPost.commentCount < 1 ? '' :_formatCount(_currentPost.commentCount),
-                      color: Colors.grey[400],
+                      label: _currentPost.commentCount < 1
+                          ? ''
+                          : _formatCount(_currentPost.commentCount),
+                      color: VendorTheme.textSecondary,
                       onTap: () => _showComments(context),
                     ),
-                    SizedBox(width: 16,),
-                    !isOwnPost ?
-                      _ActionButton(
-                          icon: Icons.repeat,
-                          label: _currentPost.repostCount < 1 ? '' :_formatCount(_currentPost.repostCount),
-                          onTap: () => GuestHelper.guardAction(context, action: () {
+                    const SizedBox(width: 16),
+                    !isOwnPost
+                        ? _ActionButton(
+                      icon: Icons.repeat,
+                      label: _currentPost.repostCount < 1
+                          ? ''
+                          : _formatCount(_currentPost.repostCount),
+                      color: VendorTheme.textSecondary,
+                      onTap: () => GuestHelper.guardAction(context,
+                          action: () {
                             Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (context) => RepostDialog(post: widget.post),
+                                builder: (context) =>
+                                    RepostDialog(post: widget.post),
                               ),
                             );
-                          }, reason: 'repost a post')
-                      )
-                    :
-                      _ActionButton(icon: Icons.share, label: '', onTap: (
-
-                          ) {
-                        _sharePost();
-                      }),
+                          }, reason: 'repost a post'),
+                    )
+                        : _ActionButton(
+                      icon: Icons.share,
+                      label: '',
+                      color: VendorTheme.textSecondary,
+                      onTap: () => _sharePost(),
+                    ),
                   ],
                 ),
                 if (!isOwnPost)
-                GestureDetector(
-                  onTap: () {
-                    _showRewardSheet(context);
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF177E85).withOpacity(0.12),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.card_giftcard_rounded, size: 16, color: Color(0xFF177E85)),
-                        const SizedBox(width: 4),
-                        Text(
-                          _currentPost.giftCount > 0
-                              ? _formatCount(_currentPost.giftCount)
-                              : 'Gift',
-                          style: const TextStyle(
-                            color: Color(0xFF177E85),
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13,
+                  GestureDetector(
+                    onTap: () => _showRewardSheet(context),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: VendorTheme.circularProgressColor
+                            .withOpacity(0.12), // teal 0xFF177E85
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.card_giftcard_rounded,
+                              size: 16,
+                              color: VendorTheme.circularProgressColor),
+                          const SizedBox(width: 4),
+                          Text(
+                            _currentPost.giftCount > 0
+                                ? _formatCount(_currentPost.giftCount)
+                                : 'Gift',
+                            style: const TextStyle(
+                              color: VendorTheme.circularProgressColor,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 13,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
-                ),
-
-
                 if (isOwnPost && !_currentPost.isBoostActive)
                   _ActionButton(
-                      icon: Icons.rocket_launch,
-                      label: 'Boost',
-                      onTap: () {
-                    showDialog(
-                      context: context,
-                      builder: (context) => BoostDialog(post: widget.post),
-                    );
-                  },)
+                    icon: Icons.rocket_launch,
+                    label: 'Boost',
+                    color: VendorTheme.textSecondary,
+                    onTap: () {
+                      showDialog(
+                        context: context,
+                        builder: (context) => BoostDialog(post: widget.post),
+                      );
+                    },
+                  ),
               ],
             ),
           ),
@@ -536,7 +559,8 @@ class _PostCardState extends State<PostCard> {
     final wasLiked = _currentPost.isLikedByCurrentUser;
     final updatedPost = _currentPost.copyWith(
       isLikedByCurrentUser: !wasLiked,
-      likeCount: wasLiked ? _currentPost.likeCount - 1 : _currentPost.likeCount + 1,
+      likeCount:
+      wasLiked ? _currentPost.likeCount - 1 : _currentPost.likeCount + 1,
     );
 
     _updatePost(updatedPost);
@@ -555,7 +579,7 @@ class _PostCardState extends State<PostCard> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to like: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: VendorTheme.error,
           ),
         );
       }
@@ -584,44 +608,11 @@ class _PostCardState extends State<PostCard> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Failed to follow: $e'),
-            backgroundColor: Colors.red,
+            backgroundColor: VendorTheme.error,
           ),
         );
       }
     }
-  }
-
-  Widget _buildCaptionWithHashtags(String text, List<String> hashtags) {
-    final textSpans = <TextSpan>[];
-    final words = text.split(' ');
-
-    for (var word in words) {
-      if (word.startsWith('#')) {
-        textSpans.add(
-          TextSpan(
-            text: '$word ',
-            style: const TextStyle(
-              color: Color(0xFF177E85),
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-        );
-      } else {
-        textSpans.add(
-          TextSpan(
-            text: '$word ',
-            style: const TextStyle(color: Colors.white),
-          ),
-        );
-      }
-    }
-
-    return RichText(
-      text: TextSpan(
-        style: const TextStyle(fontSize: 16, height: 1.4),
-        children: textSpans,
-      ),
-    );
   }
 
   String _formatCount(int count) {
@@ -633,26 +624,14 @@ class _PostCardState extends State<PostCard> {
     return count.toString();
   }
 
-  // void _navigateToProfile(BuildContext context) {
-  //   final currentUserId = FirebaseAuth.instance.currentUser?.uid;
-  //   Navigator.push(
-  //     context,
-  //     MaterialPageRoute(
-  //       builder: (context) => UserProfileScreen(
-  //         userId: _currentPost.userId,
-  //         isOwnProfile: currentUserId == _currentPost.userId,
-  //       ),
-  //     ),
-  //   );
-  // }
-
-  void openUserProfile(BuildContext context, {
-    required String userId,
-    String? userName,
-    String? avatar,
-    String? displayName,
-    bool? isVerified,
-  }) {
+  void openUserProfile(
+      BuildContext context, {
+        required String userId,
+        String? userName,
+        String? avatar,
+        String? displayName,
+        bool? isVerified,
+      }) {
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -673,14 +652,13 @@ class _PostCardState extends State<PostCard> {
     );
   }
 
-
   void _showRewardSheet(BuildContext context) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       showDragHandle: false,
       backgroundColor: Colors.transparent,
-      builder: (context) =>  GiftBottomSheet(post: _currentPost),
+      builder: (context) => GiftBottomSheet(post: _currentPost),
     );
   }
 
@@ -701,14 +679,11 @@ class _PostCardState extends State<PostCard> {
       backgroundColor: Colors.transparent,
       builder: (context) => PostOptionsMenu(
         post: _currentPost,
-        onPostUpdated: (updatedPost) {
-          _updatePost(updatedPost);
-        },
+        onPostUpdated: (updatedPost) => _updatePost(updatedPost),
       ),
     );
   }
 
-  //consider this
   Widget _buildCarousel() {
     if (_currentPost.images.isEmpty) return const SizedBox.shrink();
 
@@ -717,13 +692,11 @@ class _PostCardState extends State<PostCard> {
     return LayoutBuilder(builder: (context, constraints) {
       final width = constraints.maxWidth;
 
-      // Compute display height for the current image only
       final ratio = _imageAspectRatios[_currentImageIndex];
       final naturalHeight = ratio != null ? width / ratio : null;
       final displayHeight = naturalHeight != null
           ? naturalHeight.clamp(120.0, _maxImageHeight)
-          : _maxImageHeight; // fallback while ratios are loading
-      final exceedsMax = naturalHeight != null && naturalHeight > _maxImageHeight;
+          : _maxImageHeight;
 
       return AnimatedContainer(
         duration: const Duration(milliseconds: 200),
@@ -732,14 +705,19 @@ class _PostCardState extends State<PostCard> {
         child: Stack(
           children: [
             PageView.builder(
-              controller: hasMultiple ? PageController(viewportFraction: 0.92) :  PageController(viewportFraction: 1),
+              controller: hasMultiple
+                  ? PageController(viewportFraction: 0.92)
+                  : PageController(viewportFraction: 1),
               itemCount: _currentPost.images.length,
               onPageChanged: (index) =>
                   setState(() => _currentImageIndex = index),
               itemBuilder: (context, index) => GestureDetector(
                 onTap: () => _openFullScreen(index),
                 child: Padding(
-                  padding: hasMultiple ? EdgeInsets.only(right: index != _currentPost.images.length -1 ? 8 : 0) : EdgeInsets.zero,
+                  padding: hasMultiple
+                      ? EdgeInsets.only(
+                      right: index != _currentPost.images.length - 1 ? 8 : 0)
+                      : EdgeInsets.zero,
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(12),
                     child: CachedNetworkImage(
@@ -748,19 +726,17 @@ class _PostCardState extends State<PostCard> {
                       width: double.infinity,
                       height: double.infinity,
                       placeholder: (_, __) =>
-                          Container(color: const Color(0xFF0F172A)),
+                          Container(color: VendorTheme.background),
                       errorWidget: (_, __, ___) => Container(
-                        color: const Color(0xFF0F172A),
+                        color: VendorTheme.background,
                         child: const Icon(Icons.broken_image,
-                            size: 48, color: Color(0xFF334155)),
+                            size: 48, color: VendorTheme.surfaceVariant),
                       ),
                     ),
                   ),
                 ),
               ),
             ),
-
-            // Dot indicators
             if (hasMultiple)
               Positioned(
                 bottom: 10,
@@ -785,33 +761,6 @@ class _PostCardState extends State<PostCard> {
                   }).toList(),
                 ),
               ),
-
-            // Tap to expand — only when this image is actually clipped
-            // if (exceedsMax)
-            //   Positioned(
-            //     bottom: hasMultiple ? 30 : 10,
-            //     right: 12,
-            //     child: Container(
-            //       padding:
-            //       const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            //       decoration: BoxDecoration(
-            //         color: Colors.black.withOpacity(0.45),
-            //         borderRadius: BorderRadius.circular(20),
-            //       ),
-            //       child: const Row(
-            //         mainAxisSize: MainAxisSize.min,
-            //         children: [
-            //           Icon(Icons.fullscreen, color: Colors.white, size: 14),
-            //           SizedBox(width: 3),
-            //           Text('Tap to expand',
-            //               style:
-            //               TextStyle(color: Colors.white, fontSize: 10)),
-            //         ],
-            //       ),
-            //     ),
-            //   ),
-
-            // Image counter badge
             if (hasMultiple)
               Positioned(
                 top: 10,
@@ -838,10 +787,8 @@ class _PostCardState extends State<PostCard> {
       );
     });
   }
-
 }
 
-//consider this
 class _FullScreenGallery extends StatefulWidget {
   final List<String> images;
   final int initialIndex;
@@ -878,7 +825,6 @@ class _FullScreenGalleryState extends State<_FullScreenGallery> {
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // Image page view (swipe to go next)
           PageView.builder(
             controller: _pageController,
             itemCount: widget.images.length,
@@ -904,8 +850,6 @@ class _FullScreenGalleryState extends State<_FullScreenGallery> {
               );
             },
           ),
-
-          // Back button
           Positioned(
             top: MediaQuery.of(context).padding.top + 8,
             left: 12,
@@ -921,8 +865,6 @@ class _FullScreenGalleryState extends State<_FullScreenGallery> {
               ),
             ),
           ),
-
-          // Image counter
           if (widget.images.length > 1)
             Positioned(
               top: MediaQuery.of(context).padding.top + 16,
@@ -944,8 +886,6 @@ class _FullScreenGalleryState extends State<_FullScreenGallery> {
                 ),
               ),
             ),
-
-          // Dot indicators
           if (widget.images.length > 1)
             Positioned(
               bottom: MediaQuery.of(context).padding.bottom + 20,
@@ -976,7 +916,6 @@ class _FullScreenGalleryState extends State<_FullScreenGallery> {
   }
 }
 
-
 class _ActionButton extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -992,7 +931,6 @@ class _ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -1002,12 +940,12 @@ class _ActionButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
             children: [
-              Icon(icon, size: 16, color: color ?? Colors.grey[400]),
+              Icon(icon, size: 16, color: color ?? VendorTheme.textSecondary),
               const SizedBox(width: 4),
               Text(
                 label,
                 style: TextStyle(
-                  color: color ?? Colors.grey[350],
+                  color: color ?? VendorTheme.textSecondary,
                   fontWeight: FontWeight.w500,
                   fontSize: 13,
                 ),
@@ -1019,8 +957,6 @@ class _ActionButton extends StatelessWidget {
     );
   }
 }
-
-
 
 class ExpandableCaption extends StatefulWidget {
   final String text;
@@ -1055,7 +991,10 @@ class _ExpandableCaptureState extends State<ExpandableCaption> {
   }
 
   String _stripHashtags(String raw) {
-    return raw.replaceAll(_hashtagRegex, '').replaceAll(RegExp(r' +'), ' ').trim();
+    return raw
+        .replaceAll(_hashtagRegex, '')
+        .replaceAll(RegExp(r' +'), ' ')
+        .trim();
   }
 
   int get _collapsedMaxLines => widget.hasImage ? 2 : 4;
@@ -1083,18 +1022,20 @@ class _ExpandableCaptureState extends State<ExpandableCaption> {
                   TextSpan(
                     text: _isExpanded ? ' show less' : 'read more',
                     style: const TextStyle(
-                      color: Color(0xFF177E85),
+                      color: VendorTheme.circularProgressColor,
                       fontWeight: FontWeight.bold,
                     ),
                     recognizer: TapGestureRecognizer()
-                      ..onTap = () => setState(() => _isExpanded = !_isExpanded),
+                      ..onTap = () =>
+                          setState(() => _isExpanded = !_isExpanded),
                   ),
               ],
-              style: const TextStyle(fontSize: 15, height: 1.4, color: Colors.white),
+              style: const TextStyle(
+                  fontSize: 15, height: 1.4, color: VendorTheme.textPrimary),
             ),
           ),
-        if (widget.hashTags.isNotEmpty)...[
-          const SizedBox(height: 10,),
+        if (widget.hashTags.isNotEmpty) ...[
+          const SizedBox(height: 10),
           Wrap(
             spacing: 6,
             runSpacing: 4,
@@ -1103,15 +1044,14 @@ class _ExpandableCaptureState extends State<ExpandableCaption> {
               return Text(
                 normalized,
                 style: const TextStyle(
-                  color: Color(0xFF177E85),
+                  color: VendorTheme.circularProgressColor,
                   fontWeight: FontWeight.bold,
                 ),
               );
             }).toList(),
           ),
-        ]
+        ],
       ],
     );
   }
 }
-

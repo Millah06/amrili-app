@@ -30,12 +30,14 @@ android {
     defaultConfig {
         applicationId = "com.amril.app"
         minSdk = flutter.minSdkVersion
-        // Pinned to 34 deliberately. The Flutter upgrade bumped
-        // flutter.targetSdkVersion to 36, and Android 15+ (API 35+) FORCE-enables
-        // edge-to-edge, which disables windowSoftInputMode="adjustResize" — so no
-        // TextField rises above the keyboard app-wide. API 34 keeps the classic
-        // keyboard-resize behavior. Revisit only after migrating every chat/input
-        // screen to SafeArea + manual inset handling for true edge-to-edge.
+        // Pinned to 34 deliberately, and it MUST stay <=34 for the keyboard fix
+        // in MainActivity to work. The Flutter engine calls enableEdgeToEdge()
+        // itself (edge-to-edge default), which disables adjustResize and stops
+        // TextFields rising above the keyboard app-wide. MainActivity re-asserts
+        // WindowCompat.setDecorFitsSystemWindows(true) to undo that — but on
+        // API 35+ the OS FORCE-enables edge-to-edge and ignores that call, so we
+        // stay on 34 until every input screen is migrated to manual inset
+        // handling for true edge-to-edge.
         targetSdk = 34
         versionCode = flutter.versionCode
         versionName = flutter.versionName

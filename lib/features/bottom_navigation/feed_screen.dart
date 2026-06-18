@@ -15,7 +15,9 @@ import '../../shared/widgets/pull_to_reveal.dart';
 import '../auth/security_step1_screen.dart';
 import '../auth/security_step2_screen.dart';
 import '../search/screens/search_screen.dart';
+import '../social/screens/create_survey_screen.dart';
 import '../social/widgets/compact_leaderboard.dart';
+import '../social/widgets/composer_sheet.dart';
 import '../social/widgets/loader_widget.dart';
 import '../social/widgets/post_card.dart';
 import '../social/widgets/search_widget.dart';
@@ -272,15 +274,28 @@ class _FeedScreenState extends State<FeedScreen> with AutomaticKeepAliveClientMi
               IconButton(
                 icon: const FaIcon(FontAwesomeIcons.plusCircle, color: Colors.white),
                 onPressed: () async {
+                  // PHASE 11: open the Post/Survey chooser first.
+                  final choice = await ComposerSheet.show(context);
+                  if (choice == null || !context.mounted) return;
 
-                  final result = await Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const CreatePostScreen(),
-                    ),
-                  );
+                  bool? result;
+                  if (choice == 'post') {
+                    result = await Navigator.push<bool>(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const CreatePostScreen(),
+                      ),
+                    );
+                  } else if (choice == 'survey') {
+                    result = await Navigator.push<bool>(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const CreateSurveyScreen(),
+                      ),
+                    );
+                  }
 
-                  if (result == true) {
+                  if (result == true && context.mounted) {
                     context.read<FeedProvider>().loadFeed(refresh: true);
                   }
                 },
@@ -312,6 +327,7 @@ class _FeedScreenState extends State<FeedScreen> with AutomaticKeepAliveClientMi
                         slivers: [
                           // Compact Leaderboard
                           const SliverToBoxAdapter(child: SpotlightEntryCard()),
+                          const SliverToBoxAdapter(child: SizedBox(height: 4)),
                           // Posts List
                           Consumer<FeedProvider>(
                             builder: (context, feedProvider, _) {
@@ -392,27 +408,50 @@ class _FeedScreenState extends State<FeedScreen> with AutomaticKeepAliveClientMi
                                       return PostCard(post: feedProvider.posts[index]);
                                     } else if (feedProvider.hasMore) {
                                       return const Padding(
-                                        padding: EdgeInsets.all(16.0),
+                                        padding: EdgeInsets.symmetric(vertical: 28),
                                         child: Center(
-                                          child: CircularProgressIndicator(
-                                            color: Color(0xFF177E85),
+                                          child: SizedBox(
+                                            width: 26,
+                                            height: 26,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 2.5,
+                                              color: Color(0xFF177E85),
+                                            ),
                                           ),
                                         ),
                                       );
                                     } else {
                                       return Padding(
-                                        padding: const EdgeInsets.all(24.0),
+                                        padding: const EdgeInsets.fromLTRB(16, 20, 16, 36),
                                         child: Center(
-                                          child: Text(
-                                            "You've reached the end",
-                                            style: TextStyle(color: Colors.grey[500]),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Container(
+                                                width: 5,
+                                                height: 5,
+                                                decoration: const BoxDecoration(
+                                                  color: Color(0xFF64748B),
+                                                  shape: BoxShape.circle,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                "You're all caught up",
+                                                style: TextStyle(
+                                                  color: Colors.grey[500],
+                                                  fontSize: 13,
+                                                ),
+                                              ),
+                                            ],
                                           ),
                                         ),
                                       );
                                     }
                                   },
-                                  childCount: feedProvider.posts.length +
-                                      (feedProvider.hasMore ? 1 : 1),
+                                  // posts + exactly one footer cell (loader or
+                                  // "all caught up").
+                                  childCount: feedProvider.posts.length + 1,
                                 ),
                               );
                             },

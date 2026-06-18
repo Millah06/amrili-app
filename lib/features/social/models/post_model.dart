@@ -1,4 +1,6 @@
 
+import 'package:everywhere/features/social/models/survey_model.dart';
+
 class Post {
   final String postId;
   final String userId;
@@ -14,6 +16,8 @@ class Post {
   final int likeCount;
   final int commentCount;
   final int viewCount;
+  final String postType; // "standard" | "survey"
+  final Survey? survey; // embedded for survey posts (null for standard posts)
 
   // final int rewardCount;
   // final double rewardPointsTotal;
@@ -61,6 +65,8 @@ class Post {
     this.isFollowing = false,
     this.isSaved = false,
     this.repostCount = 0,
+    this.postType = 'standard',
+    this.survey,
   });
 
   factory Post.fromJson(Map<String, dynamic> json) {
@@ -94,6 +100,10 @@ class Post {
       isFollowing: json['isFollowing'] ?? false,
       isSaved: json['isSaved'] ?? false,
       repostCount: json['repostCount'] ?? 0,
+      postType: json['postType'] ?? 'standard',
+      survey: json['survey'] != null
+          ? Survey.fromJson(json['survey'] as Map<String, dynamic>)
+          : null,
     );
   }
 
@@ -153,8 +163,12 @@ class Post {
       isFollowing: isFollowing ?? this.isFollowing,
       isSaved: isSaved ?? this.isSaved,
       repostCount: repostCount ?? this.repostCount,
+      postType: postType,
+      survey: survey,
     );
   }
+
+  bool get isSurvey => postType == 'survey';
 
   bool get isBoostActive {
     if (!isBoosted || boostExpiresAt == null) return false;
