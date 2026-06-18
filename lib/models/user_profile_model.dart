@@ -30,6 +30,8 @@ class UserProfile {
   final double totalNairaEarned;
   final double weeklyPoints;
 
+  final bool ? isVerified;
+
   // KYC
   final bool isKycVerified;
   final DateTime? kycVerifiedAt;
@@ -37,9 +39,6 @@ class UserProfile {
   // Account
   final DateTime createdAt;
   final DateTime lastActiveAt;
-
-  // Badges
-  final Map<String, dynamic> badges;
 
   bool isFollowing;
   bool isFollowingYou;
@@ -72,22 +71,13 @@ class UserProfile {
     this.kycVerifiedAt,
     required this.createdAt,
     required this.lastActiveAt,
-    this.badges = const {},
+    this.isVerified,
     this.isFollowing = false,
     this.isFollowingYou = false,
   });
 
   factory UserProfile.fromJson(Map<String, dynamic> json) {
-    // Parse badges safely - handle both Map and List
-    Map<String, dynamic> parsedBadges = {};
-    final badgesData = json['badges'];
 
-    if (badgesData is Map) {
-      parsedBadges = Map<String, dynamic>.from(badgesData);
-    } else if (badgesData is List) {
-      // If it's a list (empty array from backend), convert to empty map
-      parsedBadges = {};
-    }
 
     return UserProfile(
       userId: json['userId'] ?? '',
@@ -123,7 +113,7 @@ class UserProfile {
       lastActiveAt: json['lastActiveAt'] != null
           ? DateTime.fromMillisecondsSinceEpoch(json['lastActiveAt'])
           : DateTime.now(),
-      badges: parsedBadges,
+      isVerified: json['isVerified'],
       isFollowing: json['isFollowing'] ?? false,
       isFollowingYou: json['isFollowingYou'] ?? false,
     );
@@ -167,7 +157,7 @@ class UserProfile {
       kycVerifiedAt: kycVerifiedAt,
       createdAt: createdAt,
       lastActiveAt: lastActiveAt,
-      badges: badges,
+      isVerified: isVerified,
       isFollowing: isFollowing ?? this.isFollowing,
       isFollowingYou: isFollowingYou,
     );
@@ -181,21 +171,8 @@ class UserProfile {
   // bool get isCreator => badges['creatorEarnings'] == true;
 
   //This will be deleted in production
-  bool get hasBlueCheck => true;
-  bool get hasPremium => badges['premiumPaid'] == true;
-  bool get isBusiness => badges['business'] == true;
-  bool get isCreator => badges['creatorEarnings'] == true;
-
-  List<String> get activeBadges {
-    final List<String> active = [];
-    badges.forEach((key, value) {
-      if (value is Map && value['awarded'] == true) {
-        final expiresAt = value['expiresAt'];
-        if (expiresAt == null || DateTime.now().isBefore(DateTime.fromMillisecondsSinceEpoch(expiresAt))) {
-          active.add(key);
-        }
-      }
-    });
-    return active;
-  }
+  // bool get hasBlueCheck => true;
+  // bool get hasPremium => badges['premiumPaid'] == true;
+  // bool get isBusiness => badges['business'] == true;
+  // bool get isCreator => badges['creatorEarnings'] == true;
 }

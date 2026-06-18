@@ -24,44 +24,11 @@ class VerificationBadge extends StatelessWidget {
     final List<Widget> badges = [];
 
     // Check KYC (hasBlueCheck)
-    if (profile.hasBlueCheck) {
+    if (profile.isVerified) {
       badges.add(
         const Icon(
           Icons.verified,
           color: Color(0xFF1DA1F2),
-          size: 18,
-        ),
-      );
-    }
-
-    // Check Premium
-    if (profile.hasPremium) {
-      badges.add(
-        const Icon(
-          Icons.workspace_premium,
-          color: Color(0xFFFFD700),
-          size: 18,
-        ),
-      );
-    }
-
-    // Check Business - Updated with more beautiful icon
-    if (profile.isBusiness) {
-      badges.add(
-        const Icon(
-          Icons.storefront, // More beautiful business icon
-          color: Color(0xFF177E85),
-          size: 18,
-        ),
-      );
-    }
-
-    // Check Creator
-    if (profile.isCreator) {
-      badges.add(
-        const Icon(
-          Icons.star,
-          color: Color(0xFFFF6B6B),
           size: 18,
         ),
       );
@@ -88,50 +55,25 @@ class VerificationBadge extends StatelessWidget {
 }
 
 class VerificationBadgeForPost extends StatelessWidget {
-  final String? badge;
+  final bool ? verified;
 
   const VerificationBadgeForPost({
     super.key,
-    required this.badge,
+    this.verified = false ,
   });
 
   @override
   Widget build(BuildContext context) {
 
-    // Build list of badges based on what the user has
-    final  Map<String, Widget> mapIcons = {
-      'kycBlue' : const Icon(
-        Icons.verified,
-        color: Color(0xFF1DA1F2),
-        size: 18,
-      ),
-      'premiumPaid' :  const Icon(
-        Icons.workspace_premium,
-        color: Color(0xFFFFD700),
-        size: 18,
-      ),
-      'business' : const Icon(
-        Icons.storefront, // More beautiful business icon
-        color: Color(0xFF177E85),
-        size: 18,
-      ),
-      'creatorEarnings' :  const Icon(
-        Icons.star,
-        color: Color(0xFFFF6B6B),
-        size: 18,
-      ),
-    };
-
-    List<String> badges = mapIcons.keys.toList();
-
-    if (!badges.contains(badge)) {
-      return const SizedBox.shrink();
-    }
 
     // Return row of badges or empty if none
-    if (badge!.isEmpty || badge == null) {
+    if (verified == false) {
       return const SizedBox.shrink();
     }
-     return mapIcons[badge] ??  const SizedBox.shrink();
+     return  const Icon(
+       Icons.verified,
+       color: Color(0xFF1DA1F2),
+       size: 18,
+     );
   }
 }

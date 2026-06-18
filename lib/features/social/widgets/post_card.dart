@@ -265,7 +265,7 @@ class _PostCardState extends State<PostCard> {
                             ),
                           ),
                           const SizedBox(width: 4),
-                          VerificationBadgeForPost(badge: _currentPost.topBadge),
+                          VerificationBadgeForPost(verified: _currentPost.authorIsVerified),
                         ],
                       ),
                       if (_currentPost.userHandle.isNotEmpty) ...[

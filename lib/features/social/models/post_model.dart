@@ -5,7 +5,7 @@ class Post {
   final String postId;
   final String userId;
   final String userName;
-  final String? topBadge;
+  final bool ? authorIsVerified;
   final String userHandle;
   final String? userAvatar;
   final String text;
@@ -43,7 +43,7 @@ class Post {
     required this.userName,
     required this.userHandle,
     this.userAvatar,
-    this.topBadge,
+    this.authorIsVerified,
     required this.title,
     required this.text,
     required this.images,
@@ -75,7 +75,7 @@ class Post {
       userId: json['userId'] ?? '',
       userName: json['userName'] ?? 'Anonymous',
       userHandle: json['userHandle'] ?? '',
-      topBadge: json['topBadge'],
+      authorIsVerified: json['authorIsVerified'] ?? false,
       userAvatar: json['userAvatar'],
       title: json['title'] ?? '',
       text: json['text'] ?? '',
@@ -165,6 +165,7 @@ class Post {
       repostCount: repostCount ?? this.repostCount,
       postType: postType,
       survey: survey,
+      authorIsVerified: authorIsVerified
     );
   }
 
