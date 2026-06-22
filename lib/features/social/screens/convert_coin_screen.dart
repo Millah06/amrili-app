@@ -11,9 +11,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
-import '../../../components/transacrtion_pin.dart';
+import '../../../components/transaction_pin.dart';
 import '../../../constraints/vendor_theme.dart';
 import '../../../shared/utils/flush_bar_message.dart';
+import '../../verification/verification_gate.dart';
 import '../providers/reward_provider.dart';
 
 class ConvertCoinsScreen extends StatefulWidget {
@@ -122,7 +123,10 @@ class _ConvertCoinsScreenState extends State<ConvertCoinsScreen> {
 
   Widget _form(RewardProvider reward, double nairaPreview) {
     final convertible = reward.convertibleCoins;
-    return ListView(
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 480),
+        child: ListView(
       padding: const EdgeInsets.all(16),
       children: [
         // Convertible (earned) balance — NOT total coins.
@@ -211,18 +215,20 @@ class _ConvertCoinsScreenState extends State<ConvertCoinsScreen> {
           child: ElevatedButton(
             onPressed: (_amount >= _minConversion && _amount <= convertible && !_processing)
                 ? () {
-              // Cash-out moves money to the wallet → require the transaction PIN.
-              showModalBottomSheet(
-                isScrollControlled: true,
-                context: context,
-                isDismissible: false,
-                builder: (_) => TransactionPin(
-                  onSuccess: () {
-                    Navigator.pop(context);
-                    _convert(reward);
-                  },
-                ),
-              );
+              // Cash out earned coins → wallet  (convertCoinsToNaira call site)
+              VerificationGate.ensureVerified(context, reason: 'to cash out', action: () {  // Cash-out moves money to the wallet → require the transaction PIN.
+                showModalBottomSheet(
+                  isScrollControlled: true,
+                  context: context,
+                  isDismissible: false,
+                  builder: (_) => TransactionPin(
+                    onSuccess: () {
+                      Navigator.pop(context);
+                      _convert(reward);
+                    },
+                  ),
+                );
+              });
             }
                 : null,
             style: ElevatedButton.styleFrom(
@@ -239,6 +245,8 @@ class _ConvertCoinsScreenState extends State<ConvertCoinsScreen> {
           ),
         ),
       ],
+        ),
+      ),
     );
   }
 

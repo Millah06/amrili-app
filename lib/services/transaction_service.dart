@@ -19,7 +19,7 @@ import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import '../components/transacrtion_pin.dart';
+import '../components/transaction_pin.dart';
 import '../components/view_receipt.dart';
 import '../components/wallet_balance.dart';
 import '../constraints/constants.dart';

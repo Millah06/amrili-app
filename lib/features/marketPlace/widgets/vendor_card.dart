@@ -1,6 +1,6 @@
 import 'package:everywhere/features/marketPlace/widgets/trust_badge.dart';
+import 'package:everywhere/shared/widgets/net_image.dart';
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import '../../../constraints/vendor_theme.dart';
 import '../models/vendor_model.dart';
 
@@ -51,15 +51,14 @@ class VendorCard extends StatelessWidget {
                 children: [
                   // Background banner
                   vendor.coverPhoto.isNotEmpty
-                      ? CachedNetworkImage(
-                    imageUrl: vendor.coverPhoto,
+                      ? NetImage(
+                    url: vendor.coverPhoto,
                     width: double.infinity, height: 90, fit: BoxFit.cover,
-                    placeholder: (_, __) => _logoPlaceholder(),
-                    errorWidget: (_, __, ___) => _logoPlaceholder(),
+                    errorChild: _logoPlaceholder(),
                   ): Container(
                     height: 90,
                     width: double.infinity,
-                    color: _typeColor.withOpacity(0.12),
+                    color: _typeColor.withValues(alpha: 0.12),
                   ),
                   // Type badge top-right
                   Positioned(
@@ -68,7 +67,7 @@ class VendorCard extends StatelessWidget {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
-                        color: _typeColor.withOpacity(0.9),
+                        color: _typeColor.withValues(alpha: 0.9),
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
@@ -99,11 +98,10 @@ class VendorCard extends StatelessWidget {
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(12),
                       child: vendor.logo.isNotEmpty
-                          ? CachedNetworkImage(
-                        imageUrl: vendor.logo,
+                          ? NetImage(
+                        url: vendor.logo,
                         width: 52, height: 52, fit: BoxFit.cover,
-                        placeholder: (_, __) => _logoPlaceholder(),
-                        errorWidget: (_, __, ___) => _logoPlaceholder(),
+                        errorChild: _logoPlaceholder(),
                       )
                           : _logoPlaceholder(),
                     ),

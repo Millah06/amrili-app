@@ -77,7 +77,8 @@ class _SearchScreenBodyState extends State<_SearchScreenBody>
     return Scaffold(
       backgroundColor: VendorTheme.background,
       body: SafeArea(
-        child: Column(
+        child: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 640),
+          child: Column(
           children: [
             _SearchBar(
               controller: _controller,
@@ -103,6 +104,8 @@ class _SearchScreenBodyState extends State<_SearchScreenBody>
             ),
           ],
         ),
+        ),
+      ),
       ),
     );
   }
@@ -136,22 +139,17 @@ class _SearchBar extends StatelessWidget {
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
-      padding: EdgeInsets.fromLTRB(isActive ? 8 : 16, 12, 16, 10),
+      padding: const EdgeInsets.fromLTRB(8, 12, 16, 10),
       child: Row(
         children: [
-          // Back button (visible only when active)
-          AnimatedSize(
-            duration: const Duration(milliseconds: 200),
-            child: isActive
-                ? GestureDetector(
-              onTap: onClear,
-              child: const Padding(
-                padding: EdgeInsets.only(right: 8),
-                child: Icon(Icons.arrow_back_ios_new_rounded,
-                    color: Colors.white, size: 20),
-              ),
-            )
-                : const SizedBox.shrink(),
+          // Back button — clears search when active, pops screen when idle
+          GestureDetector(
+            onTap: isActive ? onClear : () => Navigator.of(context).pop(),
+            child: const Padding(
+              padding: EdgeInsets.only(right: 8),
+              child: Icon(Icons.arrow_back_ios_new_rounded,
+                  color: Colors.white, size: 20),
+            ),
           ),
 
           // Text field

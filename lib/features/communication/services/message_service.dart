@@ -81,6 +81,46 @@ class MessageService {
     });
   }
 
+  /// Write a gift as a chat message (after the backend has moved the coins).
+  Future<void> sendGiftMessage({
+    required String roomId,
+    required String senderId,
+    required String receiverId,
+    required String giftType,
+    required String giftEmoji,
+    required String giftName,
+    required int coins,
+  }) async {
+    final messageRef =
+        _db.collection('chat_room').doc(roomId).collection('messages');
+    final messageDoc = messageRef.doc();
+
+    try {
+      await messageDoc.set({
+        'text': '$giftEmoji $giftName',
+        'type': 'gift',
+        'giftType': giftType,
+        'giftEmoji': giftEmoji,
+        'giftName': giftName,
+        'coins': coins,
+        'senderId': senderId,
+        'createdAt': FieldValue.serverTimestamp(),
+        'localCreatedAt': Timestamp.now(),
+        'status': 'sent',
+        'expireAt':
+            Timestamp.fromDate(DateTime.now().add(const Duration(hours: 120))),
+      });
+    } catch (_) {}
+
+    await _db.collection('chat_room').doc(roomId).update({
+      'lastMessage': '$giftEmoji $giftName',
+      'lastMessageType': 'text',
+      'unreadCount.$receiverId': FieldValue.increment(1),
+      'messageStatus': 'sent',
+      'lastMessageTime': FieldValue.serverTimestamp(),
+    });
+  }
+
   /// Group send: writes the message then bumps unread for every member except
   /// the sender (p2p sendTextMessage only bumps a single receiver).
   Future<void> sendGroupMessage({

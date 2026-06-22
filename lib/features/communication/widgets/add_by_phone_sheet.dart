@@ -7,6 +7,7 @@ import '../../../services/brain.dart';
 import '../../../shared/widgets/country_code_picker_field.dart';
 import '../screens/message_screen.dart';
 import '../services/chat_room_service.dart';
+import 'chat_loading.dart';
 
 class AddByPhoneNumber extends StatefulWidget {
 
@@ -363,8 +364,10 @@ class AddByPhoneNumberState extends State<AddByPhoneNumber> {
                           ),
                           onPressed: () =>  GuestHelper.guardAction(context, action: () async {
 
-                            final roomId =
-                            await ChatRoomService().createOrGetChatRoom(otherId: _user!['id'], initiatedVia: 'phone',
+                            final roomId = await runWithChatLoader(
+                              context,
+                              () => ChatRoomService().createOrGetChatRoom(
+                                  otherId: _user!['id'], initiatedVia: 'phone'),
                             );
 
                             if (!mounted) return;

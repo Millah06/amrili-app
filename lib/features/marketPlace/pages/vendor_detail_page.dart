@@ -2,7 +2,7 @@ import 'package:everywhere/constraints/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:everywhere/shared/widgets/net_image.dart';
 import '../../../constraints/vendor_theme.dart';
 
 import '../../../core/constant/api_constants.dart';
@@ -79,7 +79,10 @@ class _VendorDetailPageState extends State<VendorDetailPage> {
         final vendor = detail.vendor!;
         return Scaffold(
           backgroundColor: VendorTheme.background,
-          body: CustomScrollView(
+          body: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 900),
+              child: CustomScrollView(
             slivers: [
               _sliverAppBar(vendor),
               SliverToBoxAdapter(child: _vendorInfo(vendor)),
@@ -154,6 +157,8 @@ class _VendorDetailPageState extends State<VendorDetailPage> {
                   ),
                 ),
             ],
+              ),
+            ),
           ),
           bottomNavigationBar: cart.isEmpty || cart.vendorId != widget.vendorId
               ? null
@@ -234,11 +239,10 @@ class _VendorDetailPageState extends State<VendorDetailPage> {
       ),
       flexibleSpace: FlexibleSpaceBar(
         background: vendor.logo.isNotEmpty
-            ? CachedNetworkImage(
-          imageUrl: vendor.logo,
+            ? NetImage(
+          url: vendor.logo,
           fit: BoxFit.cover,
-          placeholder: (_, __) => Container(color: VendorTheme.surface),
-          errorWidget: (_, __, ___) => Container(color: VendorTheme.surface),
+          errorChild: Container(color: VendorTheme.surface),
         )
             : Container(
           color: VendorTheme.surface,
@@ -410,13 +414,12 @@ class _MenuItemTile extends StatelessWidget {
                       ClipRRect(
                         borderRadius: BorderRadius.circular(10),
                         child: item.images.isNotEmpty
-                            ? CachedNetworkImage(
-                          imageUrl: item.images.first,
+                            ? NetImage(
+                          url: item.images.first,
                           width: 78,
                           height: 78,
                           fit: BoxFit.cover,
-                          placeholder: (_, __) => _Placeholder(),
-                          errorWidget: (_, __, ___) => _Placeholder(),
+                          errorChild: _Placeholder(),
                         )
                             : _Placeholder(),
                       ),
@@ -832,14 +835,12 @@ class _ProductDetailSheetState extends State<_ProductDetailSheet> {
     }
 
     if (item.images.length == 1) {
-      return CachedNetworkImage(
-        imageUrl: item.images.first,
+      return NetImage(
+        url: item.images.first,
         height: h,
         width: double.infinity,
         fit: BoxFit.cover,
-        placeholder: (_, __) =>
-            Container(height: h, color: VendorTheme.surface),
-        errorWidget: (_, __, ___) => Container(
+        errorChild: Container(
             height: h,
             color: VendorTheme.surface,
             alignment: Alignment.center,
@@ -857,14 +858,12 @@ class _ProductDetailSheetState extends State<_ProductDetailSheet> {
             controller: _pageCtrl,
             itemCount: item.images.length,
             onPageChanged: (i) => setState(() => _currentPage = i),
-            itemBuilder: (_, i) => CachedNetworkImage(
-              imageUrl: item.images[i],
+            itemBuilder: (_, i) => NetImage(
+              url: item.images[i],
               height: h,
               width: double.infinity,
               fit: BoxFit.cover,
-              placeholder: (_, __) =>
-                  Container(height: h, color: VendorTheme.surface),
-              errorWidget: (_, __, ___) => Container(
+              errorChild: Container(
                   height: h,
                   color: VendorTheme.surface,
                   alignment: Alignment.center,
@@ -1184,92 +1183,118 @@ class _VendorDetailSkeletonState extends State<_VendorDetailSkeleton>
       backgroundColor: VendorTheme.background,
       body: FadeTransition(
         opacity: Tween(begin: 0.5, end: 0.9).animate(_c),
-        child: SingleChildScrollView(
+        // Use the same CustomScrollView+SliverAppBar structure as the real page
+        // so the collapsed/expanded header animates identically.
+        child: CustomScrollView(
           physics: const NeverScrollableScrollPhysics(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Cover banner
-              _box(double.infinity, 170, r: 0),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+          slivers: [
+            // Matches SliverAppBar(expandedHeight: 200, pinned: true)
+            SliverAppBar(
+              backgroundColor: VendorTheme.background,
+              expandedHeight: 200,
+              pinned: true,
+              automaticallyImplyLeading: false,
+              flexibleSpace: FlexibleSpaceBar(
+                background: Container(color: VendorTheme.surfaceVariant),
+              ),
+            ),
+
+            SliverToBoxAdapter(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Logo overlapping the cover
-                    Transform.translate(
-                      offset: const Offset(0, -28),
-                      child: Container(
-                        width: 72,
-                        height: 72,
-                        decoration: BoxDecoration(
-                          color: VendorTheme.surfaceVariant,
-                          borderRadius: BorderRadius.circular(16),
-                          border:
-                          Border.all(color: VendorTheme.background, width: 3),
-                        ),
-                      ),
-                    ),
-                    _box(180, 20),
-                    const SizedBox(height: 10),
-                    _box(240, 12),
-                    const SizedBox(height: 6),
-                    _box(160, 12),
-                    const SizedBox(height: 16),
-                    // Badge chips
+                    // _vendorInfo: name row + trust badge placeholder
                     Row(
                       children: [
+                        Expanded(child: _box(180, 20)),
+                        const SizedBox(width: 12),
+                        _box(60, 24, r: 8),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    _box(double.infinity, 13), // description line 1
+                    const SizedBox(height: 4),
+                    _box(200, 13),             // description line 2
+                    const SizedBox(height: 16),
+                    // Badge chips — matches Wrap([rating, completion, orders])
+                    Wrap(
+                      spacing: 8,
+                      children: [
                         _box(70, 28, r: 8),
-                        const SizedBox(width: 8),
-                        _box(110, 28, r: 8),
-                        const SizedBox(width: 8),
+                        _box(112, 28, r: 8),
                         _box(80, 28, r: 8),
                       ],
                     ),
-                    const SizedBox(height: 22),
-                    // Branch selector label + chips
-                    _box(110, 14),
+                    const SizedBox(height: 24),
+                    // _branchSelector: label + horizontal chips
+                    _box(110, 15),
                     const SizedBox(height: 10),
                     Row(
                       children: [
-                        _box(140, 64, r: 12),
+                        _box(160, 64, r: 12),
                         const SizedBox(width: 10),
-                        _box(140, 64, r: 12),
+                        _box(160, 64, r: 12),
                       ],
                     ),
-                    const SizedBox(height: 22),
-                    // Menu rows
-                    _box(90, 14),
+                    const SizedBox(height: 20),
+                    // "Products" header row
+                    Row(
+                      children: [
+                        _box(80, 16),
+                        const Spacer(),
+                        _box(50, 12),
+                      ],
+                    ),
                     const SizedBox(height: 12),
-                    ...List.generate(
-                      4,
-                          (_) => Padding(
-                        padding: const EdgeInsets.only(bottom: 14),
+                    // Menu items — matches _MenuItemTile (78×78 thumbnail)
+                    ...List.generate(4, (_) => Padding(
+                      padding: const EdgeInsets.only(bottom: 10),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: VendorTheme.surface,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: VendorTheme.divider),
+                        ),
                         child: Row(
                           children: [
-                            _box(64, 64, r: 12),
-                            const SizedBox(width: 12),
+                            Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: _box(78, 78, r: 10),
+                            ),
                             Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  _box(140, 14),
-                                  const SizedBox(height: 8),
-                                  _box(90, 11),
-                                  const SizedBox(height: 8),
-                                  _box(60, 12),
-                                ],
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 12),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _box(150, 14),
+                                    const SizedBox(height: 6),
+                                    _box(double.infinity, 11),
+                                    const SizedBox(height: 4),
+                                    _box(120, 11),
+                                    const SizedBox(height: 10),
+                                    _box(80, 15),
+                                  ],
+                                ),
                               ),
+                            ),
+                            // Add-to-cart button placeholder
+                            Padding(
+                              padding: const EdgeInsets.only(right: 12),
+                              child: _box(34, 34, r: 9),
                             ),
                           ],
                         ),
                       ),
-                    ),
+                    )),
+                    const SizedBox(height: 80),
                   ],
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -1318,7 +1343,6 @@ class _MenuSkeletonSliverState extends State<_MenuSkeletonSliver>
               5,
                   (_) => Container(
                 margin: const EdgeInsets.only(bottom: 10),
-                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
                   color: VendorTheme.surface,
                   borderRadius: BorderRadius.circular(14),
@@ -1326,19 +1350,30 @@ class _MenuSkeletonSliverState extends State<_MenuSkeletonSliver>
                 ),
                 child: Row(
                   children: [
-                    _box(64, 64, r: 10),
-                    const SizedBox(width: 12),
+                    Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: _box(78, 78, r: 10),
+                    ),
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _box(150, 14),
-                          const SizedBox(height: 8),
-                          _box(100, 11),
-                          const SizedBox(height: 10),
-                          _box(70, 13),
-                        ],
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            _box(150, 14),
+                            const SizedBox(height: 6),
+                            _box(double.infinity, 11),
+                            const SizedBox(height: 4),
+                            _box(120, 11),
+                            const SizedBox(height: 10),
+                            _box(80, 15),
+                          ],
+                        ),
                       ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(right: 12),
+                      child: _box(34, 34, r: 9),
                     ),
                   ],
                 ),

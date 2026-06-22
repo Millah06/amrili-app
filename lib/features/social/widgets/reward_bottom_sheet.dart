@@ -4,7 +4,7 @@
 // import 'package:flutter/material.dart';
 // import 'package:flutter/services.dart';
 // import 'package:provider/provider.dart';
-// import '../../../components/transacrtion_pin.dart';
+// import '../../../components/transaction_pin.dart';
 // import '../../../constraints/vendor_theme.dart';
 // import '../../../services/brain.dart';
 // import '../../../shared/utils/flush_bar_message.dart';

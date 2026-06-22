@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:everywhere/constraints/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../../../../components/transacrtion_pin.dart';
+import '../../../../components/transaction_pin.dart';
 import '../../../../providers/user_provider.dart';
 import '../../../../constraints/vendor_theme.dart';
 import '../../models/order_model.dart';
@@ -56,7 +56,10 @@ class _OrdersTabState extends State<OrdersTab>
     return Scaffold(
       backgroundColor: VendorTheme.background,
       body: SafeArea(
-        child: Column(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 900),
+            child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // Header
@@ -157,6 +160,8 @@ class _OrdersTabState extends State<OrdersTab>
             ),
 
           ],
+            ),
+          ),
         ),
       ),
     );
@@ -198,51 +203,58 @@ class _OrderList extends StatelessWidget {
             subtitle: emptySubtitle,
           );
         }
-        return RefreshIndicator(
-          color: VendorTheme.primary,
-          backgroundColor: VendorTheme.surface,
-          onRefresh: () => p.refreshBucket(bucket),
-          child: NotificationListener<ScrollNotification>(
-            onNotification: (n) {
-              if (n.metrics.pixels >= n.metrics.maxScrollExtent - 400) {
-                p.fetchMoreBucket(bucket);
-              }
-              return false;
-            },
-            child: ListView.builder(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 90),
-              itemCount: items.length + 1, // +1 footer slot
-              itemBuilder: (_, i) {
-                if (i == items.length) {
-                  if (p.loadingMoreFor(bucket)) {
-                    return const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 20),
-                      child: Center(
-                        child: SizedBox(
-                          height: 22,
-                          width: 22,
-                          child: CircularProgressIndicator(
-                              strokeWidth: 2, color: VendorTheme.primary),
-                        ),
-                      ),
-                    );
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final twoCol = constraints.maxWidth >= 720;
+            return RefreshIndicator(
+              color: VendorTheme.primary,
+              backgroundColor: VendorTheme.surface,
+              onRefresh: () => p.refreshBucket(bucket),
+              child: NotificationListener<ScrollNotification>(
+                onNotification: (n) {
+                  if (n.metrics.pixels >= n.metrics.maxScrollExtent - 400) {
+                    p.fetchMoreBucket(bucket);
                   }
-                  if (!p.hasMoreFor(bucket)) {
-                    return const Padding(
-                      padding: EdgeInsets.only(top: 16, bottom: 28),
-                      child: Center(
-                        child: Text('You’ve reached the end',
-                            style: TextStyle(
-                                color: VendorTheme.textMuted, fontSize: 12)),
+                  return false;
+                },
+                child: twoCol
+                    ? _OrderGrid(items: items, provider: p, bucket: bucket)
+                    : ListView.builder(
+                        padding: const EdgeInsets.fromLTRB(16, 14, 16, 90),
+                        itemCount: items.length + 1,
+                        itemBuilder: (_, i) {
+                          if (i == items.length) {
+                            if (p.loadingMoreFor(bucket)) {
+                              return const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 20),
+                                child: Center(
+                                  child: SizedBox(
+                                    height: 22,
+                                    width: 22,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2, color: VendorTheme.primary),
+                                  ),
+                                ),
+                              );
+                            }
+                            if (!p.hasMoreFor(bucket)) {
+                              return const Padding(
+                                padding: EdgeInsets.only(top: 16, bottom: 28),
+                                child: Center(
+                                  child: Text('You’ve reached the end',
+                                      style: TextStyle(
+                                          color: VendorTheme.textMuted, fontSize: 12)),
+                                ),
+                              );
+                            }
+                            return const SizedBox(height: 12);
+                          }
+                          return _OrderCard(order: items[i]);
+                        },
                       ),
-                    );
-                  }
-                  return const SizedBox(height: 12);
-                }
-                return _OrderCard(order: items[i]);
-              },
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );
@@ -849,4 +861,71 @@ class _OrderListSkeletonState extends State<_OrderListSkeleton>
       borderRadius: BorderRadius.circular(6),
     ),
   );
+}
+
+// ─── 2-column order grid (tablet / desktop) ───────────────────────────────────
+// Renders orders in pairs of two, each pair in a Row. Row height adapts to the
+// taller of the two cards so variable-height content (step bars, action
+// buttons) is never clipped.
+class _OrderGrid extends StatelessWidget {
+  final List<OrderModel> items;
+  final OrderListProvider provider;
+  final String bucket;
+
+  const _OrderGrid({
+    required this.items,
+    required this.provider,
+    required this.bucket,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 90),
+      itemCount: (items.length / 2).ceil() + 1,
+      itemBuilder: (_, rowIdx) {
+        // Footer row
+        if (rowIdx == (items.length / 2).ceil()) {
+          if (provider.loadingMoreFor(bucket)) {
+            return const Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child: Center(
+                child: SizedBox(
+                  height: 22,
+                  width: 22,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: VendorTheme.primary),
+                ),
+              ),
+            );
+          }
+          if (!provider.hasMoreFor(bucket)) {
+            return const Padding(
+              padding: EdgeInsets.only(top: 16, bottom: 28),
+              child: Center(
+                child: Text("You've reached the end",
+                    style: TextStyle(color: VendorTheme.textMuted, fontSize: 12)),
+              ),
+            );
+          }
+          return const SizedBox(height: 12);
+        }
+
+        final left = rowIdx * 2;
+        final right = left + 1;
+        return IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Expanded(child: _OrderCard(order: items[left])),
+              const SizedBox(width: 12),
+              right < items.length
+                  ? Expanded(child: _OrderCard(order: items[right]))
+                  : const Expanded(child: SizedBox()),
+            ],
+          ),
+        );
+      },
+    );
+  }
 }

@@ -47,7 +47,7 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A),
       appBar: _buildAppBar(),
-      body: Consumer<TransactionProvider>(
+      body: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 900), child: Consumer<TransactionProvider>(
         builder: (_, prov, __) => Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -63,6 +63,8 @@ class _TransactionHistoryScreenState extends State<TransactionHistoryScreen> {
           ],
         ),
       ),
+      ),
+    ),
     );
   }
 

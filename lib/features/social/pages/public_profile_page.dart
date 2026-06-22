@@ -8,7 +8,7 @@
 // screen) because a deep link can arrive with an empty stack and a guest user;
 // it shows the public header + an "Open in app" CTA.
 //
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:everywhere/shared/widgets/net_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -76,14 +76,14 @@ class _PublicProfilePageState extends State<PublicProfilePage> {
             style: GoogleFonts.poppins(
                 fontWeight: FontWeight.w700, fontSize: 18, color: Colors.white)),
       ),
-      body: switch (_state) {
+      body: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 640), child: switch (_state) {
         _S.loading => const Center(
             child: CircularProgressIndicator(color: VendorTheme.primary)),
         _S.success => _Body(p: _p!, count: _count),
         _S.notFound => _msg('Profile not found',
             'No one with that handle, or the profile is unavailable.'),
         _S.error => _msg('Couldn’t load profile', 'Please try again.'),
-      },
+      })),
     );
   }
 
@@ -138,15 +138,14 @@ class _Body extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       child: Column(
         children: [
-          CircleAvatar(
+          NetImage.circle(
+            url: avatar ?? '',
             radius: 44,
-            backgroundColor: VendorTheme.surface,
-            backgroundImage: (avatar != null && avatar.isNotEmpty)
-                ? CachedNetworkImageProvider(avatar)
-                : null,
-            child: (avatar == null || avatar.isEmpty)
-                ? const Icon(Icons.person, size: 40, color: VendorTheme.textMuted)
-                : null,
+            fallback: const CircleAvatar(
+              radius: 44,
+              backgroundColor: VendorTheme.surface,
+              child: Icon(Icons.person, size: 40, color: VendorTheme.textMuted),
+            ),
           ),
           const SizedBox(height: 14),
           Row(

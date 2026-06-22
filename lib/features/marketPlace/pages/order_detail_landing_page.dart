@@ -97,7 +97,7 @@ class _OrderDetailLandingPageState extends State<OrderDetailLandingPage> {
             style: GoogleFonts.poppins(
                 fontWeight: FontWeight.w700, fontSize: 18, color: Colors.white)),
       ),
-      body: switch (_s) {
+      body: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 900), child: switch (_s) {
         _S.loading => const Center(
             child: CircularProgressIndicator(color: VendorTheme.primary)),
         _S.error => _ErrorView(onRetry: _load),
@@ -107,7 +107,7 @@ class _OrderDetailLandingPageState extends State<OrderDetailLandingPage> {
           totalLabel: _totalLabel,
           itemCount: _itemCount,
         ),
-      },
+      })),
     );
   }
 }

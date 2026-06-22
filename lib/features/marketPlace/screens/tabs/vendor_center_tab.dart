@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:everywhere/components/swicht.dart';
+import 'package:everywhere/components/tiny_switch.dart';
 import 'package:everywhere/features/marketPlace/models/vendor_model.dart';
 import 'package:everywhere/features/marketPlace/widgets/vendor_rejection_view.dart';
 import 'package:flutter/material.dart';
@@ -76,7 +76,10 @@ class _DashboardViewState extends State<_DashboardView> with SingleTickerProvide
         return Scaffold(
           backgroundColor: VendorTheme.background,
           body: SafeArea(
-            child: Column(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 900),
+                child: Column(
               children: [
                 _buildHeader(context, p),
                 TabBar(
@@ -98,6 +101,8 @@ class _DashboardViewState extends State<_DashboardView> with SingleTickerProvide
                   ),
                 ),
               ],
+                ),
+              ),
             ),
           ),
         );

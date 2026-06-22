@@ -1,5 +1,5 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:everywhere/features/profile/models/profile_display_data.dart';
+import 'package:everywhere/shared/widgets/net_image.dart';
 import 'package:everywhere/features/social/widgets/verification_badge.dart';
 import 'package:everywhere/shared/functions/shared_functions.dart';
 import 'package:flutter/material.dart';
@@ -101,10 +101,12 @@ class ProfileHeaderDelegate extends SliverPersistentHeaderDelegate {
         // ── Cover photo / gradient background ──────────────────────────────
         Positioned.fill(
           child: display?.coverImage != null
-              ? CachedNetworkImage(
-            imageUrl: display!.coverImage!,
+              ? NetImage(
+            url: display!.coverImage!,
             fit: BoxFit.cover,
-            errorWidget: (_, __, ___) => _gradientBg(),
+            width: double.infinity,
+            height: double.infinity,
+            errorChild: _gradientBg(),
           )
               : _gradientBg(),
         ),
@@ -117,8 +119,8 @@ class ProfileHeaderDelegate extends SliverPersistentHeaderDelegate {
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
                 colors: [
-                  Colors.black.withOpacity(0.4),
-                  Colors.black.withOpacity(0.8),
+                  Colors.black.withValues(alpha: 0.4),
+                  Colors.black.withValues(alpha: 0.8),
                   const Color(0xFF0F172A),
                 ],
                 stops: const [0.0, 0.5, 1.0],
@@ -183,7 +185,7 @@ class ProfileHeaderDelegate extends SliverPersistentHeaderDelegate {
     decoration: BoxDecoration(
       gradient: LinearGradient(
         colors: [
-          const Color(0xFF177E85).withOpacity(0.4),
+          const Color(0xFF177E85).withValues(alpha: 0.4),
           const Color(0xFF1E293B),
         ],
       ),
@@ -273,7 +275,7 @@ class _ExpandedHeader extends StatelessWidget {
                       ),
                       if (display?.userId.isNotEmpty == true) ...[
                         const SizedBox(width: 4),
-                        VerificationBadge(userId: display!.userId),
+                        VerificationBadge(isVerified: display!.isVerified),
                       ],
                     ],
                   ),
@@ -486,10 +488,12 @@ class _CompressedHeader extends StatelessWidget {
             ),
             child: ClipOval(
               child: display?.avatar != null
-                  ? CachedNetworkImage(
-                imageUrl: display!.avatar!,
+                  ? NetImage(
+                url: display!.avatar!,
                 fit: BoxFit.cover,
-                errorWidget: (_, __, ___) => _InitialsAvatar(
+                width: 44,
+                height: 44,
+                errorChild: _InitialsAvatar(
                   name: display?.userName ?? '',
                   size: 44,
                   fontSize: 16,
@@ -527,7 +531,7 @@ class _CompressedHeader extends StatelessWidget {
                     ),
                     if (display?.userId.isNotEmpty == true) ...[
                       const SizedBox(width: 4),
-                      VerificationBadge(userId: display!.userId),
+                      VerificationBadge(isVerified: display!.isVerified),
                     ],
                   ],
                 ),
@@ -575,7 +579,7 @@ class _ProfileAvatar extends StatelessWidget {
         border: Border.all(color: Colors.white, width: 3),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
+            color: Colors.black.withValues(alpha: 0.3),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -583,11 +587,12 @@ class _ProfileAvatar extends StatelessWidget {
       ),
       child: ClipOval(
         child: avatar != null
-            ? CachedNetworkImage(
-          imageUrl: avatar!,
+            ? NetImage(
+          url: avatar!,
           fit: BoxFit.cover,
-          errorWidget: (_, __, ___) =>
-              _InitialsAvatar(name: userName, size: size),
+          width: size,
+          height: size,
+          errorChild: _InitialsAvatar(name: userName, size: size),
         )
             : _InitialsAvatar(name: userName, size: size),
       ),
@@ -794,7 +799,7 @@ class _ActionButtons extends StatelessWidget {
                       : const Color(0xFF177E85),
                   foregroundColor: Colors.white,
                   disabledBackgroundColor:
-                  const Color(0xFF177E85).withOpacity(0.4),
+                  const Color(0xFF177E85).withValues(alpha: 0.4),
                   side: isFollowing
                       ? BorderSide(color: Colors.grey[700]!)
                       : null,
@@ -861,7 +866,7 @@ class _TopBarButton extends StatelessWidget {
           width: 40,
           height: 40,
           decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.3),
+            color: Colors.black.withValues(alpha: 0.3),
             shape: BoxShape.circle,
           ),
           child: Icon(icon, color: Colors.white, size: 22),
@@ -888,7 +893,7 @@ class _SkeletonBox extends StatelessWidget {
       width: width,
       height: height,
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.09),
+        color: Colors.white.withValues(alpha: 0.09),
         borderRadius: BorderRadius.circular(6),
       ),
     );
@@ -916,9 +921,9 @@ class _ExpandedSkeleton extends StatelessWidget {
               height: 90,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: Colors.white.withOpacity(0.09),
+                color: Colors.white.withValues(alpha: 0.09),
                 border: Border.all(
-                    color: Colors.white.withOpacity(0.15), width: 3),
+                    color: Colors.white.withValues(alpha: 0.15), width: 3),
               ),
             ),
             const SizedBox(width: 16),

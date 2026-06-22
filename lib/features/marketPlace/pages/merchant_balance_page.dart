@@ -74,12 +74,14 @@ class _MerchantBalancePageState extends State<MerchantBalancePage> {
                 fontSize: 18)),
         iconTheme: const IconThemeData(color: VendorTheme.textPrimary),
       ),
-      body: RefreshIndicator(
+      body: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 900), child: RefreshIndicator(
         color: VendorTheme.accent,
         backgroundColor: VendorTheme.surface,
         onRefresh: _load,
         child: _buildBody(),
       ),
+      ),
+    ),
     );
   }
 

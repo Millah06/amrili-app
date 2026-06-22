@@ -27,7 +27,7 @@ class MessageRequestsScreen extends StatelessWidget {
             style: TextStyle(color: Colors.white, fontSize: 18)),
         iconTheme: const IconThemeData(color: Colors.white),
       ),
-      body: requests.isEmpty
+      body: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 640), child: requests.isEmpty
           ? const Center(
               child: Text('No pending requests',
                   style: TextStyle(color: Colors.white54)),
@@ -43,6 +43,7 @@ class MessageRequestsScreen extends StatelessWidget {
               ),
               itemBuilder: (_, i) => _RequestTile(chat: requests[i]),
             ),
+    )),
     );
   }
 }

@@ -233,12 +233,14 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
                                 fontWeight: FontWeight.w600,
                                 letterSpacing: 0.5)),
                         const SizedBox(height: 16),
-                        GridView.builder(
+                        LayoutBuilder(builder: (context, gc) {
+                          final cols = gc.maxWidth >= 460 ? 4 : 3;
+                          return GridView.builder(
                           shrinkWrap: true,
                           physics: const NeverScrollableScrollPhysics(),
                           gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 3,
+                          SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: cols,
                             crossAxisSpacing: 14,
                             mainAxisSpacing: 14,
                             childAspectRatio: 0.75,
@@ -262,7 +264,8 @@ class _GiftBottomSheetState extends State<GiftBottomSheet>
                               },
                             );
                           },
-                        ),
+                        );
+                        }),
                       ],
                     ),
                   ),

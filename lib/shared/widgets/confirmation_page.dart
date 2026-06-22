@@ -1,7 +1,7 @@
 import 'package:dotted_border/dotted_border.dart';
 import 'package:everywhere/components/dash_line.dart';
 import 'package:everywhere/components/reusable_card.dart';
-import 'package:everywhere/components/swicht.dart';
+import 'package:everywhere/components/tiny_switch.dart';
 import 'package:everywhere/components/wallet_balance.dart';
 import 'package:everywhere/providers/user_provider.dart';
 import 'package:flutter/material.dart';

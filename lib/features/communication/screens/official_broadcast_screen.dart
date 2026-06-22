@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../../constraints/formatters.dart';
+import '../services/chat_cache_service.dart';
 import '../theme/chat_theme.dart';
 
 /// Read-only global announcements channel (admin → all users). Everyone
@@ -15,6 +16,11 @@ class OfficialBroadcastScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Opening the channel marks all current announcements as read.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ChatCacheService.instance
+          .setOfficialLastRead(DateTime.now().millisecondsSinceEpoch);
+    });
     return Scaffold(
       backgroundColor: ChatTheme.scaffold,
       appBar: AppBar(

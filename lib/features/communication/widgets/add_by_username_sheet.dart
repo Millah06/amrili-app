@@ -6,6 +6,7 @@ import '../../../constraints/vendor_theme.dart';
 import '../../../services/brain.dart';
 import '../screens/message_screen.dart';
 import '../services/chat_room_service.dart';
+import 'chat_loading.dart';
 
 class AddByUsernameSheet extends StatefulWidget {
   final Brain pov;
@@ -303,9 +304,10 @@ class AddByUsernameSheetState extends State<AddByUsernameSheet> {
                           ),
                           onPressed: () => GuestHelper.guardAction(context, action: () async {
 
-                            final roomId =
-                            await ChatRoomService()
-                                .createOrGetChatRoom(otherId: _user!['id'], initiatedVia: 'username',
+                            final roomId = await runWithChatLoader(
+                              context,
+                              () => ChatRoomService().createOrGetChatRoom(
+                                  otherId: _user!['id'], initiatedVia: 'username'),
                             );
 
                             if (!mounted) return;

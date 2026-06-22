@@ -197,6 +197,8 @@ class VendorDetailProvider extends ChangeNotifier {
   final ApiService api;
   VendorDetailProvider({required this.api});
 
+  bool _disposed = false;
+
   VendorModel? vendor;
   Map<String, List<MenuItemModel>> branchMenus = {};
   List<MenuItemModel> menuItems = [];
@@ -204,6 +206,16 @@ class VendorDetailProvider extends ChangeNotifier {
   bool loading = false;
   String? error;
   bool isBranchLoading = false;
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+
+  void _notify() {
+    if (!_disposed) notifyListeners();
+  }
 
   BranchModel? get selectedBranch {
     if (vendor == null || selectedBranchId == null) return null;
@@ -226,7 +238,7 @@ class VendorDetailProvider extends ChangeNotifier {
       selectedBranchId = seed.branches.first.id;
     }
 
-    notifyListeners();
+    _notify();
 
     try {
       final data = await api.get('/vendor/$vendorId');
@@ -239,7 +251,7 @@ class VendorDetailProvider extends ChangeNotifier {
       error = e.toString();
     } finally {
       loading = false;
-      notifyListeners();
+      _notify();
     }
   }
 
@@ -250,18 +262,18 @@ class VendorDetailProvider extends ChangeNotifier {
     }
 
     isBranchLoading = true;
-    notifyListeners();
+    _notify();
 
     await fetchMenu(branchId);
 
     isBranchLoading = false;
-    notifyListeners();
+    _notify();
   }
 
   Future<void> fetchMenu(String branchId) async {
     if (branchMenus.containsKey(branchId)) {
       menuItems = branchMenus[branchId]!;
-      notifyListeners();
+      _notify();
       return;
     }
     try {
@@ -270,10 +282,10 @@ class VendorDetailProvider extends ChangeNotifier {
 
       branchMenus[branchId] = items;
       menuItems = items;
-      notifyListeners();
+      _notify();
     } catch (e) {
       error = e.toString();
-      notifyListeners();
+      _notify();
     }
   }
 }

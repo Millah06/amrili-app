@@ -128,7 +128,7 @@ class _AppealWidgetState extends State<AppealWidget> {
           child: const Icon(Icons.arrow_back, color: VendorTheme.textPrimary),
         ),
       ),
-      body: ListView(
+      body: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 900), child: ListView(
         padding: const EdgeInsets.all(20),
         children: [
           // Info banner — calm, settlement language (no "escrow"/"freeze").
@@ -317,6 +317,8 @@ class _AppealWidgetState extends State<AppealWidget> {
           ),
         ],
       ),
+      ),
+    ),
     );
   }
 }

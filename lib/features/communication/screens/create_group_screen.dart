@@ -86,7 +86,7 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
           ),
         ],
       ),
-      body: Column(
+      body: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 640), child: Column(
         children: [
           Padding(
             padding: const EdgeInsets.all(16),
@@ -128,6 +128,8 @@ class _CreateGroupScreenState extends State<CreateGroupScreen> {
           ),
         ],
       ),
+      ),
+    ),
     );
   }
 

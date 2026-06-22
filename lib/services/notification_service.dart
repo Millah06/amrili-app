@@ -8,112 +8,101 @@ import 'package:hive/hive.dart';
 import 'package:path_provider/path_provider.dart';
 
 import '../app.dart';
-import '../main.dart';
 import '../screens/pages/notification_screen.dart';
 
 class PushNotificationService {
   final FirebaseMessaging _fcm = FirebaseMessaging.instance;
 
-  // 🔁 Initialize everything
+  // Called once in MyApp.initState. Wires up all FCM listeners WITHOUT
+  // requesting permission or prompting the user — permission is requested
+  // only after the user signs in (inside saveTokenToFirestore below).
+  //
+  // The old init() called requestPermission() immediately, causing an OS
+  // permission dialog to fire on the very first app frame. That was wrong
+  // for two reasons: (1) cold UX and (2) the early `return` on denial meant
+  // none of the listeners were registered, so foreground and background
+  // messages were silently dropped for users who declined on first launch.
   Future<void> init() async {
-    // 1. Request permission to show notifications
-    NotificationSettings settings = await _fcm.requestPermission();
-    if (settings.authorizationStatus != AuthorizationStatus.authorized) {
-      print('❌ User denied notification permission');
-      return;
-    }
+    // Token refresh — uses set+merge so it works even if the Firestore doc
+    // doesn't exist yet (fresh install before first sign-in).
+    FirebaseMessaging.instance.onTokenRefresh.listen(_saveTokenToFirestore);
 
-    // Request permission (safe to call multiple times)
-    await _fcm.requestPermission();
-
-    // Listen for token refresh (if token changes)
-    FirebaseMessaging.instance.onTokenRefresh.listen((newToken) {
-      print('🔁 FCM Token Refreshed: $newToken');
-      _saveTokenToFirestore(newToken);
-    });
-
-    // Optional: Get initial token if refresh didn't fire
-    // But only if we already saved one before (user logged in)
-    String? savedToken = await _fcm.getToken();
-    if (savedToken != null) {
-      _saveTokenToFirestore(savedToken);
-    }
-
-    // 4. Handle background messages (when app is closed)
+    // Background handler (app is terminated or backgrounded by OS).
     FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-    // 5. Handle foreground messages (when app is open)
-    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-      print('📬 Foreground message: ${message.notification?.title}');
-      _saveNotification(message); // Save to Hive
-      // _updateBadge(); // Update badge number
+    // Foreground — app is open and in the foreground.
+    FirebaseMessaging.onMessage.listen((msg) {
+      _saveNotification(msg);
     });
 
-    // 6. Handle when user taps notification (app in background or closed)
-    FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
-      _navigateToNotificationScreen(message);
-    });
+    // Tap on a notification when the app was in the background (not terminated).
+    FirebaseMessaging.onMessageOpenedApp.listen(_navigateToNotificationScreen);
 
-    // 7. Check if app was opened from a terminated state (cold start via notification)
-    RemoteMessage? initialMessage = await FirebaseMessaging.instance.getInitialMessage();
+    // Cold-start: app was terminated and launched via a notification tap.
+    // We defer navigation to the next frame so the GoRouter/navigator is
+    // fully mounted before we attempt to push onto it.
+    final initialMessage = await FirebaseMessaging.instance.getInitialMessage();
     if (initialMessage != null) {
-      _navigateToNotificationScreen(initialMessage);
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _navigateToNotificationScreen(initialMessage);
+      });
     }
   }
 
-  // ✅ Call this ONLY once — during login or signup
+  // Called by AuthProvider immediately after every sign-in or sign-up.
+  // Requests notification permission (shows the OS dialog at the right moment
+  // — after the user has chosen to log in, not on cold first launch) and
+  // persists the FCM token to Firestore.
   Future<void> saveTokenToFirestore() async {
-    // Get current user
-    User? user = FirebaseAuth.instance.currentUser;
+    final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
+    try {
+      final settings = await _fcm.requestPermission();
+      // AuthorizationStatus.provisional = iOS "deliver quietly" — still useful.
+      if (settings.authorizationStatus == AuthorizationStatus.denied) return;
 
-    // Get FCM token
-    String? token = await _fcm.getToken();
-    if (token == null) return;
+      final token = await _fcm.getToken();
+      if (token == null) return;
 
-    // Save to Firestore
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(user.uid)
-        .set({
-      'notificationToken': token,
-    }, SetOptions(merge: true));
-
-    print('✅ FCM Token saved to Firestore for user: ${user.uid}');
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .set({'notificationToken': token}, SetOptions(merge: true));
+    } catch (_) {
+      // Push notifications unavailable on this platform/config — non-fatal.
+      // Common on web when VAPID key / service worker not yet configured.
+    }
   }
 
-  // 🔐 Save refreshed token (called by onTokenRefresh)
+  // Private refresh-token handler. Uses set+merge (not update) so it does
+  // not throw when the Firestore user document has not been created yet.
   Future<void> _saveTokenToFirestore(String token) async {
-    User? user = FirebaseAuth.instance.currentUser;
+    final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
     await FirebaseFirestore.instance
         .collection('users')
         .doc(user.uid)
-        .update({'notificationToken': token});
+        .set({'notificationToken': token}, SetOptions(merge: true));
   }
 
-
-  // 💾 Save incoming notification to Hive (local storage)
+  // Persist an incoming notification payload to the local Hive box so
+  // the in-app notification screen can display it.
   Future<void> _saveNotification(RemoteMessage message) async {
-
     final box = Hive.box<AppNotification>('notifications');
-
     await box.add(AppNotification(
-        title: message.notification?.title ?? 'No Title',
-        body: message.notification?.body ?? 'No Body',
-        data: message.data,
-        receivedAt: DateTime.now())
-    );
-    print('💾 Notification saved to Hive');
+      title: message.notification?.title ?? 'No Title',
+      body: message.notification?.body ?? 'No Body',
+      data: message.data,
+      receivedAt: DateTime.now(),
+    ));
   }
 
-  // 🚪 Navigate to NotificationScreen when notification is tapped
+  // Push the notification detail screen via the shared navigatorKey — the
+  // same key GoRouter is registered on, so this push travels through the
+  // correct navigator (no second navigator introduced).
   void _navigateToNotificationScreen(RemoteMessage message) {
-    _saveNotification(message); // Save first
-    // _updateBadge(); // Update badge
-
-    // 🔑 Use global navigator to open screen without context
+    _saveNotification(message);
     navigatorKey.currentState?.push(
       MaterialPageRoute(
         builder: (context) => NotificationScreen(message: message),
@@ -121,6 +110,8 @@ class PushNotificationService {
     );
   }
 }
+
+// ── Hive box helper ────────────────────────────────────────────────────────────
 
 Future<Box<AppNotification>> _getNotificationsBox() async {
   if (Hive.isBoxOpen('notifications')) {
@@ -130,21 +121,14 @@ Future<Box<AppNotification>> _getNotificationsBox() async {
   }
 }
 
-// 🛠 Background handler (must be top-level, outside class)
+// ── Background handler (top-level, outside class — FCM requirement) ────────────
 
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  // Make sure Firebase is initialized
   await Firebase.initializeApp();
   final dir = await getApplicationDocumentsDirectory();
   Hive.init(dir.path);
 
-
-  print('🔥 Handling a background message: ${message.messageId}');
-
-  // Initialize Hive if not already
-
   final box = await _getNotificationsBox();
-
   await box.add(AppNotification(
     title: message.notification?.title ?? 'No Title',
     body: message.notification?.body ?? 'No Body',

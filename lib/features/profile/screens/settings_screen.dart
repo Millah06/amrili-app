@@ -10,10 +10,10 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../components/formatters.dart';
-import '../../../components/swicht.dart';
+import '../../../components/tiny_switch.dart';
 import '../../../constraints/vendor_theme.dart';
 import '../../../models/notification_model.dart';
-import '../../../providers/profile_provider.dart';
+import '../providers/my_profile_provider.dart';
 import '../../../screens/community_screen.dart';
 import '../../../screens/pages/notification_screen.dart';
 import '../../../screens/privacy_policy.dart';
@@ -24,6 +24,8 @@ import '../../../shared/functions/shared_functions.dart';
 import '../../../shared/widgets/home_country_sheet.dart';
 import '../../social/providers/reward_provider.dart';
 import '../../support/help_center.dart';
+import '../../verification/kyc_verification_screen.dart';
+import '../../verification/verification_cache.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -34,18 +36,27 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   String _appVersion = '';
+  bool _kycVerified = VerificationCache.cached;
 
   @override
   void initState() {
     super.initState();
     _loadAppVersion();
+    _refreshKycState();
+  }
+
+  Future<void> _refreshKycState() async {
+    final v = await VerificationCache.isVerified();
+    if (mounted) setState(() => _kycVerified = v);
   }
 
   Future<void> _loadAppVersion() async {
     final packageInfo = await PackageInfo.fromPlatform();
-    setState(() {
-      _appVersion = '${packageInfo.version} (${packageInfo.buildNumber})';
-    });
+    if (mounted) {
+      setState(() {
+        _appVersion = '${packageInfo.version} (${packageInfo.buildNumber})';
+      });
+    }
   }
 
   @override
@@ -67,9 +78,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 640),
+          child: ListView(
+          padding: const EdgeInsets.all(16),
+          children: [
           // Account Section
           const _SectionHeader(title: 'Account'),
           _SettingsTile(
@@ -80,17 +94,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                    MaterialPageRoute(builder: (context) => EditProfilePage()));
 
                if (result == true && context.mounted) {
-                 final profileProvider = context.read<ProfileProvider>();
-                 profileProvider.loadUserProfile(profileProvider.profile!.userId);
+                 final myProfile = context.read<MyProfileProvider>();
+                 myProfile.handleProfileSaved(myProfile.profile?.userId ?? '');
                }
             },
           ),
           _SettingsTile(
             icon: Icons.verified_user,
             title: 'KYC Verification',
-            subtitle: 'Verify your identity',
-            onTap: () {
-              // Navigate to KYC
+            subtitle: _kycVerified ? 'Identity verified' : 'Verify your identity',
+            onTap: () async {
+              await Navigator.push<bool>(
+                context,
+                MaterialPageRoute(builder: (_) => const KycVerificationScreen()),
+              );
+              if (mounted) setState(() => _kycVerified = VerificationCache.cached);
             },
           ),
 
@@ -103,7 +121,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             title: 'Privacy Settings',
             subtitle: 'Control who can see your content',
             onTap: () {
-              _showPrivacySettings(context, context.read<ProfileProvider>());
+              _showPrivacySettings(context, context.read<MyProfileProvider>());
             },
           ),
           _SettingsTile(
@@ -136,7 +154,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             icon: Icons.auto_awesome_rounded,
             title: 'Spotlight',
             subtitle: 'Manage your visibility on spot light',
-            onTap: () => _showSpotLightSettings(context, context.read<ProfileProvider>() ),
+            onTap: () => _showSpotLightSettings(context),
           ),
           _SettingsTile(
             icon: Icons.language,
@@ -257,11 +275,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
           const SizedBox(height: 32),
         ],
+          ),
+        ),
       ),
     );
   }
 
-  void _showPrivacySettings(BuildContext context, ProfileProvider provider) {
+  void _showPrivacySettings(BuildContext context, MyProfileProvider provider) {
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF1E293B),
@@ -272,14 +292,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  void _showSpotLightSettings(BuildContext context, ProfileProvider provider) {
+  void _showSpotLightSettings(BuildContext context) {
     showModalBottomSheet(
       context: context,
       backgroundColor: const Color(0xFF1E293B),
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
-      builder: (context) =>  _SpotSettingsSheet(provider),
+      builder: (context) => const _SpotSettingsSheet(),
     );
   }
 
@@ -323,6 +343,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       await Hive.box<AppNotification>('notifications').clear();
       Provider.of<Brain>(context, listen: false).reset();
       Provider.of<SessionProvider>(context, listen: false).logout();
+      VerificationCache.clear();
       Navigator.pushAndRemoveUntil(
         context, MaterialPageRoute(builder: (_) => WelcomeScreen()),
             (route) => false,);
@@ -406,7 +427,7 @@ class _SettingsTile extends StatelessWidget {
 
 class _PrivacySettingsSheet extends StatefulWidget {
 
-  final ProfileProvider provider;
+  final MyProfileProvider provider;
   const _PrivacySettingsSheet(this.provider);
 
   @override
@@ -418,7 +439,7 @@ class _PrivacySettingsSheetState extends State<_PrivacySettingsSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<ProfileProvider>();
+    final provider = context.watch<MyProfileProvider>();
     return SafeArea(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -518,8 +539,7 @@ class _PrivacySettingsSheetState extends State<_PrivacySettingsSheet> {
 
 class _SpotSettingsSheet extends StatefulWidget {
 
-  final ProfileProvider provider;
-  const _SpotSettingsSheet(this.provider);
+  const _SpotSettingsSheet();
 
   @override
   State<_SpotSettingsSheet> createState() => _SpotSettingsSheetState();
@@ -562,7 +582,7 @@ class _SpotSettingsSheetState extends State<_SpotSettingsSheet> {
                   value:
               provider.user!.hideFromLeaderboardCreator ?? false,
                   onChanged: (_) async {
-
+                final newValue = !(provider.user!.hideFromLeaderboardCreator ?? false);
                 showDialog(context: context,
                     barrierDismissible: false, builder: (_) => const Dialog(
                       backgroundColor: VendorTheme.background,
@@ -578,10 +598,9 @@ class _SpotSettingsSheetState extends State<_SpotSettingsSheet> {
                         ),
                       ),
                     ));
-                await
-                context.read<RewardProvider>().toggleLeaderboardVisibilityCreator(!(
-                    provider.user!.hideFromLeaderboardCreator ?? false));
+                await context.read<RewardProvider>().toggleLeaderboardVisibilityCreator(newValue);
                 if (context.mounted) {
+                  context.read<UserProvider>().updateSpotlightCreator(newValue);
                   Navigator.pop(context);
                 }
 
@@ -602,7 +621,7 @@ class _SpotSettingsSheetState extends State<_SpotSettingsSheet> {
                   value:
                   provider.user!.hideFromLeaderboardSupporter ?? false,
                   onChanged: (_) async {
-
+                    final newValue = !(provider.user!.hideFromLeaderboardSupporter ?? false);
                     showDialog(context: context,
                         barrierDismissible: false, builder: (_) => const Dialog(
                           backgroundColor: VendorTheme.background,
@@ -618,10 +637,9 @@ class _SpotSettingsSheetState extends State<_SpotSettingsSheet> {
                             ),
                           ),
                         ));
-                    await
-                    context.read<RewardProvider>().toggleLeaderboardVisibilitySupporter(!(
-                        provider.user!.hideFromLeaderboardSupporter ?? false));
+                    await context.read<RewardProvider>().toggleLeaderboardVisibilitySupporter(newValue);
                     if (context.mounted) {
+                      context.read<UserProvider>().updateSpotlightSupporter(newValue);
                       Navigator.pop(context);
                     }
 

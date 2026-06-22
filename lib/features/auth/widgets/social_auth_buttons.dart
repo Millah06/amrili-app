@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../../components/bootom_bar.dart';
+import '../../../components/bottom_bar.dart';
 import '../../../constraints/constants.dart';
 import '../../../core/auth/auth_provider.dart';
 import '../../../providers/user_provider.dart';

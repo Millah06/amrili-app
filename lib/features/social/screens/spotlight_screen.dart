@@ -10,7 +10,7 @@
 // coin-farm. An understated podium for the top 3, tier badges, "this week"
 // framing. Opt-out lives in Settings; this screen just renders who's listed.
 
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:everywhere/shared/widgets/net_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -53,7 +53,10 @@ class _SpotlightScreenState extends State<SpotlightScreen>
     return Scaffold(
       backgroundColor: VendorTheme.background,
       body: SafeArea(
-        child: Column(
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 900),
+            child: Column(
           children: [
             // ── Header: prestige framing, not a money chart ───────────────────
             Padding(
@@ -112,6 +115,8 @@ class _SpotlightScreenState extends State<SpotlightScreen>
               ),
             ),
           ],
+        ),
+          ),
         ),
       ),
     );
@@ -322,10 +327,12 @@ class _Avatar extends StatelessWidget {
       ),
       child: ClipOval(
         child: (url != null && url!.isNotEmpty)
-            ? CachedNetworkImage(
-          imageUrl: url!,
+            ? NetImage(
+          url: url!,
+          width: size,
+          height: size,
           fit: BoxFit.cover,
-          errorWidget: (_, __, ___) => _initials(initials),
+          errorChild: _initials(initials),
         )
             : _initials(initials),
       ),

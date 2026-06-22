@@ -1,10 +1,10 @@
 // lib/widgets/profile_header.dart - NEW
 
+import 'package:everywhere/shared/widgets/net_image.dart';
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 import '../../../models/user_profile_model.dart';
-import '../../../providers/profile_provider.dart';
+import '../../../features/profile/providers/user_profile_provider.dart';
 import 'verification_badge.dart';
 import 'follow_button.dart';
 
@@ -25,21 +25,22 @@ class ProfileHeader extends StatelessWidget {
       child: Column(
         children: [
           // Avatar
-          CircleAvatar(
+          NetImage.circle(
+            url: profile.avatar ?? '',
             radius: 50,
-            backgroundColor: Colors.grey[700],
-            backgroundImage: profile.avatar != null
-                ? CachedNetworkImageProvider(profile.avatar!)
-                : null,
-            child: profile.avatar == null
-                ? Text(
-              profile.userName[0].toUpperCase(),
-              style: const TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-              ),
-            )
+            fallback: profile.avatar == null
+                ? CircleAvatar(
+                    radius: 50,
+                    backgroundColor: Colors.grey[700],
+                    child: Text(
+                      profile.userName[0].toUpperCase(),
+                      style: const TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  )
                 : null,
           ),
           const SizedBox(height: 16),
@@ -57,7 +58,7 @@ class ProfileHeader extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 6),
-              VerificationBadge(userId: profile.userId),
+              VerificationBadge(isVerified: profile.isKycVerified),
             ],
           ),
 
@@ -81,7 +82,7 @@ class ProfileHeader extends StatelessWidget {
             FollowButton(
               userId: profile.userId,
               isFollowing: profile.isFollowing,
-              onToggle: () => context.read<ProfileProvider>().toggleFollow(),
+              onToggle: () => context.read<UserProfileProvider>().toggleFollow(),
             )
           else
             OutlinedButton(

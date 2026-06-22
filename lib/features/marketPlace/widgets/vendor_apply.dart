@@ -25,7 +25,6 @@ class ApplyViewState extends State<ApplyView> {
   final _description = TextEditingController();
   final _phone       = TextEditingController();
   final _email       = TextEditingController();
-  final _cac         = TextEditingController();
 
   String ? selectedState ;
   String  ? selectedLga;
@@ -53,7 +52,6 @@ class ApplyViewState extends State<ApplyView> {
         _description.text  = application.description;
         _phone.text = application.phone;
         _email.text = application.email;
-        _cac.text = application.cac ?? '';
         selectedState = application.branches.first.state;
         selectedLga = application.branches.first.lga;
         _area.text = application.branches.first.area;
@@ -67,7 +65,7 @@ class ApplyViewState extends State<ApplyView> {
 
   @override
   void dispose() {
-    for (final c in [_name, _description, _phone, _email, _cac, _area, _street]) c.dispose();
+    for (final c in [_name, _description, _phone, _email, _area, _street]) c.dispose();
     super.dispose();
   }
 
@@ -88,7 +86,7 @@ class ApplyViewState extends State<ApplyView> {
         title: const Text('Become a Vendor',
             style: TextStyle(color: VendorTheme.textPrimary, fontWeight: FontWeight.bold)),
       ),
-      body: ListView(
+      body: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 640), child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           const Text('Business Information',
@@ -113,8 +111,6 @@ class ApplyViewState extends State<ApplyView> {
           VTextField(controller: _phone, label: 'Phone Number', keyboardType: TextInputType.phone),
           const SizedBox(height: 10),
           VTextField(controller: _email, label: 'Business Email', keyboardType: TextInputType.emailAddress),
-          const SizedBox(height: 10),
-          VTextField(controller: _cac, label: 'CAC Number'),
           const SizedBox(height: 20),
           const Text('First Branch Location',
               style: TextStyle(color: VendorTheme.textSecondary, fontSize: 13, fontWeight: FontWeight.w600)),
@@ -180,6 +176,8 @@ class ApplyViewState extends State<ApplyView> {
           const SizedBox(height: 40),
         ],
       ),
+      ),
+    ),
     );
   }
 
@@ -191,7 +189,6 @@ class ApplyViewState extends State<ApplyView> {
       'description': _description.text.trim(),
       'phone': _phone.text.trim(),
       'email': _email.text.trim(),
-      'cac': _cac.text.trim(),
       'branch': {
         'state': selectedState,
         'lga': selectedLga,

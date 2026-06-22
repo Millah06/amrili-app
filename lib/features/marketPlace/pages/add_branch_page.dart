@@ -67,13 +67,13 @@ class _AddBranchPageState extends State<AddBranchPage>
           ],
         ),
       ),
-      body: TabBarView(
+      body: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 640), child: TabBarView(
         controller: _tabs,
         children: const [
           _NewBranchForm(),
           JoinWithIdForm(),
         ],
-      ),
+      ))),
     );
   }
 }

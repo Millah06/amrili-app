@@ -14,9 +14,12 @@ import 'group_info_screen.dart';
 /// p2p screen, but renders sender names above received messages and fans out
 /// unread counts to all members on send.
 class GroupChatScreen extends StatefulWidget {
-  const GroupChatScreen({super.key, required this.roomId});
-
   final String roomId;
+  /// When set, the back button calls this instead of Navigator.maybePop.
+  /// Used by the wide-screen split-pane layout in chat_screen.dart.
+  final VoidCallback? onBack;
+
+  const GroupChatScreen({super.key, required this.roomId, this.onBack});
 
   @override
   State<GroupChatScreen> createState() => _GroupChatScreenState();
@@ -81,7 +84,7 @@ class _GroupChatScreenState extends State<GroupChatScreen> {
         children: [
           IconButton(
             icon: const Icon(Icons.arrow_back_rounded, color: Colors.white),
-            onPressed: () => Navigator.maybePop(context),
+            onPressed: widget.onBack ?? () => Navigator.maybePop(context),
           ),
           Expanded(
             child: InkWell(

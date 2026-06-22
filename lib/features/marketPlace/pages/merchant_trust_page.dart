@@ -22,16 +22,17 @@
 //     snackbars. No raw spinners on first paint.
 // ─────────────────────────────────────────────────────────────────────────────
 
-import 'dart:io';
-
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../../../constraints/vendor_theme.dart';
+import 'business_documents_screen.dart';
+import '../../verification/email_verification_sheet.dart';
+import '../../verification/kyc_verification_screen.dart';
 import '../models/merchant_trust_model.dart';
 import '../providers/vendor_center_provider.dart';
+import '../widgets/navigation.dart';
 import '../widgets/shared_widgets.dart'; // VButton
 import '../widgets/trust_badge.dart';
 
@@ -77,11 +78,13 @@ class _MerchantTrustPageState extends State<MerchantTrustPage>
     try {
       final data = await context.read<VendorCenterProvider>().api
           .get('/vendor/trust/status');
+      if (!mounted) return;
       setState(() {
         _trust = MerchantTrustModel.fromJson(Map<String, dynamic>.from(data));
         _loading = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _error = _clean(e);
         _loading = false;
@@ -103,74 +106,84 @@ class _MerchantTrustPageState extends State<MerchantTrustPage>
 
   // ── Actions ────────────────────────────────────────────────────────────────
 
+  // Future<void> _submitIdentity() async {
+  //   // Opens the KYC screen if needed; returns true once identity is verified.
+  //
+  //   if (!verified) return;
+  //
+  //   setState(() => _busy = true);
+  //   try {
+  //     // KYC is verified → flip vendor Level 1. submit-identity now keys off Kyc
+  //     // (no file). Body is empty.
+  //     final data = await context
+  //         .read<VendorCenterProvider>()
+  //         .api
+  //         .post('/vendor/trust/submit-identity', {});
+  //     setState(() =>
+  //     _trust = MerchantTrustModel.fromJson(Map<String, dynamic>.from(data)));
+  //     _toast('Identity verified — you can now sell.');
+  //   } catch (e) {
+  //     _toast(_clean(e), success: false);
+  //   } finally {
+  //     if (mounted) setState(() => _busy = false);
+  //   }
+  // }
+
   /// Level 0 → 1: pick a government ID and submit it. Auto-approves on success.
-  Future<void> _submitIdentity() async {
-    final picked =
-    await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 85);
-    if (picked == null) return;
+  // Future<void> _submitIdentity() async {
+  //   final picked =
+  //   await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 85);
+  //   if (picked == null) return;
+  //
+  //   setState(() => _busy = true);
+  //   try {
+  //     // Reuses the standard upload helper (multipart field "image").
+  //     final data = await context.read<VendorCenterProvider>().api.submitIdentity(
+  //       '/vendor/trust/submit-identity',
+  //       File(picked.path),
+  //       picked.name,
+  //     );
+  //     setState(() {
+  //       _trust = MerchantTrustModel.fromJson(Map<String, dynamic>.from(data));
+  //     });
+  //     _toast('Identity verified — you can now sell on Amril.');
+  //   } catch (e) {
+  //     _toast(_clean(e), success: false);
+  //   } finally {
+  //     if (mounted) setState(() => _busy = false);
+  //   }
+  // }
 
-    setState(() => _busy = true);
-    try {
-      // Reuses the standard upload helper (multipart field "image").
-      final data = await context.read<VendorCenterProvider>().api.submitIdentity(
-        '/vendor/trust/submit-identity',
-        File(picked.path),
-        picked.name,
-      );
-      setState(() {
-        _trust = MerchantTrustModel.fromJson(Map<String, dynamic>.from(data));
-      });
-      _toast('Identity verified — you can now sell on Amril.');
-    } catch (e) {
-      _toast(_clean(e), success: false);
-    } finally {
-      if (mounted) setState(() => _busy = false);
+  /// Level 2 → 3 step 1: open the multi-document upload screen.
+  Future<void> _openDocumentUpload() async {
+    final submitted = await vendorPush<bool>(
+      context,
+      BusinessDocumentsScreen(
+        existingDocs: _trust?.businessDocuments ?? const {},
+      ),
+    );
+    if (submitted == true) {
+      _toast('Application submitted for review.');
+      await _load();
+    } else {
+      // Docs may have been uploaded without submitting — refresh to show hasCacDocument.
+      await _load();
     }
   }
 
-  /// Level 2 → 3 step 1: upload the CAC certificate (existing endpoint).
-  Future<void> _uploadCac() async {
-    final picked =
-    await ImagePicker().pickImage(source: ImageSource.gallery, imageQuality: 90);
-    if (picked == null) return;
-
-    setState(() => _busy = true);
-    try {
-      await context.read<VendorCenterProvider>().api.upload(
-        '/vendor/upload/cac',
-        File(picked.path),
-        picked.name,
-      );
-      _toast('CAC certificate uploaded.');
-      await _load(); // refresh so hasCacDocument flips on
-    } catch (e) {
-      _toast(_clean(e), success: false);
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
-  /// Level 2 → 3 step 2: confirm + pay the non-refundable fee, opening review.
+  /// Level 2 → 3: submit for review (no fee required).
   Future<void> _payFeeAndApply() async {
-    final t = _trust;
-    if (t == null) return;
-
-    final confirmed = await _showFeeConfirmSheet(t.verificationFee);
-    if (confirmed != true) return;
-
-    // One stable idempotency key per confirmed attempt (guards double-charge).
-    final clientRequestId = 'vfee-${DateTime.now().millisecondsSinceEpoch}';
-
     setState(() => _busy = true);
     try {
       final data = await context.read<VendorCenterProvider>().api.post(
         '/vendor/trust/pay-fee',
-        {'clientRequestId': clientRequestId},
+        {},
       );
+      if (!mounted) return;
       setState(() {
         _trust = MerchantTrustModel.fromJson(Map<String, dynamic>.from(data));
       });
-      _toast('Payment received — your application is under review.');
+      _toast('Application submitted — your request is under review.');
     } catch (e) {
       _toast(_clean(e), success: false);
     } finally {
@@ -178,72 +191,21 @@ class _MerchantTrustPageState extends State<MerchantTrustPage>
     }
   }
 
-  Future<bool?> _showFeeConfirmSheet(int fee) {
-    return showModalBottomSheet<bool>(
+  /// Opens the email verification sheet; refreshes trust status on success.
+  Future<void> _verifyEmail() async {
+    final verified = await showModalBottomSheet<bool>(
       context: context,
-      backgroundColor: VendorTheme.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
       isScrollControlled: true,
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.fromLTRB(
-            20, 18, 20, 18 + MediaQuery.of(ctx).viewInsets.bottom),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Grab handle for affordance.
-            Center(
-              child: Container(
-                width: 40,
-                height: 4,
-                margin: const EdgeInsets.only(bottom: 16),
-                decoration: BoxDecoration(
-                  color: VendorTheme.surfaceVariant,
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-            ),
-            Text('Business Verification',
-                style: GoogleFonts.poppins(
-                    color: VendorTheme.textPrimary,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 18)),
-            const SizedBox(height: 6),
-            Text(
-              'A one-time fee of ₦${fee.toString()} will be debited from your wallet. '
-                  'This fee is non-refundable, including if your application is not approved.',
-              style: GoogleFonts.inter(
-                  color: VendorTheme.textSecondary, fontSize: 13, height: 1.5),
-            ),
-            const SizedBox(height: 18),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () => Navigator.pop(ctx, false),
-                    style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: VendorTheme.divider),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                    child: const Text('Cancel',
-                        style: TextStyle(color: VendorTheme.textSecondary)),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: VButton(
-                    label: 'Pay ₦$fee',
-                    onTap: () => Navigator.pop(ctx, true),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+      backgroundColor: const Color(0xFF1E293B),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
+      builder: (_) => const EmailVerificationSheet(),
     );
+    if (verified == true) {
+      _toast('Email verified.');
+      await _load();
+    }
   }
 
   // ── Build ────────────────────────────────────────────────────────────────
@@ -261,11 +223,16 @@ class _MerchantTrustPageState extends State<MerchantTrustPage>
                 fontWeight: FontWeight.w600,
                 fontSize: 17)),
       ),
-      body: _loading
-          ? _SkeletonBody(shimmer: _shimmer)
-          : _error != null
-          ? _ErrorBody(message: _error!, onRetry: _load)
-          : _content(_trust!),
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 900),
+          child: _loading
+              ? _SkeletonBody(shimmer: _shimmer)
+              : _error != null
+              ? _ErrorBody(message: _error!, onRetry: _load)
+              : _content(_trust!),
+        ),
+      ),
     );
   }
 
@@ -288,9 +255,15 @@ class _MerchantTrustPageState extends State<MerchantTrustPage>
           _ActionCard(
             trust: t,
             busy: _busy,
-            onSubmitIdentity: _submitIdentity,
-            onUploadCac: _uploadCac,
+            onSubmitIdentity: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                    builder: (_) => const KycVerificationScreen()),
+              );
+            },
+            onUploadCac: _openDocumentUpload,
             onPayFee: _payFeeAndApply,
+            onVerifyEmail: _verifyEmail,
           ),
           const SizedBox(height: 20),
           // "Your benefits" — pulled from the catalog entry for the current
@@ -583,6 +556,7 @@ class _ActionCard extends StatelessWidget {
   final VoidCallback onSubmitIdentity;
   final VoidCallback onUploadCac;
   final VoidCallback onPayFee;
+  final VoidCallback onVerifyEmail;
 
   const _ActionCard({
     required this.trust,
@@ -590,6 +564,7 @@ class _ActionCard extends StatelessWidget {
     required this.onSubmitIdentity,
     required this.onUploadCac,
     required this.onPayFee,
+    required this.onVerifyEmail,
   });
 
   @override
@@ -602,7 +577,7 @@ class _ActionCard extends StatelessWidget {
           context,
           title: 'On your way to Trusted',
           subtitle:
-          'Trusted status is granted automatically once you meet the targets below. No action needed.',
+          'Trusted status is granted automatically once you meet the targets below.',
         );
       case 2:
         return _level2(context);
@@ -618,10 +593,10 @@ class _ActionCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _cardHeader(Icons.badge_outlined, 'Verify your identity',
-              'Upload a government-issued ID to unlock selling. Verification is automatic when your ID is valid.'),
+              'Verify with your BVN or NIN to unlock selling. It takes a few seconds.'),
           const SizedBox(height: 16),
           VButton(
-            label: busy ? 'Uploading…' : 'Upload ID',
+            label: busy ? 'Verifying…' : 'Verify identity',
             loading: busy,
             onTap: busy ? null : onSubmitIdentity,
           ),
@@ -648,18 +623,16 @@ class _ActionCard extends StatelessWidget {
           'Keep going — Business unlocks after you meet the order and dispute targets above.');
     } else if (!trust.hasCacDocument) {
       cta = VButton(
-        label: busy ? 'Uploading…' : 'Upload CAC certificate',
+        label: 'Upload business documents',
         loading: busy,
         onTap: busy ? null : onUploadCac,
       );
-    } else if (!trust.verificationFeePaid) {
+    } else {
       cta = VButton(
-        label: busy ? 'Processing…' : 'Pay ₦${trust.verificationFee} & apply',
+        label: busy ? 'Submitting…' : 'Submit for review',
         loading: busy,
         onTap: busy ? null : onPayFee,
       );
-    } else {
-      cta = _pendingBanner();
     }
 
     return _card(
@@ -711,10 +684,12 @@ class _ActionCard extends StatelessWidget {
     );
   }
 
-  // Read-only progress card (Level 1).
+  // Read-only progress card (Level 1), with inline "Verify email" CTA if needed.
   Widget _autoProgress(BuildContext context,
       {required String title, required String subtitle}) {
     final next = trust.nextLevel;
+    final emailUnmet = next?.requirements.any(
+            (r) => r.key == 'email' && !r.met) ?? false;
     return _card(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -722,6 +697,25 @@ class _ActionCard extends StatelessWidget {
           _cardHeader(Icons.trending_up_rounded, title, subtitle),
           const SizedBox(height: 14),
           if (next != null) _Checklist(requirements: next.requirements),
+          if (emailUnmet) ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: onVerifyEmail,
+                icon: const Icon(Icons.mark_email_read_outlined, size: 16),
+                label: const Text('Verify email'),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: VendorTheme.primary,
+                  side: const BorderSide(color: VendorTheme.primary, width: 1),
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
     );

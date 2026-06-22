@@ -1,19 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'app_theme.dart';
 
 /// =======================
 /// COLORS
 /// =======================
-const Color kSnackSuccess = Color(0xFF177E85);
+// All brand / semantic colours are now owned by AppTheme. The constants below
+// are compile-time aliases so existing call sites keep compiling unchanged.
 
-const Color kCircularProgressColor = Color(0xFF177E85);
+const Color kSnackSuccess          = AppTheme.snackSuccess;
+const Color kCircularProgressColor = AppTheme.primaryDark;
 
 /// Scaffold background
-const Color scaffoldBgColor = Color(0xFF0F172A);
+const Color scaffoldBgColor = AppTheme.background;
 
 /// Header / other user name
-const Color chatHeaderNameColor = Color(0xFF177E85);
+const Color chatHeaderNameColor = AppTheme.primaryDark;
 
 /// Message bubbles
 const Color myMessageBubbleColor = Color(0xFF1F8A70);
@@ -139,7 +142,7 @@ const kTopAppbars = TextStyle(
   letterSpacing: 1.2
 );
 
-const kButtonColor = Color(0xFF21D3ED);
+const kButtonColor = AppTheme.primary;
 
 
 const kMoneyStyle = TextStyle(
@@ -150,7 +153,7 @@ const kMoneyStyle = TextStyle(
 
 TextStyle kTitle = GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 8);
 
-const kCardColor = Color(0xFF1E293B);
+const kCardColor = AppTheme.surface;
 
 const kWarning = Color(0xFFF45F1A);
 
@@ -167,7 +170,7 @@ TextStyle kAlertTitle = GoogleFonts.raleway(fontSize: 14,
 TextStyle kAlertContent = GoogleFonts.raleway(fontSize: 12,
     fontWeight: FontWeight.w400);
 
-const kErrorBackground = Color(0xFF1E293B);
+const kErrorBackground = AppTheme.surface;
 
 const kErrorIconColor = Colors.redAccent;
 
@@ -183,7 +186,7 @@ TextStyle kSetting = GoogleFonts.inter(
     color: Colors.white54
 );
 
-const kIconColor = Color(0xFF21D3ED);
+const kIconColor = AppTheme.primary;
 
 TextStyle kConfirmationKey = GoogleFonts.inter(
     fontWeight: FontWeight.w700,

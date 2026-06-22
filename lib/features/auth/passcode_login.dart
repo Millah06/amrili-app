@@ -1,7 +1,7 @@
 import 'dart:io';
 
 import 'package:another_flushbar/flushbar.dart';
-import 'package:everywhere/components/bootom_bar.dart';
+import 'package:everywhere/components/bottom_bar.dart';
 import 'package:everywhere/shared/utils/flush_bar_message.dart';
 import 'package:everywhere/constraints/constants.dart';
 import 'package:everywhere/screens/welcome_screen.dart';

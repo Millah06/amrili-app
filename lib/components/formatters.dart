@@ -132,11 +132,22 @@ class AppShareHelper {
     );
   }
 
+  static Future<void> shareProfile(String userName, {String? displayName}) {
+    final url = ApiConstants.profileUrl(userName);
+    final name = (displayName != null && displayName.trim().isNotEmpty)
+        ? displayName.trim()
+        : '@$userName';
+    return _shareText(
+      subject: 'Check out $name on Amril',
+      text: 'Check out $name on Amril 👇\n$url',
+    );
+  }
+
   static Future<void> shareReferral(String referralCode) {
     final url = ApiConstants.referralUrl(referralCode);
     return _shareText(
       subject: 'Join me on Amril',
-      text: 'Join me on Amril and let’s both earn 🎁\n$url',
+      text: 'Join me on Amril and let\’s both earn 🎁\n$url',
     );
   }
 }

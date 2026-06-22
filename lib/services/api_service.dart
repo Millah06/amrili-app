@@ -159,10 +159,76 @@ class ApiService {
     }
   }
 
+  Future<Map<String, dynamic>> uploadWithType(
+    String urlPath,
+    File imageFile,
+    String fileName, {
+    required String type,
+  }) async {
+    try {
+      final request = http.MultipartRequest(
+        'POST',
+        Uri.parse('$baseUrl/$urlPath'),
+      );
+      final headers = await _headers;
+      request.headers.addAll(headers);
+      request.fields['type'] = type;
+      request.files.add(await http.MultipartFile.fromPath(
+        'image',
+        imageFile.path,
+        filename: fileName,
+      ));
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      final data = jsonDecode(response.body);
+      if (response.statusCode == 200) {
+        return Map<String, dynamic>.from(data);
+      }
+      throw Exception(data['message'] ?? 'Upload failed');
+    } catch (error) {
+      throw Exception('Upload failed: $error');
+    }
+  }
+
   dynamic _handle(http.Response res) {
     final body = jsonDecode(res.body);
     print(body);
     if (res.statusCode >= 200 && res.statusCode < 300) return body;
     throw Exception(body['message'] ?? 'Request failed');
   }
+
+  // ── PHASE 13 — verification ────────────────────────────────────────────────
+
+  /// GET /kyc → { status: "unverified|pending|verified|rejected", submitted }
+  Future<Map<String, dynamic>> getKycStatus() async {
+    final res = await get('/kyc');
+    return Map<String, dynamic>.from(res as Map);
+  }
+
+  /// POST /kyc/verify — synchronous BVN/NIN check. Throws (with the backend
+  /// message) on invalid number / name mismatch / not-configured.
+  Future<Map<String, dynamic>> verifyIdentity({
+    required String method, // 'bvn' | 'nin'
+    required String number,
+  }) async {
+    final res = await post('/kyc/verify', {'method': method, 'number': number});
+    return Map<String, dynamic>.from(res as Map);
+  }
+
+  /// POST /auth/request-email-verification. Pass preview:true to just fetch the
+  /// masked email without sending a code.
+  Future<Map<String, dynamic>> requestEmailVerification({
+    bool preview = false,
+  }) async {
+    final res =
+    await post('/auth/request-email-verification', {'preview': preview});
+    return Map<String, dynamic>.from(res as Map);
+  }
+
+  /// POST /auth/verify-email — confirm the 6-digit code.
+  Future<Map<String, dynamic>> verifyEmail(String otp) async {
+    final res = await post('/auth/verify-email', {'otp': otp});
+    return Map<String, dynamic>.from(res as Map);
+  }
+
 }

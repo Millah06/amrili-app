@@ -116,6 +116,19 @@ class ChatCacheService {
         : merged;
   }
 
+  // ── Official broadcast read marker ──────────────────────────
+  static const String _officialReadKey = 'official_last_read_ms';
+
+  int getOfficialLastRead() {
+    if (!_ready) return 0;
+    return int.tryParse(_listBox!.get(_officialReadKey) ?? '0') ?? 0;
+  }
+
+  Future<void> setOfficialLastRead(int ms) async {
+    if (!_ready) return;
+    await _listBox!.put(_officialReadKey, ms.toString());
+  }
+
   /// Wipe everything (e.g. on logout).
   Future<void> clear() async {
     await _listBox?.clear();

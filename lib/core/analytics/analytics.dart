@@ -14,7 +14,7 @@
 //  · `observer` plugs into MaterialApp.router's navigatorObservers, so EVERY
 //    pushed route auto-logs a screen_view with zero per-screen code. (For the
 //    4 bottom-bar tabs, which are PageView pages and not routes, call
-//    logTabView() from the tab switch — wired in bootom_bar.)
+//    logTabView() from the tab switch — wired in bottom_bar.)
 //  · Fails safe: if Analytics isn't available (web before config, or a future
 //    platform), every call is a no-op swallowed in try/catch. Telemetry must
 //    never crash the app.

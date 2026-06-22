@@ -37,11 +37,11 @@ class ManageBranchesPage extends StatelessWidget {
               subtitle: 'Add your first branch location',
             );
           }
-          return ListView.builder(
+          return Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 900), child: ListView.builder(
             padding: const EdgeInsets.all(16),
             itemCount: branches.length,
             itemBuilder: (_, i) => _BranchCard(branch: branches[i], p: p),
-          );
+          )));
         },
       ),
     );

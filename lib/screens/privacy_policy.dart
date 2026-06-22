@@ -36,9 +36,9 @@ class _PrivacyPolicyPageState extends State<PrivacyPolicyPage> {
             color: Colors.white
           ),
         ),
-        body: _htmlContent.isEmpty
+        body: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 800), child: _htmlContent.isEmpty
             ? Center(child: CircularProgressIndicator())
-            : SingleChildScrollView(child: Html(data: _htmlContent)),
+            : SingleChildScrollView(child: Html(data: _htmlContent)))),
          );
      }
 }

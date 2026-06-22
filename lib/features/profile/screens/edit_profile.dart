@@ -84,7 +84,10 @@ class _EditVendorProfilePageState extends State<EditProfilePage> {
           final user = u.user;
           if (user == null) return const SizedBox.shrink();
 
-          return ListView(
+          return Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 640),
+              child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
               // Cover photo
@@ -261,6 +264,8 @@ class _EditVendorProfilePageState extends State<EditProfilePage> {
               ),
               const SizedBox(height: 40),
             ],
+              ),
+            ),
           );
         },
       ),

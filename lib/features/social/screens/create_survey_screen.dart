@@ -272,7 +272,7 @@ class _CreateSurveyScreenState extends State<CreateSurveyScreen> {
           ),
         ],
       ),
-      body: ListView(
+      body: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 640), child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
         children: [
           // ABOUT ----------------------------------------------------------------
@@ -382,6 +382,8 @@ class _CreateSurveyScreenState extends State<CreateSurveyScreen> {
           ],
         ],
       ),
+      ),
+    ),
     );
   }
 

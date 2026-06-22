@@ -3,7 +3,7 @@
 // Contains: UserSearchTile, HashtagTile, SuggestionTile, SearchHistoryTile,
 //           TrendingHashtagRow, SuggestedUserRow, SearchShimmer
 
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:everywhere/shared/widgets/net_image.dart';
 import 'package:flutter/material.dart';
 import '../models/search_model.dart';
 import '../../social/services/social_api_service.dart'; // your existing follow API
@@ -265,20 +265,21 @@ class _Avatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CircleAvatar(
+    return NetImage.circle(
+      url: url ?? '',
       radius: radius,
-      backgroundColor: const Color(0xFF334155),
-      backgroundImage: url != null ? CachedNetworkImageProvider(url!) : null,
-      child: url == null
-          ? Text(
-        name.isNotEmpty ? name[0].toUpperCase() : '?',
-        style: TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.bold,
-          fontSize: radius * 0.75,
+      fallback: CircleAvatar(
+        radius: radius,
+        backgroundColor: const Color(0xFF334155),
+        child: Text(
+          name.isNotEmpty ? name[0].toUpperCase() : '?',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: radius * 0.75,
+          ),
         ),
-      )
-          : null,
+      ),
     );
   }
 }

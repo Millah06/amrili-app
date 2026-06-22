@@ -111,7 +111,10 @@ class _GiftUserScreenState extends State<GiftUserScreen> {
           ),
         ],
       ),
-      body: Column(
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 640),
+          child: Column(
         children: [
           Expanded(
             child: GridView.builder(
@@ -187,6 +190,8 @@ class _GiftUserScreenState extends State<GiftUserScreen> {
             ),
         ],
       ),
+          ),
+        ),
     );
   }
 

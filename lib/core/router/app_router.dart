@@ -35,7 +35,7 @@ import '../../app.dart' show navigatorKey;
 import '../../core/auth/auth_provider.dart';
 
 // Shell + entry screens
-import '../../components/bootom_bar.dart';
+import '../../components/bottom_bar.dart';
 import '../../features/marketPlace/pages/qr_scanner_screen.dart';
 import '../../features/communication/screens/chat_user_landing_page.dart';
 import '../../features/communication/screens/my_chat_qr_screen.dart';

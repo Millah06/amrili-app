@@ -1,5 +1,6 @@
 import 'package:everywhere/features/profile/models/profile_display_data.dart';
 import 'package:everywhere/features/profile/providers/my_profile_provider.dart';
+import 'package:everywhere/components/formatters.dart';
 import 'package:everywhere/features/profile/widgets/earning_tab.dart';
 // import 'package:everywhere/features/profile/widgets/profile_header_delegate.dart';
 import 'package:everywhere/features/profile/widgets/profile_not_logged_in.dart';
@@ -12,7 +13,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import 'edit_profile.dart';
-import 'settings_screeen.dart';
+import 'settings_screen.dart';
 import '../../social/screens/create_post_screen.dart';
 import '../../social/models/creator_stats_model.dart';
 import '../../social/providers/feed_provider.dart';
@@ -93,7 +94,10 @@ class _MyProfileScreenState extends State<MyProfileScreen>
 
         return Scaffold(
           backgroundColor: const Color(0xFF0F172A),
-          body: NestedScrollView(
+          body: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 900),
+              child: NestedScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             headerSliverBuilder: (ctx, _) => [
               // Profile header (shows cached data instantly, hydrates silently)
@@ -113,6 +117,12 @@ class _MyProfileScreenState extends State<MyProfileScreen>
                     Navigator.push(context,
                         MaterialPageRoute(builder: (_) => EditProfilePage()));
                   },
+                  onShare: displayData != null
+                      ? () => AppShareHelper.shareProfile(
+                          displayData.userName,
+                          displayName: displayData.displayName,
+                        )
+                      : null,
                   onCreatePost: () async {
                     final result = await Navigator.push<bool>(context,
                         MaterialPageRoute(builder: (_) => const CreatePostScreen()));
@@ -166,6 +176,8 @@ class _MyProfileScreenState extends State<MyProfileScreen>
               ],
             ),
           ),
+              ),
+            ),
         );
       },
     );

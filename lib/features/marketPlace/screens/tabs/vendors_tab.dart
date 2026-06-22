@@ -7,6 +7,7 @@ import '../../../../constraints/vendor_theme.dart';
 import '../../../../shared/widgets/amril_scan_button.dart';
 import '../../pages/vendor_detail_page.dart';
 import '../../providers/vendor_provider.dart';
+import '../../../../core/keyboard_scrollable.dart';
 import '../../widgets/navigation.dart';
 import '../../widgets/shared_widgets.dart';
 import '../../widgets/vendor_card.dart';
@@ -24,10 +25,12 @@ class VendorsTab extends StatefulWidget {
 
 class _VendorsTabState extends State<VendorsTab> {
   final _searchCtrl = TextEditingController();
+  final _scrollCtrl = ScrollController();
 
   @override
   void dispose() {
     _searchCtrl.dispose();
+    _scrollCtrl.dispose();
     super.dispose();
   }
 
@@ -51,12 +54,17 @@ class _VendorsTabState extends State<VendorsTab> {
           builder: (context, p, _) {
 
 
-            return Column(
-              children: [
-                _buildHeader(p),
-                _buildFilterBar(p),
-                Expanded(child: _buildBody(p)),
-              ],
+            return Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 900),
+                child: Column(
+                  children: [
+                    _buildHeader(p),
+                    _buildFilterBar(p),
+                    Expanded(child: _buildBody(p)),
+                  ],
+                ),
+              ),
             );
           },
         ),
@@ -221,38 +229,66 @@ class _VendorsTabState extends State<VendorsTab> {
         subtitle: 'Try adjusting your filters or search term',
       );
     }
-    return RefreshIndicator(
-      color: VendorTheme.primary,
-      backgroundColor: VendorTheme.surface,
-      onRefresh: p.refresh,
-      child: NotificationListener<ScrollNotification>(
-        // Kick off the next page ~400px before the end so it feels seamless.
-        onNotification: (n) {
-          if (n.metrics.pixels >= n.metrics.maxScrollExtent - 400) {
-            p.fetchMore();
-          }
-          return false;
-        },
-        child: ListView.builder(
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
-          // +1 trailing slot for the loader / end-of-list marker.
-          itemCount: p.vendors.length + 1,
-          itemBuilder: (_, i) {
-            if (i == p.vendors.length) return _buildFooter(p);
-            return VendorCard(
-              vendor: p.vendors[i],
-              onTap: () => vendorPush(
-                context,
-                // Seed the detail page so its header renders instantly.
-                VendorDetailPage(
-                  vendorId: p.vendors[i].id,
-                  initialVendor: p.vendors[i],
-                ),
-              ),
-            );
-          },
-        ),
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final twoCol = constraints.maxWidth >= 720;
+        return RefreshIndicator(
+          color: VendorTheme.primary,
+          backgroundColor: VendorTheme.surface,
+          onRefresh: p.refresh,
+          child: NotificationListener<ScrollNotification>(
+            onNotification: (n) {
+              if (n.metrics.pixels >= n.metrics.maxScrollExtent - 400) {
+                p.fetchMore();
+              }
+              return false;
+            },
+            child: KeyboardScrollable(
+              controller: _scrollCtrl,
+              child: twoCol
+                  ? GridView.builder(
+                      controller: _scrollCtrl,
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 12,
+                        mainAxisSpacing: 12,
+                        childAspectRatio: 1.55,
+                      ),
+                      itemCount: p.vendors.length,
+                      itemBuilder: (_, i) => VendorCard(
+                        vendor: p.vendors[i],
+                        onTap: () => vendorPush(
+                          context,
+                          VendorDetailPage(
+                            vendorId: p.vendors[i].id,
+                            initialVendor: p.vendors[i],
+                          ),
+                        ),
+                      ),
+                    )
+                  : ListView.builder(
+                      controller: _scrollCtrl,
+                      padding: const EdgeInsets.fromLTRB(16, 8, 16, 80),
+                      itemCount: p.vendors.length + 1,
+                      itemBuilder: (_, i) {
+                        if (i == p.vendors.length) return _buildFooter(p);
+                        return VendorCard(
+                          vendor: p.vendors[i],
+                          onTap: () => vendorPush(
+                            context,
+                            VendorDetailPage(
+                              vendorId: p.vendors[i].id,
+                              initialVendor: p.vendors[i],
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -330,50 +366,79 @@ class _VendorCardSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Widget bar(double w, double h) => Container(
+    Widget box(double w, double h, {double r = 6}) => Container(
       width: w,
       height: h,
       decoration: BoxDecoration(
         color: VendorTheme.surfaceVariant,
-        borderRadius: BorderRadius.circular(6),
+        borderRadius: BorderRadius.circular(r),
       ),
     );
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: VendorTheme.surface,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(color: VendorTheme.divider),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Logo placeholder
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
+          // Cover banner — matches VendorCard's 90px ClipRRect banner
+          ClipRRect(
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+            child: Container(
+              width: double.infinity,
+              height: 90,
               color: VendorTheme.surfaceVariant,
-              borderRadius: BorderRadius.circular(12),
             ),
           ),
-          const SizedBox(width: 12),
-          // Text lines
-          Expanded(
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 0, 14, 14),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                bar(140, 14),
-                const SizedBox(height: 8),
-                bar(90, 11),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    bar(48, 18),
-                    const SizedBox(width: 8),
-                    bar(48, 18),
-                  ],
+                // Logo overlapping banner — matches Transform.translate(offset: Offset(0, -22))
+                Transform.translate(
+                  offset: const Offset(0, -22),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: box(52, 52),
+                  ),
+                ),
+                Transform.translate(
+                  offset: const Offset(0, -14),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      box(160, 15), // store name
+                      const SizedBox(height: 4),
+                      box(220, 12), // description
+                      const SizedBox(height: 10),
+                      // Stats row: ⭐rating | ✓completion | 🛍orders
+                      Row(
+                        children: [
+                          box(36, 12),
+                          const SizedBox(width: 14),
+                          box(72, 12),
+                          const SizedBox(width: 14),
+                          box(56, 12),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+                      // Delivery row: fee | time | branch count
+                      Row(
+                        children: [
+                          box(80, 12),
+                          const SizedBox(width: 14),
+                          box(60, 12),
+                          const Spacer(),
+                          box(52, 12),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),

@@ -43,7 +43,7 @@ class _P2PTransferScreenState extends State<P2PTransferScreen> {
           ),
         ),
       ),
-      body: SingleChildScrollView(
+      body: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 640), child: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
         child: Form(
           key: _formKey,
@@ -266,6 +266,8 @@ class _P2PTransferScreenState extends State<P2PTransferScreen> {
           ),
         ),
       ),
+      ),
+    ),
     );
   }
 }

@@ -1,4 +1,4 @@
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:everywhere/shared/widgets/net_image.dart';
 import 'package:flutter/material.dart';
 
 /// Reusable circular avatar: network photo when available, otherwise
@@ -57,15 +57,13 @@ class ChatAvatar extends StatelessWidget {
     final url = avatarUrl;
     if (url == null || url.isEmpty) return fallback;
 
-    return ClipOval(
-      child: CachedNetworkImage(
-        imageUrl: url,
-        width: size,
-        height: size,
-        fit: BoxFit.cover,
-        placeholder: (_, __) => fallback,
-        errorWidget: (_, __, ___) => fallback,
-      ),
+    return NetImage(
+      url: url,
+      width: size,
+      height: size,
+      fit: BoxFit.cover,
+      borderRadius: BorderRadius.circular(size / 2),
+      errorChild: fallback,
     );
   }
 }

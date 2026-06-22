@@ -17,7 +17,7 @@ class User {
   final DateTime createdAt;
 
   final Wallet wallet;
-  final UserProfile userProfile;
+  final EmbeddedUserProfile userProfile;
   final List<VirtualAccount> virtualAccounts;
 
   User({
@@ -58,14 +58,14 @@ class User {
       createdAt: json['createdAt'] != null ? DateTime.parse(json['createdAt']) : DateTime.now(),
 
       wallet: Wallet.fromJson(json['wallet'] ?? {}),
-      userProfile: UserProfile.fromJson(json['userProfile'] ?? {}),
+      userProfile: EmbeddedUserProfile.fromJson(json['userProfile'] ?? {}),
       virtualAccounts: (json['virtualAccount'] as List? ?? [])
           .map((e) => VirtualAccount.fromJson(e))
           .toList(),
     );
   }
 
-  User copyWith({String? userId, String? phone, String? avatar}) {
+  User copyWith({String? userId, String? phone, String? avatar, bool? hideFromLeaderboardCreator, bool? hideFromLeaderboardSupporter}) {
     return User(userId: userId  ?? this.userId,
         name: name,
         email: email,
@@ -74,6 +74,8 @@ class User {
         currency: currency,
         role: role,
         active: active,
+        hideFromLeaderboardCreator: hideFromLeaderboardCreator ?? this.hideFromLeaderboardCreator,
+        hideFromLeaderboardSupporter: hideFromLeaderboardSupporter ?? this.hideFromLeaderboardSupporter,
         referralCode: referralCode,
         transferUID: transferUID,
         notificationsEnabled: notificationsEnabled,
@@ -116,7 +118,7 @@ class Fiat {
   }
 }
 
-class UserProfile {
+class EmbeddedUserProfile {
   final String id;
   final String userId;
   final String userName;
@@ -140,7 +142,7 @@ class UserProfile {
   final DateTime createdAt;
   final DateTime updatedAt;
 
-  UserProfile( {
+  EmbeddedUserProfile( {
     required this.id,
     required this.userId,
     required this.userName,
@@ -163,8 +165,8 @@ class UserProfile {
     required this.updatedAt,
   });
 
-  factory UserProfile.fromJson(Map<String, dynamic> json) {
-    return UserProfile(
+  factory EmbeddedUserProfile.fromJson(Map<String, dynamic> json) {
+    return EmbeddedUserProfile(
       id: json['id'] ?? '',
       userId: json['userId'] ?? '',
       userName: json['userName'] ?? 'Anonymous',

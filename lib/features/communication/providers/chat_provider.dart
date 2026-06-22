@@ -6,6 +6,7 @@ import '../services/chat_cache_service.dart';
 
 class ChatsProvider extends ChangeNotifier {
 
+  bool _disposed = false;
 
   List<ChatModel> _allChats = [];
 
@@ -14,6 +15,16 @@ class ChatsProvider extends ChangeNotifier {
   String _myId = '';
 
   bool _seeded = false;
+
+  @override
+  void dispose() {
+    _disposed = true;
+    super.dispose();
+  }
+
+  void _notify() {
+    if (!_disposed) notifyListeners();
+  }
 
   /// Incoming message requests: pending rooms the OTHER person started
   /// (so I'm the recipient who must accept/decline). Blocked are excluded.
@@ -42,7 +53,7 @@ class ChatsProvider extends ChangeNotifier {
     final cached = ChatCacheService.instance.getChatList(userId);
     if (cached.isNotEmpty) {
       _allChats = cached;
-      notifyListeners();
+      _notify();
     }
   }
 
@@ -57,7 +68,7 @@ class ChatsProvider extends ChangeNotifier {
         .snapshots();
   }
 
-  void updateFromSnapshot(QuerySnapshot snapshot,String currentUserUid) {
+  void updateFromSnapshot(QuerySnapshot snapshot, String currentUserUid) {
     _myId = currentUserUid;
     _allChats = snapshot.docs
         .map((doc) => ChatModel.fromFirestore(
@@ -67,6 +78,7 @@ class ChatsProvider extends ChangeNotifier {
         .toList();
     // Persist newest list for instant/offline load next time.
     ChatCacheService.instance.saveChatList(currentUserUid, _allChats);
+    _notify();
   }
 
   /// Filters operate on the inbox (requests are surfaced separately).

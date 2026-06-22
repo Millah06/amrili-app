@@ -1,5 +1,4 @@
 
-import 'dart:io';
 import 'package:another_flushbar/flushbar.dart';
 import 'package:everywhere/features/auth/signup_screen.dart';
 import 'package:everywhere/features/auth/widgets/auth_ui_helpers.dart';
@@ -12,8 +11,8 @@ import 'package:flutter/services.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../components/bootom_bar.dart';
-import '../../components/transacrtion_pin.dart';
+import '../../components/bottom_bar.dart';
+import '../../components/transaction_pin.dart';
 import '../../constraints/constants.dart';
 import '../../core/auth/auth_provider.dart';
 import '../../providers/user_provider.dart';
@@ -596,8 +595,12 @@ class _LoginScreenState extends State<LoginScreen> {
               ),
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
-                  child: Column(
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 480),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24),
+                        child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       const SizedBox(height: 28),
@@ -763,6 +766,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                       const SizedBox(height: 24),
                     ],
+                  ),
+                  ),
+                  ),
                   ),
                 ),
               ),

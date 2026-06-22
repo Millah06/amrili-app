@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import '../../../components/transacrtion_pin.dart';
+import '../../../components/transaction_pin.dart';
 import '../../../constraints/vendor_theme.dart';
 import '../models/order_model.dart';
 import '../pages/order_chat_page.dart';
@@ -134,7 +134,7 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           ),
         ],
       ),
-      body: Column(
+      body: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 900), child: Column(
         children: [
           // Step bar (only for non-final orders)
           if (!_order.status.isFinal &&
@@ -540,6 +540,8 @@ class _OrderDetailPageState extends State<OrderDetailPage> {
           ),
         ],
       ),
+      ),
+    ),
     );
   }
 

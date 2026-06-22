@@ -6,7 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:pull_to_reveal_flutter/pull_to_reveal_flutter.dart';
 
 import '../../constraints/vendor_theme.dart';
-import '../../features/profile/screens/settings_screeen.dart';
+import '../../features/profile/screens/settings_screen.dart';
 import '../../features/marketPlace/utils/vendor_engine_entry.dart';
 import '../../features/wallet/pages/withdraw_bank_screen.dart';
 

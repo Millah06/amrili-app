@@ -34,6 +34,7 @@
 import 'package:everywhere/components/wallet_balance.dart';
 import 'package:everywhere/constraints/constants.dart';
 import 'package:everywhere/features/support/help_center.dart';
+import 'package:everywhere/providers/transaction_provider.dart';
 import 'package:everywhere/providers/user_provider.dart';
 import 'package:everywhere/shared/widgets/pull_to_reveal.dart';
 import 'package:flutter/material.dart';
@@ -73,6 +74,16 @@ class _WalletScreenState extends State<WalletScreen> {
   void _toggleHidden() => setState(() => _hidden = !_hidden);
 
   @override
+  void initState() {
+    super.initState();
+    // Load transactions lazily — only when the Wallet tab is first visited,
+    // not on cold start. PageView keeps this widget alive so initState fires once.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<TransactionProvider>().loadInitial();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final pov = Provider.of<Brain>(context);
     final userProvider = Provider.of<UserProvider>(context);
@@ -90,7 +101,10 @@ class _WalletScreenState extends State<WalletScreen> {
         // One scroll surface for the whole page. Slivers keep the transaction
         // list lazy (builder) while letting the hero/cards scroll away
         // naturally — the old fixed-header layout wasted half the viewport.
-        body: CustomScrollView(
+        body: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 640),
+            child: CustomScrollView(
           physics: const BouncingScrollPhysics(),
           slivers: [
             // ── Hero: brand gradient, total assets, help ───────────────────
@@ -200,6 +214,8 @@ class _WalletScreenState extends State<WalletScreen> {
                 ),
               ),
           ],
+            ),
+          ),
         ),
       ),
     );
@@ -608,7 +624,7 @@ class _MarketplaceCard extends StatelessWidget {
                 ],
               ),
               child: const Center(
-                child: FaIcon(FontAwesomeIcons.store,
+                child: FaIcon(FontAwesomeIcons.bagShopping,
                     size: 18, color: Colors.white),
               ),
             ),
@@ -618,7 +634,7 @@ class _MarketplaceCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Marketplace',
+                    'Shop & Dine',
                     style: GoogleFonts.poppins(
                       color: Colors.white,
                       fontSize: 15.5,
@@ -627,7 +643,7 @@ class _MarketplaceCard extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'Shop stores, order food, track deliveries',
+                    'Discover stores, order food & track deliveries',
                     style: GoogleFonts.inter(
                       color: Colors.white60,
                       fontSize: 12,

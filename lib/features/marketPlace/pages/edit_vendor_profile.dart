@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import '../../../constraints/vendor_theme.dart';
 import '../../../features/marketPlace/providers/vendor_center_provider.dart';
 import '../../../shared/widgets/cover_photo_picker.dart';
@@ -71,7 +70,7 @@ class _EditVendorProfilePageState extends State<EditVendorProfilePage> {
           final vendor = p.myVendor;
           if (vendor == null) return const SizedBox.shrink();
 
-          return ListView(
+          return Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 640), child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
               // Cover photo
@@ -162,7 +161,9 @@ class _EditVendorProfilePageState extends State<EditVendorProfilePage> {
               ),
               const SizedBox(height: 40),
             ],
-          );
+          ),
+          ),
+        );
         },
       ),
     );

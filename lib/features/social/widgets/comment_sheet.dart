@@ -1,6 +1,6 @@
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:everywhere/constraints/constants.dart';
+import 'package:everywhere/shared/widgets/net_image.dart';
 import 'package:everywhere/core/auth/guest_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -301,22 +301,21 @@ class _CommentItem extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          CircleAvatar(
+          NetImage.circle(
+            url: comment.userAvatar ?? '',
             radius: 16,
-            backgroundColor: Colors.grey[700],
-            backgroundImage: comment.userAvatar != null
-                ? CachedNetworkImageProvider(comment.userAvatar!)
-                : null,
-            child:  comment.userAvatar == null
-                ? Text(
-              comment.userName[0].toUpperCase(),
-              style: const TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
-                fontSize: 14
+            fallback: CircleAvatar(
+              radius: 16,
+              backgroundColor: Colors.grey[700],
+              child: Text(
+                comment.userName[0].toUpperCase(),
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  fontSize: 14,
+                ),
               ),
-            )
-                : null,
+            ),
           ),
           const SizedBox(width: 12),
           Expanded(

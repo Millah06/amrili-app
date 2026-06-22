@@ -137,9 +137,11 @@ class MerchantTrustModel {
   final bool hasCacDocument;
   final bool verificationFeePaid;
   final bool adminApproved;
+  final bool emailVerified;
   final String? adminReviewNote;
   final String? identityDocumentUrl;
   final int verificationFee;
+  final Map<String, String> businessDocuments;
 
   final TrustStats stats;
   final TrustNextLevel? nextLevel;
@@ -161,9 +163,11 @@ class MerchantTrustModel {
     required this.hasCacDocument,
     required this.verificationFeePaid,
     required this.adminApproved,
+    required this.emailVerified,
     required this.adminReviewNote,
     required this.identityDocumentUrl,
     required this.verificationFee,
+    required this.businessDocuments,
     required this.stats,
     required this.nextLevel,
     required this.levels,
@@ -186,9 +190,13 @@ class MerchantTrustModel {
         hasCacDocument: (j['hasCacDocument'] ?? false) as bool,
         verificationFeePaid: (j['verificationFeePaid'] ?? false) as bool,
         adminApproved: (j['adminApproved'] ?? false) as bool,
+        emailVerified: (j['emailVerified'] ?? false) as bool,
         adminReviewNote: j['adminReviewNote'] as String?,
         identityDocumentUrl: j['identityDocumentUrl'] as String?,
         verificationFee: (j['verificationFee'] ?? 2500) as int,
+        businessDocuments: Map<String, String>.from(
+          (j['businessDocuments'] as Map<String, dynamic>?)?.map(
+            (k, v) => MapEntry(k, v?.toString() ?? '')) ?? {}),
         stats: TrustStats.fromJson(
             Map<String, dynamic>.from(j['stats'] ?? const {})),
         nextLevel: j['nextLevel'] != null

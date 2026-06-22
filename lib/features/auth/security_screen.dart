@@ -7,7 +7,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-import '../../components/bootom_bar.dart';
+import '../../components/bottom_bar.dart';
 import '../../constraints/constants.dart';
 import '../../screens/community_screen.dart';
 import '../../services/api_service.dart';

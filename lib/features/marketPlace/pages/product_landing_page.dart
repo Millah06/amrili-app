@@ -20,7 +20,7 @@
 // finalised by the backend handler; we only rely on the documented MenuItem
 // fields: name, description, price, images[] (String[]), and the joined vendorId.
 //
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:everywhere/shared/widgets/net_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -116,7 +116,7 @@ class _ProductLandingPageState extends State<ProductLandingPage> {
             style: GoogleFonts.poppins(
                 fontWeight: FontWeight.w700, fontSize: 18, color: Colors.white)),
       ),
-      body: switch (_state) {
+      body: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 900), child: switch (_state) {
         _LoadState.loading => const _ProductSkeleton(),
         _LoadState.success => _ProductBody(
           name: _name,
@@ -142,7 +142,7 @@ class _ProductLandingPageState extends State<ProductLandingPage> {
           secondaryLabel: 'Browse marketplace',
           onSecondary: () => context.go('/'),
         ),
-      },
+      })),
     );
   }
 }
@@ -180,12 +180,12 @@ class _ProductBody extends StatelessWidget {
                 AspectRatio(
                   aspectRatio: 1, // square hero reads well for food/retail
                   child: heroImage != null
-                      ? CachedNetworkImage(
-                    imageUrl: heroImage!,
+                      ? NetImage(
+                    url: heroImage!,
                     fit: BoxFit.cover,
-                    placeholder: (_, __) =>
-                    const ColoredBox(color: VendorTheme.surface),
-                    errorWidget: (_, __, ___) => const _ImageFallback(),
+                    width: double.infinity,
+                    height: double.infinity,
+                    errorChild: const _ImageFallback(),
                   )
                       : const _ImageFallback(),
                 ),

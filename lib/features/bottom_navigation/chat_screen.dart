@@ -6,19 +6,18 @@ import 'package:everywhere/features/communication/widgets/sync_contact_sheet.dar
 import 'package:everywhere/screens/pages/transaction_history_screen.dart';
 import 'package:everywhere/shared/widgets/pull_to_reveal.dart';
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:iconify_flutter/iconify_flutter.dart';
-import 'package:iconify_flutter/icons/ph.dart';
 import 'package:provider/provider.dart';
 import 'package:pull_to_reveal_flutter/pull_to_reveal_flutter.dart';
 import '../../constraints/constants.dart';
 import '../communication/providers/chat_provider.dart';
+import '../communication/services/chat_cache_service.dart';
 import '../../providers/user_provider.dart';
 import '../../services/brain.dart';
 import '../communication/widgets/add_by_phone_sheet.dart';
 import '../communication/widgets/add_by_username_sheet.dart';
+import '../communication/models/chat_model.dart';
 import '../communication/screens/message_screen.dart';
 import '../communication/screens/message_requests_screen.dart';
 import '../communication/screens/official_broadcast_screen.dart';
@@ -34,126 +33,195 @@ class Messages extends StatefulWidget {
 }
 
 class _MessagesState extends State<Messages> {
+  final ValueNotifier<String> filter = ValueNotifier('All');
 
-  ValueNotifier<String> filter = ValueNotifier('All');
+  // Wide-screen split-pane: the currently selected chat (null = placeholder).
+  ChatModel? _selectedChat;
+
+  void _openChat(BuildContext context, ChatModel chat) {
+    if (MediaQuery.sizeOf(context).width >= 800) {
+      setState(() => _selectedChat = chat);
+    } else {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => chat.isGroup
+              ? GroupChatScreen(roomId: chat.id)
+              : Peer2PeerChat(
+                  roomId: chat.id,
+                  otherUserName: chat.name,
+                  otherUid: chat.otherUserId,
+                  otherAvatarUrl: chat.avatarUrl,
+                ),
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final pov = Provider.of<Brain>(context);
     final chatsProvider = context.watch<ChatsProvider>();
-    // Postgres user id — chat rooms store Postgres ids in `participants`,
-    // so the list must be queried with this, not the Firebase uid.
     final myId = context.watch<UserProvider>().user?.userId;
-    // Paint instantly from the Hive cache while Firestore catches up.
     if (myId != null) chatsProvider.seedFromCache(myId);
-     return PullRevealOverlayWrapper(
-       controller: PullToRevealController(),
-       child: Scaffold(
-         backgroundColor: Color(0xFF0F172A),
-         appBar: AppBar(
-           elevation: 0,
-           backgroundColor: const Color(0xFF1E293B),
-           title:   Text(
-             'Chats',
-             style: kTopAppbars.copyWith(
-               fontFamily:  'DejaVu Sans', fontSize: 23),
-           ),
-           actions: [
-             GestureDetector(
-               onTap: () => context.push('/my-chat-qr'),
-               child: Column(
-                 mainAxisAlignment: MainAxisAlignment.end,
-                 crossAxisAlignment: CrossAxisAlignment.end,
-                 mainAxisSize: MainAxisSize.min,
-                 children: [
-                   Container(
-                     padding: EdgeInsets.all(1.5),
-                     decoration: BoxDecoration(
-                         color: Colors.pink,
-                         borderRadius: BorderRadius.circular(5)
-                     ),
-                     child: Text('Scan', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold),),
-                   ),
-                   SizedBox(height: 2,),
-                   Iconify(Ph.qr_code_duotone, size: 20, color: Colors.white,),
-                 ],
-               ),
-             ),
-             IconButton(
-               icon: const FaIcon(FontAwesomeIcons.plusCircle, color: Colors.white),
-               onPressed: () {
-                 showAddFriendsSheet(context, pov);
-               },
-             ),
 
-           ]
-         ),
-         body: Column(
-           crossAxisAlignment: CrossAxisAlignment.start,
-           children: [
-             const SizedBox(height: 16),
-             FilterBar(
-               selected: filter.value,
-               filters:  ['All', 'Unread',
-                 'Favourite', 'Groups', 'Official' ],
-               onSelect: (selected) {
-                 setState(() {
-                   filter.value = selected;
-                 });
-               },
-             ),
-             const SizedBox(height: 10),
-             if (GuestHelper.isGuest)
-               Expanded(
-                 child: EmptyChatView(
-                   onAddFriends: () {
-                     showAddFriendsSheet(context, pov);
-                   },
-                 ),
-               ),
-             if (!GuestHelper.isGuest) ...[
-               Expanded(
-                 child: StreamBuilder<QuerySnapshot>(
-                   stream: chatsProvider.chatStream(myId),
-                   builder: (context, snapshot) {
+    return LayoutBuilder(builder: (context, bc) {
+      final wide = bc.maxWidth >= 800;
+      if (wide) return _buildWideLayout(context, pov, chatsProvider, myId);
+      return _buildNarrowLayout(context, pov, chatsProvider, myId);
+    });
+  }
 
-                     if (!snapshot.hasData) {
-                       // Offline / first frame: show cached chats if we have
-                       // them, otherwise a skeleton.
-                       if (chatsProvider.chats.isNotEmpty) {
-                         return ValueListenableBuilder(
-                           valueListenable: filter,
-                           builder: (_, value, __) =>
-                               _buildCachedList(context, pov, value, chatsProvider),
-                         );
-                       }
-                       return const _ChatListSkeleton();
-                     }
+  // ── Narrow layout (phones / small tablets) ───────────────────────────────
+  Widget _buildNarrowLayout(
+    BuildContext context,
+    Brain pov,
+    ChatsProvider chatsProvider,
+    String? myId,
+  ) {
+    return PullRevealOverlayWrapper(
+      controller: PullToRevealController(),
+      child: Scaffold(
+        backgroundColor: const Color(0xFF0F172A),
+        appBar: _buildAppBar(context, pov),
+        body: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 640),
+            child: _buildListColumn(context, pov, chatsProvider, myId),
+          ),
+        ),
+      ),
+    );
+  }
 
-                     final docs = snapshot.data!.docs;
+  // ── Wide layout (tablet / desktop ≥ 800px) ───────────────────────────────
+  Widget _buildWideLayout(
+    BuildContext context,
+    Brain pov,
+    ChatsProvider chatsProvider,
+    String? myId,
+  ) {
+    return Scaffold(
+      backgroundColor: const Color(0xFF0F172A),
+      body: Row(
+        children: [
+          // Left pane — chat list
+          SizedBox(
+            width: 370,
+            child: Scaffold(
+              backgroundColor: const Color(0xFF0F172A),
+              appBar: _buildAppBar(context, pov),
+              body: _buildListColumn(context, pov, chatsProvider, myId),
+            ),
+          ),
+          const VerticalDivider(width: 1, thickness: 1, color: Color(0x1AFFFFFF)),
+          // Right pane — selected thread or welcome placeholder
+          Expanded(
+            child: _selectedChat == null
+                ? _NoChatSelected()
+                : _selectedChat!.isGroup
+                    ? GroupChatScreen(
+                        key: ValueKey(_selectedChat!.id),
+                        roomId: _selectedChat!.id,
+                        onBack: () => setState(() => _selectedChat = null),
+                      )
+                    : Peer2PeerChat(
+                        key: ValueKey(_selectedChat!.id),
+                        roomId: _selectedChat!.id,
+                        otherUserName: _selectedChat!.name,
+                        otherUid: _selectedChat!.otherUserId,
+                        otherAvatarUrl: _selectedChat!.avatarUrl,
+                        onBack: () => setState(() => _selectedChat = null),
+                      ),
+          ),
+        ],
+      ),
+    );
+  }
 
-                     if (docs.isEmpty) {
-                       return EmptyChatView(
-                         onAddFriends: () {
-                           showAddFriendsSheet(context, pov);
-                         },
-                       );
-                     }
+  AppBar _buildAppBar(BuildContext context, Brain pov) {
+    return AppBar(
+      elevation: 0,
+      backgroundColor: const Color(0xFF1E293B),
+      title: Text(
+        'Chats',
+        style: kTopAppbars.copyWith(fontFamily: 'DejaVu Sans', fontSize: 23),
+      ),
+      actions: [
+        IconButton(
+          tooltip: 'My QR code',
+          icon: const Icon(Icons.qr_code_rounded, color: Colors.white),
+          onPressed: () => context.push('/my-chat-qr'),
+        ),
+        IconButton(
+          tooltip: 'New chat',
+          icon: const Icon(Icons.add_circle_outline_rounded, color: Colors.white),
+          onPressed: () => showAddFriendsSheet(context, pov),
+        ),
+      ],
+    );
+  }
 
-                     chatsProvider.updateFromSnapshot(snapshot.data!, myId ?? '');
+  Widget _buildListColumn(
+    BuildContext context,
+    Brain pov,
+    ChatsProvider chatsProvider,
+    String? myId,
+  ) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 16),
+        ValueListenableBuilder<String>(
+          valueListenable: filter,
+          builder: (_, value, __) => FilterBar(
+            selected: value,
+            filters: const ['All', 'Unread', 'Favourite', 'Groups', 'Official'],
+            onSelect: (s) => setState(() => filter.value = s),
+          ),
+        ),
+        const SizedBox(height: 10),
+        if (GuestHelper.isGuest)
+          Expanded(
+            child: EmptyChatView(onAddFriends: () => showAddFriendsSheet(context, pov)),
+          ),
+        if (!GuestHelper.isGuest)
+          Expanded(
+            child: StreamBuilder<QuerySnapshot>(
+              stream: chatsProvider.chatStream(myId),
+              builder: (context, snapshot) {
+                if (!snapshot.hasData) {
+                  if (chatsProvider.chats.isNotEmpty) {
+                    return ValueListenableBuilder<String>(
+                      valueListenable: filter,
+                      builder: (_, value, __) =>
+                          _buildCachedList(context, pov, value, chatsProvider),
+                    );
+                  }
+                  return const _ChatListSkeleton();
+                }
 
-                     return ValueListenableBuilder(valueListenable: filter,
-                         builder: (_, value, __) =>
-                             _buildCachedList(context, pov, value, chatsProvider));
+                final docs = snapshot.data!.docs;
+                if (docs.isEmpty) {
+                  return EmptyChatView(
+                    onAddFriends: () => showAddFriendsSheet(context, pov),
+                  );
+                }
 
-                   },
-                 ),
-               )
-             ]
-           ],
-         ),
-       ),
-     );
+                WidgetsBinding.instance.addPostFrameCallback(
+                  (_) => chatsProvider.updateFromSnapshot(snapshot.data!, myId ?? ''),
+                );
+
+                return ValueListenableBuilder<String>(
+                  valueListenable: filter,
+                  builder: (_, value, __) =>
+                      _buildCachedList(context, pov, value, chatsProvider),
+                );
+              },
+            ),
+          ),
+      ],
+    );
   }
 
   /// Renders the chat list straight from cached [ChatModel]s (no Firestore
@@ -176,9 +244,11 @@ class _MessagesState extends State<Messages> {
           )
         : null;
 
-    // Pinned official announcements entry (shown on All + Official tabs).
+    // Official announcements entry. On "All" it only pins to the top when there
+    // is an UNREAD announcement; on the "Official" tab it always shows.
     final officialEntry = (value == 'All' || value == 'Official')
         ? _OfficialEntry(
+            onlyWhenUnread: value == 'All',
             onTap: () => Navigator.push(
               context,
               MaterialPageRoute(
@@ -221,21 +291,7 @@ class _MessagesState extends State<Messages> {
               final chat = chats[index];
               return ChatCard(
                 chat: chat,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => chat.isGroup
-                          ? GroupChatScreen(roomId: chat.id)
-                          : Peer2PeerChat(
-                              roomId: chat.id,
-                              otherUserName: chat.name,
-                              otherUid: chat.otherUserId,
-                              otherAvatarUrl: chat.avatarUrl,
-                            ),
-                    ),
-                  );
-                },
+                onTap: () => _openChat(context, chat),
               );
             },
           ),
@@ -398,6 +454,55 @@ class _MessagesState extends State<Messages> {
     );
   }
 
+}
+
+// ── Wide-screen placeholder (right pane when no chat is selected) ─────────────
+
+class _NoChatSelected extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: const Color(0xFF0F172A),
+      child: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(28),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E293B),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                Icons.chat_bubble_outline_rounded,
+                size: 52,
+                color: Color(0xFF334155),
+              ),
+            ),
+            const SizedBox(height: 24),
+            Text(
+              'Select a chat',
+              style: GoogleFonts.inter(
+                color: Colors.white,
+                fontSize: 20,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Choose a conversation from the list\nto start messaging',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(
+                color: Colors.white38,
+                fontSize: 13,
+                height: 1.5,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _MinimalActionTile extends StatelessWidget {
@@ -674,60 +779,112 @@ class ChatListFooter extends StatelessWidget {
   }
 }
 
-/// Pinned "Amril Official" announcements row at the top of the chat list.
+/// "Amril Official" announcements row. Streams the latest broadcast and
+/// compares against the locally-stored last-read time to show an unread badge.
+/// When [onlyWhenUnread] is true (the All tab) it renders nothing unless there
+/// is an unread announcement, so it no longer permanently squats at the top.
 class _OfficialEntry extends StatelessWidget {
-  const _OfficialEntry({required this.onTap});
+  const _OfficialEntry({required this.onTap, this.onlyWhenUnread = false});
 
   final VoidCallback onTap;
+  final bool onlyWhenUnread;
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-          child: Row(
-            children: [
-              Container(
-                width: 50,
-                height: 50,
-                decoration: const BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Color(0xFF177E85),
-                ),
-                child: const Icon(Icons.campaign_rounded, color: Colors.white),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: const [
-                        Text('Amril Official',
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('official_broadcast')
+          .orderBy('createdAt', descending: true)
+          .limit(1)
+          .snapshots(),
+      builder: (context, snap) {
+        int latestMs = 0;
+        String preview = 'Announcements & updates';
+        if (snap.hasData && snap.data!.docs.isNotEmpty) {
+          final d = snap.data!.docs.first.data() as Map<String, dynamic>;
+          final ts = d['createdAt'];
+          if (ts is Timestamp) latestMs = ts.millisecondsSinceEpoch;
+          preview = (d['title'] as String?)?.isNotEmpty == true
+              ? d['title']
+              : (d['text'] as String? ?? preview);
+        }
+        final unread =
+            latestMs > ChatCacheService.instance.getOfficialLastRead();
+
+        if (onlyWhenUnread && !unread) return const SizedBox.shrink();
+
+        return Material(
+          color: Colors.transparent,
+          child: InkWell(
+            onTap: onTap,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              child: Row(
+                children: [
+                  Stack(
+                    children: [
+                      Container(
+                        width: 50,
+                        height: 50,
+                        decoration: const BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Color(0xFF177E85),
+                        ),
+                        child: const Icon(Icons.campaign_rounded,
+                            color: Colors.white),
+                      ),
+                      if (unread)
+                        Positioned(
+                          right: 0,
+                          top: 0,
+                          child: Container(
+                            width: 14,
+                            height: 14,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEF4444),
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                  color: const Color(0xFF0F172A), width: 2),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: const [
+                            Text('Amril Official',
+                                style: TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700)),
+                            SizedBox(width: 4),
+                            Icon(Icons.verified_rounded,
+                                size: 14, color: Color(0xFF38BDF8)),
+                          ],
+                        ),
+                        const SizedBox(height: 3),
+                        Text(preview,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700)),
-                        SizedBox(width: 4),
-                        Icon(Icons.verified_rounded,
-                            size: 14, color: Color(0xFF38BDF8)),
+                                color: unread
+                                    ? Colors.white70
+                                    : Colors.white.withValues(alpha: 0.4),
+                                fontSize: 13)),
                       ],
                     ),
-                    const SizedBox(height: 3),
-                    Text('Announcements & updates',
-                        style: TextStyle(
-                            color: Colors.white.withValues(alpha: 0.4),
-                            fontSize: 13)),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }

@@ -1,4 +1,5 @@
-import 'package:everywhere/components/swicht.dart';
+import 'package:everywhere/components/tiny_switch.dart';
+import 'package:everywhere/shared/widgets/net_image.dart';
 import 'package:everywhere/features/wallet/pages/withdraw_bank_screen.dart';
 import 'package:everywhere/providers/user_provider.dart';
 import 'package:everywhere/screens/pages/notification_screen.dart';
@@ -16,12 +17,27 @@ import '../../pages/merchant_trust_page.dart';
 import '../../pages/table_management_page.dart';
 import '../../pages/verified_merchant_page.dart';
 import '../../providers/vendor_center_provider.dart';
+import '../../../../core/keyboard_scrollable.dart';
 import '../../widgets/navigation.dart';
 import '../../widgets/shared_widgets.dart';
+import '../../widgets/vendor_pre_apply.dart';
 
 
-class ProfileTab extends StatelessWidget {
+class ProfileTab extends StatefulWidget {
   const ProfileTab({super.key});
+
+  @override
+  State<ProfileTab> createState() => _ProfileTabState();
+}
+
+class _ProfileTabState extends State<ProfileTab> {
+  final _scroll = ScrollController();
+
+  @override
+  void dispose() {
+    _scroll.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,9 +47,15 @@ class ProfileTab extends StatelessWidget {
     return Scaffold(
       backgroundColor: VendorTheme.background,
       body: SafeArea(
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 640),
+            child: KeyboardScrollable(
+              controller: _scroll,
+              child: ListView(
+                controller: _scroll,
+                padding: const EdgeInsets.all(16),
+                children: [
             const SizedBox(height: 8),
             Text('Profile',
               style: kTopAppbars.copyWith(
@@ -46,19 +68,14 @@ class ProfileTab extends StatelessWidget {
             Center(
               child: Column(
                 children: [
-                  user.myVendor == null ? CircleAvatar(
-              radius: 36,
-                backgroundColor: VendorTheme.surfaceVariant,
-                backgroundImage: null,
-                child: const Icon(Icons.person, color: VendorTheme.textMuted, size: 50),) :
-                  CircleAvatar(
+                  NetImage.circle(
+                    url: user.myVendor?.logo,
                     radius: 36,
-                    backgroundColor: VendorTheme.surfaceVariant,
-                    backgroundImage: user.myVendor?.logo != null &&  user.myVendor!.logo.isNotEmpty ?
-                    NetworkImage(user.myVendor!.logo) : null,
-                    child: user.myVendor!.logo.isEmpty
-                        ? const Icon(Icons.person, color: VendorTheme.textMuted, size: 50)
-                        : null,
+                    fallback: const CircleAvatar(
+                      radius: 36,
+                      backgroundColor: VendorTheme.surfaceVariant,
+                      child: Icon(Icons.person, color: VendorTheme.textMuted, size: 50),
+                    ),
                   ),
                   const SizedBox(height: 12),
                   Text(
@@ -211,6 +228,10 @@ class ProfileTab extends StatelessWidget {
             _tile(Icons.privacy_tip_outlined, 'Privacy Policy', () {
               Navigator.push(context, MaterialPageRoute(builder: (context) => PrivacyPolicyPage()));
             }),
+            if (user.myVendor == null)
+            _tile(Icons.storefront_outlined, 'Become a vendor', () {
+              vendorPush(context, const PreApplyView());
+            }),
             const SizedBox(height: 8),
             if (user.myVendor != null && user.myVendor!.isOwner(context.read<UserProvider>().user!.userId))
             _tile(
@@ -221,6 +242,9 @@ class ProfileTab extends StatelessWidget {
             const SizedBox(height: 40),
           ],
         ),
+        ),
+      ),
+    ),
       ),
     );
   }

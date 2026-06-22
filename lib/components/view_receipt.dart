@@ -36,9 +36,6 @@ class _ViewReceiptState extends State<ViewReceipt> {
 
   @override
   void dispose() {
-    didChangeDependencies(
-
-    );
     context.read<TransactionProvider>().clearDetail();
     super.dispose();
   }
@@ -95,7 +92,9 @@ class _ViewReceiptState extends State<ViewReceipt> {
           style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 18),
         ),
       ),
-      body: Consumer<TransactionProvider>(
+      body: Center(child:
+    ConstrainedBox(constraints: const BoxConstraints(maxWidth: 640),
+    child: Consumer<TransactionProvider>(
         builder: (_, prov, __) {
           if (prov.isLoadingDetail) return const _ReceiptSkeleton();
 
@@ -129,8 +128,10 @@ class _ViewReceiptState extends State<ViewReceipt> {
           );
         },
       ),
-    );
-  }
+    ),
+  ),
+  );
+}
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -189,7 +190,7 @@ class _ReceiptCard extends StatelessWidget {
           ),
         ],
       ),
-    );
+      );
   }
 }
 

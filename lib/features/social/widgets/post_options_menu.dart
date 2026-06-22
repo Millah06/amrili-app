@@ -1,10 +1,11 @@
 import 'package:everywhere/core/auth/guest_helper.dart';
+import 'package:everywhere/core/constant/api_constants.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../components/formatters.dart';
-import '../../../providers/profile_provider.dart';
+import '../../profile/providers/my_profile_provider.dart';
 import '../../../providers/user_provider.dart';
 import '../../../services/image_processor_service.dart';
 import '../services/social_api_service.dart';
@@ -278,7 +279,7 @@ class _PostOptionsMenuState extends State<PostOptionsMenu> {
 
   void _copyLink() {
     Clipboard.setData(
-      ClipboardData(text: 'https://everywhere.app/post/${widget.post.postId}'),
+      ClipboardData(text: ApiConstants.postUrl(widget.post.postId)),
     );
 
     if (mounted) {
@@ -338,7 +339,7 @@ class _PostOptionsMenuState extends State<PostOptionsMenu> {
 
                 print('🔽 Starting delete for post: ${widget.post.postId}');
                 final feedProvider = Provider.of<FeedProvider>(context, listen: false);
-                final profileProvider = Provider.of<ProfileProvider>(context, listen: false);
+                final myProfileProvider = Provider.of<MyProfileProvider>(context, listen: false);
 
                 final apiService = SocialApiService();
                 final response = await apiService.deletePost(widget.post.postId, widget.post.isRepost);
@@ -347,7 +348,7 @@ class _PostOptionsMenuState extends State<PostOptionsMenu> {
                 print('✅ Delete response received');
 
                 feedProvider.removePost(widget.post.postId);
-                profileProvider.removePostFromUserPosts(widget.post.postId);
+                myProfileProvider.removePost(widget.post.postId);
 
                 messenger.showSnackBar(
                   const SnackBar(
@@ -428,7 +429,7 @@ class _PostOptionsMenuState extends State<PostOptionsMenu> {
         } catch (e) {}
 
         try {
-          context.read<ProfileProvider>().updatePostInLists(
+          context.read<MyProfileProvider>().updatePost(
             widget.post.postId,
             updatedPost,
           );

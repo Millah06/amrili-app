@@ -108,6 +108,16 @@ class UserProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void updateSpotlightCreator(bool hide) {
+    user = user?.copyWith(hideFromLeaderboardCreator: hide);
+    notifyListeners();
+  }
+
+  void updateSpotlightSupporter(bool hide) {
+    user = user?.copyWith(hideFromLeaderboardSupporter: hide);
+    notifyListeners();
+  }
+
   void updateAvatar(String avatarUrl) {
 
   }

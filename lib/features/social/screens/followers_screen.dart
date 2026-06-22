@@ -5,6 +5,7 @@
 //           follow/unfollow with optimistic UI, empty + error states
 
 import 'package:everywhere/providers/user_provider.dart';
+import 'package:everywhere/shared/widgets/net_image.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../constraints/vendor_theme.dart';
@@ -89,7 +90,10 @@ class _FollowersBodyState extends State<_FollowersBody> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: VendorTheme.background,
-      body: NestedScrollView(
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 640),
+          child: NestedScrollView(
         // Sticky header: app bar + search bar
         headerSliverBuilder: (context, innerBoxIsScrolled) => [
           SliverAppBar(
@@ -188,6 +192,8 @@ class _FollowersBodyState extends State<_FollowersBody> {
           );
         }),
       ),
+          ),
+        ),
     );
   }
 }
@@ -438,22 +444,21 @@ class _FollowerTileState extends State<_FollowerTile> {
   Widget _buildAvatar(UserResult u) {
     return Stack(
       children: [
-        CircleAvatar(
+        NetImage.circle(
+          url: u.avatarUrl,
           radius: 26,
-          backgroundColor: const Color(0xFF334155),
-          backgroundImage: u.avatarUrl != null
-              ? NetworkImage(u.avatarUrl!)
-              : null,
-          child: u.avatarUrl == null
-              ? Text(
-            u.userName.isNotEmpty ? u.userName[0].toUpperCase() : '?',
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 18,
+          fallback: CircleAvatar(
+            radius: 26,
+            backgroundColor: const Color(0xFF334155),
+            child: Text(
+              u.userName.isNotEmpty ? u.userName[0].toUpperCase() : '?',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
             ),
-          )
-              : null,
+          ),
         ),
         if (u.isVerified)
           Positioned(

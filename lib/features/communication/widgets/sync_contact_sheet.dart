@@ -11,6 +11,7 @@ import 'chat_bubble.dart';
 import '../models/chat_model.dart';
 import '../providers/sync_contact_provider.dart';
 import '../services/chat_room_service.dart';
+import 'chat_loading.dart';
 
 
 
@@ -97,9 +98,12 @@ class _SyncContactsSheetState extends State<SyncContactsSheet> {
   }
 
   Future<void> _openChat(Map user) async {
-    final roomId = await ChatRoomService().createOrGetChatRoom(
-      otherId: user['id'],
-      initiatedVia: 'contact',
+    final roomId = await runWithChatLoader(
+      context,
+      () => ChatRoomService().createOrGetChatRoom(
+        otherId: user['id'],
+        initiatedVia: 'contact',
+      ),
     );
     if (!mounted) return;
     Navigator.pop(context);

@@ -24,7 +24,7 @@ class HelpCenter extends StatelessWidget {
           onPressed: () => Navigator.pop(context),
         ),
       ),
-      body: Padding(
+      body: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 640), child: Padding(
         padding: EdgeInsetsGeometry.only(left: 12, right: 12, top: 16),
         child: Column(
           children: [
@@ -79,6 +79,7 @@ class HelpCenter extends StatelessWidget {
         ),
 
       )
+    ))
     );
   }
 

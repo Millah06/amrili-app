@@ -18,8 +18,6 @@ import '../components/reusable_card.dart';
 import '../components/service_fraame.dart';
 import '../constraints/constants.dart';
 import '../core/money/money.dart';
-
-
 import '../services/brain.dart';
 import '../features/marketPlace/utils/vendor_engine_entry.dart';
 import '../features/utility/screens/utility_screens/airtime_gift.dart';
@@ -554,83 +552,54 @@ class _HomeScreenState extends State<HomeScreen>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      SizedBox(height: 10,),
+                      const SizedBox(height: 12),
 
                       Container(
-                          width: double.infinity,
-                          padding: EdgeInsets.only(bottom: 10, left: 15, right: 15, top: 10),
-                          margin: EdgeInsets.only(left: 12, right: 12, bottom: 10, top: 5),
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(10),
-                            color: Color(0xFF1E293B),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Text('This Month, ${MyFormatManager.formatMyDate(DateTime.now(), 'MMM d')}',
-                                    style: GoogleFonts.roboto(fontWeight: FontWeight.w900, fontSize: 12),),
-                                  GestureDetector(
-                                      onTap: ()  {
-                                        Navigator.push(context,
-                                            MaterialPageRoute(builder: (context) => TransactionHistoryScreen()));
-                                      },
-                                      child: Container(
-                                        padding: EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-                                        decoration: BoxDecoration(
-                                          color: Color(0xFF0F172A),
-                                          border: Border.all(color: Colors.white54)
-                                        ),
-                                        child: Row(
-                                          children: [
-                                            Text('Transaction History',
-                                              style: GoogleFonts.roboto(color: Colors.white,
-                                                  fontSize: 11),),
-                                            SizedBox(width: 5,),
-                                            Icon(Icons.arrow_forward_ios_sharp, size: 10, color: Colors.white,)
-                                          ],
-                                        ),
-                                      )
-                                  ),
-                                ],
+                        margin: const EdgeInsets.symmetric(horizontal: 16),
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1E293B),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(10),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF177E85).withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(12),
                               ),
-                              SizedBox(height: 10,),
-                              DashedLine(),
-                              SizedBox(height: 5,),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text('Total money Spent:',
-                                          style: GoogleFonts.roboto(
-                                              fontWeight: FontWeight.w700, color: Colors.white54, fontSize: 12))
-                                    ],
+                              child: const Icon(Icons.bar_chart_rounded,
+                                  color: Color(0xFF177E85), size: 22),
+                            ),
+                            const SizedBox(width: 14),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Monthly spend',
+                                    style: GoogleFonts.inter(
+                                        color: Colors.white54, fontSize: 12)),
+                                const SizedBox(height: 2),
+                                MoneyText(
+                                  pov.totalMonthlySpent,
+                                  style: const TextStyle(
+                                    fontSize: 20,
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w700,
                                   ),
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-
-                                      // PHASE 9 — first MoneyText adoption. Currency-aware now,
-                                      // so Phase 10 flips display from one place.
-                                      MoneyText(
-                                        pov.totalMonthlySpent,
-                                        style: const TextStyle(
-                                          fontSize: 14,
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              )
-                            ],
-                          )),
+                                ),
+                              ],
+                            ),
+                            const Spacer(),
+                            Text(
+                              MyFormatManager.formatMyDate(DateTime.now(), 'MMM yyyy'),
+                              style: GoogleFonts.inter(
+                                  color: Colors.white38, fontSize: 11),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 8),
                       _ServiceSection(title: 'Bills', services: billServices),
                       _ServiceSection(title: 'Essentials', services: essentialServices),
                       _ServiceSection(title: 'Travel & Hotels', services: travelServices),
@@ -695,24 +664,29 @@ class _ServiceSection extends StatelessWidget {
               ],
             ),
           ),
-          GridView.builder(
-            padding: EdgeInsets.zero,
-            physics: const NeverScrollableScrollPhysics(),
-            shrinkWrap: true,
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 4,
-              childAspectRatio: 0.8, // a touch taller so labels don't crowd
-              crossAxisSpacing: 0,    // ServiceFrame carries its own padding
-              mainAxisSpacing: 4,
-            ),
-            itemCount: services.length,
-            itemBuilder: (context, i) {
-              final s = services[i];
-              return ServiceFrame(
-                title: s.name,
-                icon: s.icon,            // FaIconData — rendered by ServiceFrame
-                onTap: s.function,
-                isNew: s.isNew ?? false,          // if your field is `bool?`, use `s.isNew ?? false`
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final cols = constraints.maxWidth >= 600 ? 6 : 4;
+              return GridView.builder(
+                padding: EdgeInsets.zero,
+                physics: const NeverScrollableScrollPhysics(),
+                shrinkWrap: true,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: cols,
+                  childAspectRatio: 0.8,
+                  crossAxisSpacing: 0,
+                  mainAxisSpacing: 4,
+                ),
+                itemCount: services.length,
+                itemBuilder: (context, i) {
+                  final s = services[i];
+                  return ServiceFrame(
+                    title: s.name,
+                    icon: s.icon,
+                    onTap: s.function,
+                    isNew: s.isNew ?? false,
+                  );
+                },
               );
             },
           ),

@@ -1,5 +1,5 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:everywhere/shared/widgets/net_image.dart';
 import 'package:everywhere/features/communication/widgets/message_bubble.dart';
 import 'package:everywhere/features/communication/services/message_service.dart';
 import 'package:everywhere/features/communication/services/chat_cache_service.dart';
@@ -12,6 +12,9 @@ import '../../../constraints/constants.dart';
 import '../../../constraints/formatters.dart';
 import '../../../providers/user_provider.dart';
 import '../theme/chat_theme.dart';
+import '../widgets/chat_attach_panel.dart';
+import '../widgets/gift_bubble.dart';
+import '../widgets/gift_picker_sheet.dart';
 
 /* deploying security rule
 
@@ -19,14 +22,22 @@ firebase deploy --only firestore:rules
  */
 
 class Peer2PeerChat extends StatefulWidget {
-
-
   final String roomId;
   final String otherUid;
   final String otherUserName;
   final String? otherAvatarUrl;
+  /// When set, the back button calls this instead of Navigator.maybePop.
+  /// Used by the wide-screen split-pane layout in chat_screen.dart.
+  final VoidCallback? onBack;
 
-  const Peer2PeerChat({super.key, required this.otherUid, required this.roomId, required this.otherUserName, this.otherAvatarUrl});
+  const Peer2PeerChat({
+    super.key,
+    required this.otherUid,
+    required this.roomId,
+    required this.otherUserName,
+    this.otherAvatarUrl,
+    this.onBack,
+  });
 
 
   @override
@@ -38,6 +49,7 @@ class _Peer2PeerChatState extends State<Peer2PeerChat> {
 
 
   String messageText = '';
+  bool _showAttach = false;
 
   final FocusNode _focusNode =  FocusNode();
 
@@ -50,41 +62,16 @@ class _Peer2PeerChatState extends State<Peer2PeerChat> {
     super.dispose();
   }
 
-  /// Clean attach sheet — placeholder for media/airtime/money utilities
-  /// (Phase 2 removed the always-on shortcut row; real actions land here).
-  void _showAttachSheet(BuildContext context) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: ChatTheme.surfaceHigh,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (_) => SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 38,
-                height: 4,
-                decoration: BoxDecoration(
-                  color: Colors.white12,
-                  borderRadius: BorderRadius.circular(20),
-                ),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                'Attachments & utilities coming soon',
-                style: GoogleFonts.inter(
-                    color: Colors.white60, fontSize: 13.5),
-              ),
-              const SizedBox(height: 8),
-            ],
-          ),
-        ),
-      ),
+  void _comingSoon(String what) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$what coming soon'),
+          duration: const Duration(seconds: 1)),
     );
+  }
+
+  void _toggleAttach() {
+    FocusScope.of(context).unfocus();
+    setState(() => _showAttach = !_showAttach);
   }
 
   @override
@@ -116,7 +103,7 @@ class _Peer2PeerChatState extends State<Peer2PeerChat> {
                 IconButton(
                   icon: const Icon(Icons.arrow_back_rounded,
                       color: Colors.white, size: 24),
-                  onPressed: () => Navigator.maybePop(context),
+                  onPressed: widget.onBack ?? () => Navigator.maybePop(context),
                 ),
                 _HeaderAvatar(
                     name: widget.otherUserName,
@@ -203,13 +190,15 @@ class _Peer2PeerChatState extends State<Peer2PeerChat> {
               crossAxisAlignment: CrossAxisAlignment.end,
               mainAxisAlignment: MainAxisAlignment.end,
               children: <Widget>[
-                // Attach (+) — stub hook for future utilities (media, airtime,
-                // money). Phase 2 intentionally removes the always-on shortcut
-                // row; real actions get wired here later.
+                // Attach (+) — toggles the inline attachment tray below the bar.
                 IconButton(
-                  icon: const Icon(Icons.add_circle_outline_rounded,
-                      color: Colors.white70, size: 26),
-                  onPressed: () => _showAttachSheet(context),
+                  icon: Icon(
+                      _showAttach
+                          ? Icons.close_rounded
+                          : Icons.add_circle_outline_rounded,
+                      color: Colors.white70,
+                      size: 26),
+                  onPressed: _toggleAttach,
                 ),
                 Expanded(
                   child: GestureDetector(
@@ -262,6 +251,22 @@ class _Peer2PeerChatState extends State<Peer2PeerChat> {
               ],
             ),
           ),
+          // Inline attachment tray — sits BELOW the input bar (input above it).
+          if (_showAttach)
+            ChatAttachPanel(
+              onSelected: () => setState(() => _showAttach = false),
+              onGift: () => GiftPickerSheet.show(
+                context,
+                roomId: widget.roomId,
+                senderId: myId,
+                receiverId: widget.otherUid,
+              ),
+              onRedPacket: () => _comingSoon('Red Pocket'),
+              onPhoto: () => _comingSoon('Gallery'),
+              onCamera: () => _comingSoon('Camera'),
+              onAirtime: () => _comingSoon('Airtime'),
+              onMoney: () => _comingSoon('Send Money'),
+            ),
         ],
       ),
     );
@@ -346,19 +351,33 @@ class MessagesStream extends StatelessWidget {
           final dayKey =
               DateTime(m.createdAt.year, m.createdAt.month, m.createdAt.day);
 
-          items.add(
-            MessageBubble(
-              m.type == 'moneyTransfer' ? m.amount : "",
-              messageId: m.id,
-              text: m.text,
-              isMe: m.senderId == currentUserId,
-              time: Formatters().formatTimeInMessages(
-                  Timestamp.fromDate(m.createdAt)),
-              status: m.status,
-              roomId: roomId,
-              type: m.type,
-            ),
-          );
+          final time = Formatters()
+              .formatTimeInMessages(Timestamp.fromDate(m.createdAt));
+
+          if (m.type == 'gift') {
+            items.add(
+              GiftBubble(
+                emoji: m.giftEmoji ?? '🎁',
+                name: m.giftName ?? 'Gift',
+                coins: m.coins ?? 0,
+                isMe: m.senderId == currentUserId,
+                time: time,
+              ),
+            );
+          } else {
+            items.add(
+              MessageBubble(
+                m.type == 'moneyTransfer' ? m.amount : "",
+                messageId: m.id,
+                text: m.text,
+                isMe: m.senderId == currentUserId,
+                time: time,
+                status: m.status,
+                roomId: roomId,
+                type: m.type,
+              ),
+            );
+          }
 
           DateTime? nextDayKey;
           if (i + 1 < messages.length) {
@@ -487,15 +506,13 @@ class _HeaderAvatar extends StatelessWidget {
         shape: BoxShape.circle,
         border: Border.all(color: Colors.white24, width: 1),
       ),
-      child: ClipOval(
-        child: CachedNetworkImage(
-          imageUrl: url,
-          fit: BoxFit.cover,
-          width: 40,
-          height: 40,
-          placeholder: (_, __) => fallback,
-          errorWidget: (_, __, ___) => fallback,
-        ),
+      child: NetImage(
+        url: url,
+        fit: BoxFit.cover,
+        width: 40,
+        height: 40,
+        borderRadius: BorderRadius.circular(20),
+        errorChild: fallback,
       ),
     );
   }

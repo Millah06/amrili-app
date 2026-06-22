@@ -80,7 +80,7 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
     _handled = true;
     final location = uri.hasQuery ? '${uri.path}?${uri.query}' : uri.path;
     if (context.canPop()) context.pop();
-    context.go(location);
+    context.push(location);
   }
 
   // Haptic + short system click when a code is hit.

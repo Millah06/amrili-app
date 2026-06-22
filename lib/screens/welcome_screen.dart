@@ -101,12 +101,11 @@
 //   }
 // }
 
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
-import '../../components/bootom_bar.dart';
+import '../../components/bottom_bar.dart';
 import '../../constraints/constants.dart';
 import '../../core/auth/auth_provider.dart';
 import '../../features/auth/login_screen.dart';
@@ -143,7 +142,10 @@ class WelcomeScreen extends StatelessWidget {
               ),
             ),
           ),
-          SafeArea(
+          Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+          child: SafeArea(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -343,6 +345,8 @@ class WelcomeScreen extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+          ),
           ),
         ],
       ),

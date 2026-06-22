@@ -151,9 +151,12 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+      body: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 640),
+          child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const _SectionLabel(label: 'Title'),
@@ -202,6 +205,8 @@ class _CreatePostScreenState extends State<CreatePostScreen> {
           ],
         ),
       ),
+      ),
+    ),
     );
   }
 

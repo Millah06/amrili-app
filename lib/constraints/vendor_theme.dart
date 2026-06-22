@@ -1,67 +1,52 @@
-import 'package:flutter/material.dart';
+// lib/constraints/vendor_theme.dart
+//
+// BACKWARD-COMPATIBILITY SHIM — Do not add new tokens here.
+//
+// All colour and theme constants are now authoritative in:
+//   lib/constraints/app_theme.dart  →  class AppTheme
+//
+// This file exists so existing `VendorTheme.xxx` call sites across the whole
+// app continue to compile without a big-bang import rewrite. The aliases are
+// compile-time constants (pointing to other compile-time constants in AppTheme),
+// so there is zero runtime cost.
+//
+// Migration path for new code
+//   import 'package:everywhere/constraints/app_theme.dart';
+//   Use AppTheme.primary  (not VendorTheme.primary), etc.
+//   Once all call sites in a file are migrated, drop the VendorTheme import.
 
-// ─── THEME ────────────────────────────────────────────────────────────────────
+import 'package:flutter/material.dart';
+import 'app_theme.dart';
 
 class VendorTheme {
   VendorTheme._();
 
-  static const Color background = Color(0xFF0F172A);
-  static const Color surface = Color(0xFF1E293B);
-  static const Color surfaceVariant = Color(0xFF334155);
+  // ─── Colour aliases → AppTheme ─────────────────────────────────────────────
+  static const Color background         = AppTheme.background;
+  static const Color surface            = AppTheme.surface;
+  static const Color surfaceVariant     = AppTheme.surfaceVariant;
+  static const Color primary            = AppTheme.primary;
+  static const Color primaryVariant     = AppTheme.primaryVariant;
+  static const Color circularProgressColor = AppTheme.primaryDark; // 0xFF177E85
+  static const Color accent             = AppTheme.success;
+  static const Color warning            = AppTheme.warning;
+  static const Color error              = AppTheme.error;
+  static const Color textPrimary        = AppTheme.textPrimary;
+  static const Color textSecondary      = AppTheme.textSecondary;
+  static const Color textMuted          = AppTheme.textMuted;
+  static const Color divider            = AppTheme.divider;
+  static const Color gold               = AppTheme.gold;
 
-  static const Color primary = Color(0xFF21D3ED);
-
-  static const Color circularProgressColor = Color(0xFF177E85);
-
-  static const Color primaryVariant = Color(0xFF1D4ED8);
-  static const Color accent = Color(0xFF10B981);
-  static const Color warning = Color(0xFFF59E0B);
-  static const Color error = Color(0xFFEF4444);
-  static const Color textPrimary = Color(0xFFF8FAFC);
-  static const Color textSecondary = Color(0xFF94A3B8);
-  static const Color textMuted = Color(0xFF64748B);
-  static const Color divider = Color(0xFF1E293B);
-  static const Color gold = Color(0xFFFFD700);
-
-  static ThemeData get theme => ThemeData(
-    scaffoldBackgroundColor: background,
-    colorScheme: const ColorScheme.dark(
-      background: background,
-      surface: surface,
-      primary: primary,
-      error: error,
-    ),
-    textTheme: const TextTheme(
-      headlineLarge: TextStyle(
-          color: textPrimary, fontWeight: FontWeight.bold, fontSize: 24),
-      headlineMedium: TextStyle(
-          color: textPrimary, fontWeight: FontWeight.bold, fontSize: 20),
-      titleLarge: TextStyle(
-          color: textPrimary, fontWeight: FontWeight.w600, fontSize: 16),
-      titleMedium: TextStyle(
-          color: textPrimary, fontWeight: FontWeight.w500, fontSize: 14),
-      bodyLarge: TextStyle(color: textPrimary, fontSize: 14),
-      bodyMedium: TextStyle(color: textSecondary, fontSize: 13),
-      bodySmall: TextStyle(color: textMuted, fontSize: 12),
-    ),
-    appBarTheme: const AppBarTheme(
-      backgroundColor: background,
-      elevation: 0,
-      iconTheme: IconThemeData(color: textPrimary),
-      titleTextStyle: TextStyle(
-          color: textPrimary, fontWeight: FontWeight.bold, fontSize: 18),
-    ),
-    dividerColor: divider,
-    bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-      backgroundColor: surface,
-      selectedItemColor: primary,
-      unselectedItemColor: textMuted,
-      type: BottomNavigationBarType.fixed,
-    ),
-  );
+  // ─── ThemeData delegate ────────────────────────────────────────────────────
+  // Any call to VendorTheme.theme now returns the same authoritative ThemeData
+  // that MaterialApp.router uses. Applies to widget-level Theme(data:...) calls.
+  static ThemeData get theme => AppTheme.data;
 }
 
-// ─── APP CONFIG MODEL ─────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// AppConfig and LocationHierarchy are domain models that ended up in this file
+// for historical reasons. They stay here so no import paths break.
+// ─────────────────────────────────────────────────────────────────────────────
 
 class AppConfig {
   final double transactionFeePercent;
@@ -78,7 +63,7 @@ class AppConfig {
 
   factory AppConfig.fromJson(Map<String, dynamic> json) => AppConfig(
     transactionFeePercent:
-    (json['transactionFeePercent'] as num).toDouble(),
+        (json['transactionFeePercent'] as num).toDouble(),
     autoReleaseHours: json['autoReleaseHours'] ?? 24,
     appealWindowHours: json['appealWindowHours'] ?? 48,
     chatCloseHours: json['chatCloseHours'] ?? 72,
@@ -91,8 +76,6 @@ class AppConfig {
     chatCloseHours: 72,
   );
 }
-
-// ─── LOCATION HIERARCHY ───────────────────────────────────────────────────────
 
 class LocationHierarchy {
   final List<String> states;

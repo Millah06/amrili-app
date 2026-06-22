@@ -6,7 +6,7 @@ import '../../../constraints/vendor_theme.dart';
 import '../services/social_api_service.dart';
 import '../models/post_model.dart';
 import '../providers/feed_provider.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:everywhere/shared/widgets/net_image.dart';
 
 class RepostDialog extends StatefulWidget {
   final Post post;
@@ -105,22 +105,21 @@ class _RepostDialogState extends State<RepostDialog> {
                   children: [
                     Row(
                       children: [
-                        CircleAvatar(
+                        NetImage.circle(
+                          url: widget.post.userAvatar ?? '',
                           radius: 20,
-                          backgroundColor: Colors.grey[700],
-                          backgroundImage: widget.post.userAvatar != null
-                              ? CachedNetworkImageProvider(widget.post.userAvatar!)
-                              : null,
-                          child: widget.post.userAvatar == null
-                              ? Text(
-                            widget.post.userName[0].toUpperCase(),
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                          fallback: CircleAvatar(
+                            radius: 20,
+                            backgroundColor: Colors.grey[700],
+                            child: Text(
+                              widget.post.userName[0].toUpperCase(),
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
                             ),
-                          )
-                              : null,
+                          ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
@@ -159,25 +158,15 @@ class _RepostDialogState extends State<RepostDialog> {
                     ),
                     if (widget.post.images.isNotEmpty) ...[
                       const SizedBox(height: 12),
-                      ClipRRect(
+                      NetImage(
+                        url: widget.post.images.first,
+                        fit: BoxFit.cover,
+                        width: double.infinity,
+                        height: 200,
                         borderRadius: BorderRadius.circular(12),
-                        child: CachedNetworkImage(
-                          imageUrl: widget.post.images.first,
-                          fit: BoxFit.cover,
-                          width: double.infinity,
-                          height: 200,
-                          placeholder: (context, url) => Container(
-                            color: const Color(0xFF1E293B),
-                            child: const Center(
-                              child: CircularProgressIndicator(
-                                color: Color(0xFF177E85),
-                              ),
-                            ),
-                          ),
-                          errorWidget: (context, url, error) => Container(
-                            color: const Color(0xFF1E293B),
-                            child: const Icon(Icons.error, color: Colors.grey),
-                          ),
+                        errorChild: Container(
+                          color: const Color(0xFF1E293B),
+                          child: const Icon(Icons.error, color: Colors.grey),
                         ),
                       ),
                     ],

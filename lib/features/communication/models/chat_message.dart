@@ -6,10 +6,15 @@ class ChatMessage {
   final String id;
   final String? text;
   final String senderId;
-  final String type; // 'text' | 'moneyTransfer' | ...
+  final String type; // 'text' | 'moneyTransfer' | 'gift' | ...
   final String status; // 'sending' | 'sent' | 'delivered' | 'read'
   final String? amount;
   final DateTime createdAt;
+
+  // Gift messages (type == 'gift')
+  final String? giftEmoji;
+  final String? giftName;
+  final int? coins;
 
   const ChatMessage({
     required this.id,
@@ -19,6 +24,9 @@ class ChatMessage {
     required this.status,
     required this.createdAt,
     this.amount,
+    this.giftEmoji,
+    this.giftName,
+    this.coins,
   });
 
   factory ChatMessage.fromDoc(DocumentSnapshot doc) {
@@ -31,6 +39,9 @@ class ChatMessage {
       type: data['type'] ?? 'text',
       status: data['status'] ?? 'sent',
       amount: data['amount']?.toString(),
+      giftEmoji: data['giftEmoji'],
+      giftName: data['giftName'],
+      coins: (data['coins'] as num?)?.toInt(),
       createdAt: ts?.toDate() ?? DateTime.now(),
     );
   }
@@ -42,6 +53,9 @@ class ChatMessage {
         'type': type,
         'status': status,
         'amount': amount,
+        'giftEmoji': giftEmoji,
+        'giftName': giftName,
+        'coins': coins,
         'createdAt': createdAt.millisecondsSinceEpoch,
       };
 
@@ -52,6 +66,9 @@ class ChatMessage {
         type: map['type'] ?? 'text',
         status: map['status'] ?? 'sent',
         amount: map['amount']?.toString(),
+        giftEmoji: map['giftEmoji'],
+        giftName: map['giftName'],
+        coins: (map['coins'] as num?)?.toInt(),
         createdAt: DateTime.fromMillisecondsSinceEpoch(
             map['createdAt'] ?? 0),
       );

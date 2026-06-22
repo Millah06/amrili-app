@@ -55,7 +55,7 @@ class _CheckoutPageState extends State<CheckoutPage> {
           print('❤️🔥${session.isDineIn}');
           print('❤️🔥${session.storeId == cart.vendorId}');
           final dineIn = session.isDineIn && session.storeId == cart.vendorId;
-          return ListView(
+          return Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 640), child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 120),
             children: [
               dineIn
@@ -94,7 +94,9 @@ class _CheckoutPageState extends State<CheckoutPage> {
                 ),
               ],
             ],
-          );
+          ),
+          ),
+        );
         },
       ),
       bottomNavigationBar: Consumer2<CheckoutProvider, CartProvider>(

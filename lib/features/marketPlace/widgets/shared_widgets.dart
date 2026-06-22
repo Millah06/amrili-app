@@ -1,5 +1,5 @@
+import 'package:everywhere/shared/widgets/net_image.dart';
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import '../../../constraints/vendor_theme.dart';
 
 // ─── VNetworkImage ────────────────────────────────────────────────────────────
@@ -24,13 +24,12 @@ class VNetworkImage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (url.isEmpty) return fallback ?? _placeholder();
-    return CachedNetworkImage(
-      imageUrl: url,
+    return NetImage(
+      url: url,
       width: width,
       height: height,
       fit: fit,
-      placeholder: (_, __) => _placeholder(),
-      errorWidget: (_, __, ___) => fallback ?? _placeholder(),
+      errorChild: fallback ?? _placeholder(),
     );
   }
 

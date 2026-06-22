@@ -11,20 +11,19 @@
 //      or caption behaviour was changed.
 // =============================================================================
 
-import 'package:carousel_slider/carousel_slider.dart';
 import 'package:everywhere/core/auth/guest_helper.dart';
 import 'package:everywhere/features/social/widgets/repost_dialog.dart';
 import 'package:everywhere/providers/user_provider.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
-
 import 'package:flutter/material.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:everywhere/shared/widgets/net_image.dart';
 import 'package:provider/provider.dart';
 import 'package:timeago/timeago.dart' as timeago;
 import '../../../components/formatters.dart';
 import '../../../constraints/constants.dart';
 import '../../../constraints/vendor_theme.dart';
-import '../../../providers/profile_provider.dart';
+import '../../profile/providers/my_profile_provider.dart';
 import '../../profile/models/profile_initial_data.dart';
 import '../../profile/providers/user_profile_provider.dart';
 import '../services/social_api_service.dart';
@@ -92,7 +91,10 @@ class _PostCardState extends State<PostCard> {
   }
 
   void _loadAspectRatio(int index, String url) {
-    final provider = CachedNetworkImageProvider(url);
+    // On web, NetworkImage.resolve() fires XHR which fails against R2's CORS/TLS.
+    // NetImage already renders <img> elements there — fall back to _maxImageHeight.
+    if (kIsWeb) return;
+    final provider = NetworkImage(url);
     final stream = provider.resolve(ImageConfiguration.empty);
     late ImageStreamListener listener;
     listener = ImageStreamListener((info, _) {
@@ -132,10 +134,10 @@ class _PostCardState extends State<PostCard> {
 
     try {
       context
-          .read<ProfileProvider>()
-          .updatePostInLists(_currentPost.postId, updatedPost);
+          .read<MyProfileProvider>()
+          .updatePost(_currentPost.postId, updatedPost);
     } catch (e) {
-      // ProfileProvider might not be available
+      // MyProfileProvider might not be available (guest view)
     }
 
     widget.onPostUpdated?.call();
@@ -167,14 +169,14 @@ class _PostCardState extends State<PostCard> {
         borderRadius: BorderRadius.circular(12),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: Colors.black.withValues(alpha: 0.2),
             blurRadius: 6,
             offset: const Offset(0, 2),
           ),
         ],
         border: _currentPost.isBoostActive
             ? Border.all(color: VendorTheme.warning, width: 1.5)
-            : Border.all(color: VendorTheme.surfaceVariant.withOpacity(0.4)),
+            : Border.all(color: VendorTheme.surfaceVariant.withValues(alpha: 0.4)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -218,14 +220,10 @@ class _PostCardState extends State<PostCard> {
                       border: Border.all(
                           color: VendorTheme.surfaceVariant, width: 1.5),
                     ),
-                    child: CircleAvatar(
+                    child: NetImage.circle(
+                      url: _currentPost.userAvatar,
                       radius: 20,
-                      backgroundColor: VendorTheme.surfaceVariant,
-                      backgroundImage: _currentPost.userAvatar != null
-                          ? CachedNetworkImageProvider(_currentPost.userAvatar!)
-                          : null,
-                      child: _currentPost.userAvatar == null
-                          ? Text(
+                      fallback: Text(
                         _currentPost.userName.isNotEmpty
                             ? _currentPost.userName[0].toUpperCase()
                             : '?',
@@ -233,8 +231,7 @@ class _PostCardState extends State<PostCard> {
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
                         ),
-                      )
-                          : null,
+                      ),
                     ),
                   ),
                 ),
@@ -502,7 +499,7 @@ class _PostCardState extends State<PostCard> {
                           horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
                         color: VendorTheme.circularProgressColor
-                            .withOpacity(0.12), // teal 0xFF177E85
+                            .withValues(alpha: 0.12), // teal 0xFF177E85
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Row(
@@ -658,6 +655,7 @@ class _PostCardState extends State<PostCard> {
       isScrollControlled: true,
       showDragHandle: false,
       backgroundColor: Colors.transparent,
+      constraints: const BoxConstraints(maxWidth: 560),
       builder: (context) => GiftBottomSheet(post: _currentPost),
     );
   }
@@ -668,6 +666,7 @@ class _PostCardState extends State<PostCard> {
       isScrollControlled: true,
       showDragHandle: false,
       backgroundColor: Colors.transparent,
+      constraints: const BoxConstraints(maxWidth: 640),
       builder: (context) => CommentSheet(post: _currentPost),
     );
   }
@@ -718,21 +717,13 @@ class _PostCardState extends State<PostCard> {
                       ? EdgeInsets.only(
                       right: index != _currentPost.images.length - 1 ? 8 : 0)
                       : EdgeInsets.zero,
-                  child: ClipRRect(
+                  child: NetImage(
+                    url: _currentPost.images[index],
+                    fit: BoxFit.cover,
+                    width: double.infinity,
+                    height: double.infinity,
                     borderRadius: BorderRadius.circular(12),
-                    child: CachedNetworkImage(
-                      imageUrl: _currentPost.images[index],
-                      fit: BoxFit.cover,
-                      width: double.infinity,
-                      height: double.infinity,
-                      placeholder: (_, __) =>
-                          Container(color: VendorTheme.background),
-                      errorWidget: (_, __, ___) => Container(
-                        color: VendorTheme.background,
-                        child: const Icon(Icons.broken_image,
-                            size: 48, color: VendorTheme.surfaceVariant),
-                      ),
-                    ),
+                    backgroundColor: VendorTheme.background,
                   ),
                 ),
               ),
@@ -754,7 +745,7 @@ class _PostCardState extends State<PostCard> {
                       decoration: BoxDecoration(
                         color: isActive
                             ? VendorTheme.primary
-                            : Colors.white.withOpacity(0.35),
+                            : Colors.white.withValues(alpha: 0.35),
                         borderRadius: BorderRadius.circular(3),
                       ),
                     );
@@ -769,7 +760,7 @@ class _PostCardState extends State<PostCard> {
                   padding:
                   const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.45),
+                    color: Colors.black.withValues(alpha: 0.45),
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Text(
@@ -834,14 +825,10 @@ class _FullScreenGalleryState extends State<_FullScreenGallery> {
                 minScale: 1.0,
                 maxScale: 4.0,
                 child: Center(
-                  child: CachedNetworkImage(
-                    imageUrl: widget.images[index],
+                  child: NetImage(
+                    url: widget.images[index],
                     fit: BoxFit.contain,
-                    placeholder: (_, __) => const Center(
-                      child: CircularProgressIndicator(
-                          color: Colors.white, strokeWidth: 2),
-                    ),
-                    errorWidget: (_, __, ___) => const Center(
+                    errorChild: const Center(
                       child: Icon(Icons.broken_image,
                           color: Colors.white54, size: 60),
                     ),
@@ -858,7 +845,7 @@ class _FullScreenGalleryState extends State<_FullScreenGallery> {
               child: Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.5),
+                  color: Colors.black.withValues(alpha: 0.5),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(Icons.close, color: Colors.white, size: 20),
@@ -873,7 +860,7 @@ class _FullScreenGalleryState extends State<_FullScreenGallery> {
                 padding:
                 const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(0.5),
+                  color: Colors.black.withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
@@ -903,7 +890,7 @@ class _FullScreenGalleryState extends State<_FullScreenGallery> {
                     decoration: BoxDecoration(
                       color: isActive
                           ? Colors.white
-                          : Colors.white.withOpacity(0.4),
+                          : Colors.white.withValues(alpha: 0.4),
                       borderRadius: BorderRadius.circular(3),
                     ),
                   );

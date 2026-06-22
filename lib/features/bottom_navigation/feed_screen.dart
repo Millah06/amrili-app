@@ -7,27 +7,23 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../components/formatters.dart';
 import '../../constraints/constants.dart';
+import '../social/models/spotlight_models.dart';
 import '../social/providers/feed_provider.dart';
-import '../../providers/profile_provider.dart';
 import '../social/providers/reward_provider.dart';
 import '../../services/brain.dart';
+import '../../shared/widgets/net_image.dart';
 import '../../shared/widgets/pull_to_reveal.dart';
-import '../auth/security_step1_screen.dart';
-import '../auth/security_step2_screen.dart';
 import '../search/screens/search_screen.dart';
 import '../social/screens/create_survey_screen.dart';
-import '../social/widgets/compact_leaderboard.dart';
 import '../social/widgets/composer_sheet.dart';
 import '../social/widgets/loader_widget.dart';
 import '../social/widgets/post_card.dart';
-import '../social/widgets/search_widget.dart';
 import '../social/screens/create_post_screen.dart';
 import 'package:pull_to_reveal_flutter/pull_to_reveal_flutter.dart';
-
+import '../../core/keyboard_scrollable.dart';
 import '../social/widgets/spotlight_entry_card.dart';
 
 class FeedScreen extends StatefulWidget {
-
   final Function(bool isScrollingDown)? onScrollDirectionChanged;
 
   const FeedScreen({super.key, required this.onScrollDirectionChanged});
@@ -37,7 +33,6 @@ class FeedScreen extends StatefulWidget {
 }
 
 class _FeedScreenState extends State<FeedScreen> with AutomaticKeepAliveClientMixin {
-
   @override
   bool get wantKeepAlive => true;
 
@@ -64,7 +59,7 @@ class _FeedScreenState extends State<FeedScreen> with AutomaticKeepAliveClientMi
           context: context,
           barrierDismissible: !mandatory,
           builder: (context) => AlertDialog(
-            icon: Icon(Icons.upcoming_outlined, color: kErrorIconColor, size: 30,),
+            icon: Icon(Icons.upcoming_outlined, color: kErrorIconColor, size: 30),
             actionsPadding: EdgeInsets.symmetric(vertical: 10, horizontal: 15),
             title: Center(
               child: Column(
@@ -75,27 +70,25 @@ class _FeedScreenState extends State<FeedScreen> with AutomaticKeepAliveClientMi
                     crossAxisAlignment: CrossAxisAlignment.baseline,
                     textBaseline: TextBaseline.alphabetic,
                     children: [
-                      Text('NEW VERSION',  style: kAlertTitle.copyWith(fontSize: 16, fontWeight: FontWeight.w900)),
-                      SizedBox(width: 5,),
-                      Text('(${pov.versionName})', style: kAlertTitle.copyWith(color: Colors.white70, fontSize: 13),)
+                      Text('NEW VERSION', style: kAlertTitle.copyWith(fontSize: 16, fontWeight: FontWeight.w900)),
+                      SizedBox(width: 5),
+                      Text('(${pov.versionName})', style: kAlertTitle.copyWith(color: Colors.white70, fontSize: 13)),
                     ],
                   ),
-                  SizedBox(height: 10,),
-                  Text('An Update ${mandatory ? 'Required' : 'Recommended'}', style: kAlertTitle,),
+                  SizedBox(height: 10),
+                  Text('An Update ${mandatory ? 'Required' : 'Recommended'}', style: kAlertTitle),
                 ],
               ),
             ),
             backgroundColor: kCardColor,
             alignment: Alignment.center,
-            shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             content: Padding(
               padding: const EdgeInsets.all(16),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text('What\'s new?',
-                      style: kAlertContent.copyWith(fontWeight: FontWeight.w900)),
+                  Text('What\'s new?', style: kAlertContent.copyWith(fontWeight: FontWeight.w900)),
                   SizedBox(height: 10),
                   if (newFeatures.isNotEmpty)
                     ...List.generate(newFeatures.length, (index) {
@@ -103,7 +96,7 @@ class _FeedScreenState extends State<FeedScreen> with AutomaticKeepAliveClientMi
                         child: Padding(
                           padding: EdgeInsets.all(8.0),
                           child: Text('${index + 1}. ${newFeatures[index]}',
-                            style: GoogleFonts.raleway(fontSize: 12,  ), textAlign: TextAlign.center,),
+                              style: GoogleFonts.raleway(fontSize: 12), textAlign: TextAlign.center),
                         ),
                       );
                     }),
@@ -111,74 +104,54 @@ class _FeedScreenState extends State<FeedScreen> with AutomaticKeepAliveClientMi
               ),
             ),
             actions: [
-              mandatory ? Center(
-                child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      elevation: 4,
-                      padding: EdgeInsets.symmetric(
-                          vertical: 10, horizontal: 30),
-                      side: BorderSide(
-                          color: kButtonColor
-                      ),
-                      shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12)
-                      ),
-                    ),
-                    onPressed: ()  async {
-                      AppLinkHandler.openInPlayStore();
-                    },
-                    child: Text('Update on play store', style: GoogleFonts.raleway(color: Colors.white, fontSize: 13),)
-                ),
-              ) :
-              Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: kButtonColor,
-                          elevation: 4,
-                          padding: EdgeInsets.symmetric(vertical:
-                          10, horizontal: 30),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)
-                          ),
-                        ),
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
-                        child: Text('Not now', style: GoogleFonts.raleway(color: Colors.black, fontSize: 11),)
-                    ),
-                    SizedBox(height: 10,),
-                    ElevatedButton(
+              mandatory
+                  ? Center(
+                      child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.transparent,
                           elevation: 4,
-                          padding: EdgeInsets.symmetric(
-                              vertical: 10, horizontal: 30),
-                          side: BorderSide(
-                              color: kButtonColor
-                          ),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)
-                          ),
+                          padding: EdgeInsets.symmetric(vertical: 10, horizontal: 30),
+                          side: BorderSide(color: kButtonColor),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                         ),
-                        onPressed: ()  async {
-                          AppLinkHandler.openInPlayStore();
-                        },
-                        child: Text('Update on Play Store',
-                          style: GoogleFonts.raleway(color: Colors.white, fontSize: 13),)
+                        onPressed: () async => AppLinkHandler.openInPlayStore(),
+                        child: Text('Update on play store', style: GoogleFonts.raleway(color: Colors.white, fontSize: 13)),
+                      ),
+                    )
+                  : Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: kButtonColor,
+                              elevation: 4,
+                              padding: EdgeInsets.symmetric(vertical: 10, horizontal: 30),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            onPressed: () => Navigator.pop(context),
+                            child: Text('Not now', style: GoogleFonts.raleway(color: Colors.black, fontSize: 11)),
+                          ),
+                          SizedBox(height: 10),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.transparent,
+                              elevation: 4,
+                              padding: EdgeInsets.symmetric(vertical: 10, horizontal: 30),
+                              side: BorderSide(color: kButtonColor),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            ),
+                            onPressed: () async => AppLinkHandler.openInPlayStore(),
+                            child: Text('Update on Play Store', style: GoogleFonts.raleway(color: Colors.white, fontSize: 13)),
+                          ),
+                        ],
+                      ),
                     ),
-                  ],
-                ),
-              )
             ],
           ),
         );
       });
-
     }
   }
 
@@ -191,38 +164,29 @@ class _FeedScreenState extends State<FeedScreen> with AutomaticKeepAliveClientMi
   }
 
   void _onScroll() {
-
     final offset = _scrollController.offset;
 
-    // ===== SCROLL DIRECTION (with threshold) =====
     if (offset > _lastOffset + 10) {
-      // scrolling DOWN
       if (_showToggle) {
         setState(() => _showToggle = false);
-        widget.onScrollDirectionChanged?.call(true); // 🔥 notify parent
+        widget.onScrollDirectionChanged?.call(true);
       }
     } else if (offset < _lastOffset - 10) {
-      // scrolling UP
       if (!_showToggle) {
         setState(() => _showToggle = true);
-        widget.onScrollDirectionChanged?.call(false); // 🔥 notify parent
+        widget.onScrollDirectionChanged?.call(false);
       }
     }
 
     _lastOffset = offset;
 
-    // ===== PAGINATION =====
-    final maxScroll = _scrollController.position.maxScrollExtent;
-
-    if (_scrollController.position.pixels >=
-        _scrollController.position.maxScrollExtent - 200) {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
       context.read<FeedProvider>().loadFeed();
     }
-
   }
 
   bool canPop = false;
-  DateTime ? _lastBackTap;
+  DateTime? _lastBackTap;
 
   @override
   void dispose() {
@@ -230,30 +194,151 @@ class _FeedScreenState extends State<FeedScreen> with AutomaticKeepAliveClientMi
     super.dispose();
   }
 
+  Widget _buildFeedColumn({required bool showSpotlight}) {
+    return Column(
+      children: [
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 250),
+          child: _showToggle ? _FeedTypeToggle() : const SizedBox(),
+        ),
+        Expanded(
+          child: KeyboardScrollable(
+            controller: _scrollController,
+            child: RefreshIndicator(
+              onRefresh: () async {
+                await context.read<FeedProvider>().forceRefresh();
+                await context.read<RewardProvider>().loadLeaderboard();
+              },
+              color: const Color(0xFF177E85),
+              backgroundColor: const Color(0xFF1E293B),
+              child: CustomScrollView(
+                controller: _scrollController,
+                slivers: [
+                  if (showSpotlight) ...[
+                    const SliverToBoxAdapter(child: SpotlightEntryCard()),
+                    const SliverToBoxAdapter(child: SizedBox(height: 4)),
+                  ],
+                  Consumer<FeedProvider>(
+                    builder: (context, feedProvider, _) {
+                      if (feedProvider.isLoading && feedProvider.posts.isEmpty) {
+                        return const SliverToBoxAdapter(child: PostFeedShimmer(itemCount: 4));
+                      }
+                      if (feedProvider.error != null && feedProvider.posts.isEmpty) {
+                        return SliverFillRemaining(
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.error_outline, size: 64, color: Colors.grey),
+                                const SizedBox(height: 16),
+                                Text('Failed to load feed', style: TextStyle(color: Colors.grey[400])),
+                                const SizedBox(height: 8),
+                                ElevatedButton(
+                                  onPressed: () => feedProvider.loadFeed(refresh: true),
+                                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF177E85)),
+                                  child: const Text('Retry'),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
+                      if (feedProvider.posts.isEmpty) {
+                        return SliverFillRemaining(
+                          child: Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(Icons.feed_outlined, size: 64, color: Colors.grey[600]),
+                                const SizedBox(height: 16),
+                                Text(
+                                  feedProvider.currentFeedType == FeedType.following
+                                      ? 'Follow users to see their posts'
+                                      : 'No posts yet',
+                                  style: TextStyle(fontSize: 18, color: Colors.grey[400], fontWeight: FontWeight.w500),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  feedProvider.currentFeedType == FeedType.following
+                                      ? 'Discover creators in For You'
+                                      : 'Be the first to share something!',
+                                  style: TextStyle(color: Colors.grey[500]),
+                                ),
+                              ],
+                            ),
+                          ),
+                        );
+                      }
+                      return SliverList(
+                        delegate: SliverChildBuilderDelegate(
+                          (context, index) {
+                            if (index < feedProvider.posts.length) {
+                              return _FadeSlideItem(child: PostCard(post: feedProvider.posts[index]));
+                            } else if (feedProvider.hasMore) {
+                              return const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 28),
+                                child: Center(
+                                  child: SizedBox(
+                                    width: 26,
+                                    height: 26,
+                                    child: CircularProgressIndicator(strokeWidth: 2.5, color: Color(0xFF177E85)),
+                                  ),
+                                ),
+                              );
+                            } else {
+                              return Padding(
+                                padding: const EdgeInsets.fromLTRB(16, 20, 16, 36),
+                                child: Center(
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        width: 5,
+                                        height: 5,
+                                        decoration: const BoxDecoration(color: Color(0xFF64748B), shape: BoxShape.circle),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        "You're all caught up",
+                                        style: TextStyle(color: Colors.grey[500], fontSize: 13),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            }
+                          },
+                          childCount: feedProvider.posts.length + 1,
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     super.build(context);
-    final profile =  Provider.of<ProfileProvider>(context);
     return PopScope(
       canPop: false,
       onPopInvokedWithResult: (bool didPop, Object? result) async {
         final now = DateTime.now();
-        if (_lastBackTap == null || now.difference(_lastBackTap!) > Duration(seconds: 2)) {
-
+        if (_lastBackTap == null || now.difference(_lastBackTap!) > const Duration(seconds: 2)) {
           _lastBackTap = now;
-
           Fluttertoast.showToast(
             msg: 'Tap again to exit',
             toastLength: Toast.LENGTH_SHORT,
             gravity: ToastGravity.BOTTOM,
           );
-
-
-        }
-        else {
+        } else {
           SystemNavigator.pop();
         }
-
       },
       child: PullRevealOverlayWrapper(
         controller: PullToRevealController(),
@@ -262,39 +347,29 @@ class _FeedScreenState extends State<FeedScreen> with AutomaticKeepAliveClientMi
           appBar: AppBar(
             elevation: 0,
             backgroundColor: const Color(0xFF1E293B),
-            title:    Text(
-              'Feed',
-              style: kTopAppbars.copyWith(
-                  fontFamily:  'DejaVu Sans', fontSize: 23),
-            ),
+            title: Text('Feed', style: kTopAppbars.copyWith(fontFamily: 'DejaVu Sans', fontSize: 23)),
             actions: [
-              IconButton(onPressed: ( ) {
-                Navigator.push(context, MaterialPageRoute(builder: (_) => SearchScreen()));
-              }, icon: Icon(Icons.search)),
+              IconButton(
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => SearchScreen())),
+                icon: const Icon(Icons.search),
+              ),
               IconButton(
                 icon: const FaIcon(FontAwesomeIcons.plusCircle, color: Colors.white),
                 onPressed: () async {
-                  // PHASE 11: open the Post/Survey chooser first.
                   final choice = await ComposerSheet.show(context);
                   if (choice == null || !context.mounted) return;
-
                   bool? result;
                   if (choice == 'post') {
                     result = await Navigator.push<bool>(
                       context,
-                      MaterialPageRoute(
-                        builder: (_) => const CreatePostScreen(),
-                      ),
+                      MaterialPageRoute(builder: (_) => const CreatePostScreen()),
                     );
                   } else if (choice == 'survey') {
                     result = await Navigator.push<bool>(
                       context,
-                      MaterialPageRoute(
-                        builder: (_) => const CreateSurveyScreen(),
-                      ),
+                      MaterialPageRoute(builder: (_) => const CreateSurveyScreen()),
                     );
                   }
-
                   if (result == true && context.mounted) {
                     context.read<FeedProvider>().loadFeed(refresh: true);
                   }
@@ -302,168 +377,32 @@ class _FeedScreenState extends State<FeedScreen> with AutomaticKeepAliveClientMi
               ),
             ],
           ),
-          body: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 640),
-              child: Column(
+          body: LayoutBuilder(builder: (context, bc) {
+            final wide = bc.maxWidth >= 1100;
+            final feedCol = _buildFeedColumn(showSpotlight: !wide);
+            if (wide) {
+              return Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // Feed Type Toggle
-                  AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 250),
-                    child: _showToggle ? _FeedTypeToggle() : const SizedBox(),
-                  ),
-
-                  // Feed Content
                   Expanded(
-                    child: RefreshIndicator(
-                      onRefresh: () async {
-                        await context.read<FeedProvider>().forceRefresh();
-                        await context.read<RewardProvider>().loadLeaderboard();
-                      },
-                      color: const Color(0xFF177E85),
-                      backgroundColor: const Color(0xFF1E293B),
-                      child: CustomScrollView(
-                        controller: _scrollController,
-                        slivers: [
-                          // Compact Leaderboard
-                          const SliverToBoxAdapter(child: SpotlightEntryCard()),
-                          const SliverToBoxAdapter(child: SizedBox(height: 4)),
-                          // Posts List
-                          Consumer<FeedProvider>(
-                            builder: (context, feedProvider, _) {
-                              if (feedProvider.isLoading && feedProvider.posts.isEmpty) {
-                                return const SliverToBoxAdapter(
-                                    child: PostFeedShimmer(itemCount: 4),
-                                  );
-                              }
-                              if (feedProvider.error != null && feedProvider.posts.isEmpty) {
-                                return SliverFillRemaining(
-                                  child: Center(
-                                    child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        const Icon(
-                                          Icons.error_outline,
-                                          size: 64,
-                                          color: Colors.grey,
-                                        ),
-                                        const SizedBox(height: 16),
-                                        Text(
-                                          'Failed to load feed',
-                                          style: TextStyle(color: Colors.grey[400]),
-                                        ),
-                                        const SizedBox(height: 8),
-                                        ElevatedButton(
-                                          onPressed: () => feedProvider.loadFeed(refresh: true),
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: const Color(0xFF177E85),
-                                          ),
-                                          child: const Text('Retry'),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              }
-
-                              if (feedProvider.posts.isEmpty) {
-                                return SliverFillRemaining(
-                                  child: Center(
-                                    child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Icon(
-                                          Icons.feed_outlined,
-                                          size: 64,
-                                          color: Colors.grey[600],
-                                        ),
-                                        const SizedBox(height: 16),
-                                        Text(
-                                          feedProvider.currentFeedType == FeedType.following
-                                              ? 'Follow users to see their posts'
-                                              : 'No posts yet',
-                                          style: TextStyle(
-                                            fontSize: 18,
-                                            color: Colors.grey[400],
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 8),
-                                        Text(
-                                          feedProvider.currentFeedType == FeedType.following
-                                              ? 'Discover creators in For You'
-                                              : 'Be the first to share something!',
-                                          style: TextStyle(color: Colors.grey[500]),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                );
-                              }
-
-                              return SliverList(
-                                delegate: SliverChildBuilderDelegate(
-                                      (context, index) {
-                                    if (index < feedProvider.posts.length) {
-                                      return PostCard(post: feedProvider.posts[index]);
-                                    } else if (feedProvider.hasMore) {
-                                      return const Padding(
-                                        padding: EdgeInsets.symmetric(vertical: 28),
-                                        child: Center(
-                                          child: SizedBox(
-                                            width: 26,
-                                            height: 26,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2.5,
-                                              color: Color(0xFF177E85),
-                                            ),
-                                          ),
-                                        ),
-                                      );
-                                    } else {
-                                      return Padding(
-                                        padding: const EdgeInsets.fromLTRB(16, 20, 16, 36),
-                                        child: Center(
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Container(
-                                                width: 5,
-                                                height: 5,
-                                                decoration: const BoxDecoration(
-                                                  color: Color(0xFF64748B),
-                                                  shape: BoxShape.circle,
-                                                ),
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Text(
-                                                "You're all caught up",
-                                                style: TextStyle(
-                                                  color: Colors.grey[500],
-                                                  fontSize: 13,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      );
-                                    }
-                                  },
-                                  // posts + exactly one footer cell (loader or
-                                  // "all caught up").
-                                  childCount: feedProvider.posts.length + 1,
-                                ),
-                              );
-                            },
-                          ),
-                        ],
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 640),
+                        child: feedCol,
                       ),
                     ),
                   ),
+                  _FeedSidebar(),
                 ],
+              );
+            }
+            return Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 640),
+                child: feedCol,
               ),
-            ),
-          ),
+            );
+          }),
         ),
       ),
     );
@@ -494,8 +433,11 @@ class _FeedTypeToggle extends StatelessWidget {
                 child: _ToggleButton(
                   label: 'Following',
                   isSelected: feedProvider.currentFeedType == FeedType.following,
-                  onTap: () => GuestHelper.guardAction(context, action: () => feedProvider.switchFeedType(FeedType.following),
-                      reason: 'see post\'s of following users'),
+                  onTap: () => GuestHelper.guardAction(
+                    context,
+                    action: () => feedProvider.switchFeedType(FeedType.following),
+                    reason: 'see post\'s of following users',
+                  ),
                 ),
               ),
             ],
@@ -511,11 +453,7 @@ class _ToggleButton extends StatelessWidget {
   final bool isSelected;
   final VoidCallback onTap;
 
-  const _ToggleButton({
-    required this.label,
-    required this.isSelected,
-    required this.onTap,
-  });
+  const _ToggleButton({required this.label, required this.isSelected, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -536,6 +474,156 @@ class _ToggleButton extends StatelessWidget {
             fontSize: 16,
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _FadeSlideItem extends StatelessWidget {
+  final Widget child;
+
+  const _FadeSlideItem({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return TweenAnimationBuilder<double>(
+      tween: Tween(begin: 0.0, end: 1.0),
+      duration: const Duration(milliseconds: 340),
+      curve: Curves.easeOutCubic,
+      builder: (_, value, ch) => Opacity(
+        opacity: value.clamp(0.0, 1.0),
+        child: Transform.translate(offset: Offset(0, 18 * (1 - value)), child: ch),
+      ),
+      child: child,
+    );
+  }
+}
+
+// ── Feed sidebar (desktop ≥1100px) ────────────────────────────────────────────
+// Shows SpotlightEntryCard + top creators list. Loads creators on first mount.
+
+class _FeedSidebar extends StatefulWidget {
+  const _FeedSidebar();
+
+  @override
+  State<_FeedSidebar> createState() => _FeedSidebarState();
+}
+
+class _FeedSidebarState extends State<_FeedSidebar> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) context.read<RewardProvider>().loadSpotlightCreators();
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 280,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 8, 16, 0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SpotlightEntryCard(),
+            const SizedBox(height: 16),
+            Text(
+              'Top creators',
+              style: GoogleFonts.inter(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 8),
+            Expanded(
+              child: Consumer<RewardProvider>(
+                builder: (_, r, __) {
+                  if (r.topCreators.isEmpty) {
+                    return const Center(
+                      child: SizedBox(
+                        width: 20,
+                        height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF21D3ED)),
+                      ),
+                    );
+                  }
+                  final creators = r.topCreators.take(8).toList();
+                  return ListView.builder(
+                    padding: EdgeInsets.zero,
+                    itemCount: creators.length,
+                    itemBuilder: (_, i) => _SidebarCreatorRow(entry: creators[i], rank: i + 1),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SidebarCreatorRow extends StatelessWidget {
+  final SpotlightEntry entry;
+  final int rank;
+
+  const _SidebarCreatorRow({required this.entry, required this.rank});
+
+  Color _tierColor(SpotlightTier tier) => switch (tier) {
+        SpotlightTier.diamond => const Color(0xFF67E8F9),
+        SpotlightTier.gold => const Color(0xFFFBBF24),
+        SpotlightTier.silver => const Color(0xFF94A3B8),
+        SpotlightTier.bronze => const Color(0xFFB45309),
+        SpotlightTier.rising => const Color(0xFF64748B),
+      };
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 20,
+            child: Text(
+              '#$rank',
+              style: GoogleFonts.inter(color: Colors.white38, fontSize: 11, fontWeight: FontWeight.w700),
+            ),
+          ),
+          const SizedBox(width: 6),
+          NetImage.circle(
+            url: entry.userAvatar ?? '',
+            radius: 14,
+            fallback: CircleAvatar(
+              radius: 14,
+              backgroundColor: const Color(0xFF334155),
+              child: Text(
+                entry.userName.isNotEmpty ? entry.userName[0].toUpperCase() : '?',
+                style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  entry.userName,
+                  style: GoogleFonts.inter(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w600),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(
+                  entry.tier.label,
+                  style: GoogleFonts.inter(color: _tierColor(entry.tier), fontSize: 10, fontWeight: FontWeight.w500),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            '${entry.weeklyCoins}\u{1FA99}',
+            style: GoogleFonts.inter(color: Colors.white54, fontSize: 11),
+          ),
+        ],
       ),
     );
   }

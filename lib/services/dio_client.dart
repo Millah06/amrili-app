@@ -13,10 +13,10 @@ class DioClient {
 
   Future<String> get _headers async {
     final token = await FirebaseAuth.instance.currentUser?.getIdToken();
-     return token!;
+    return token ?? '';
   }
 
-  static const String baseUrl = 'https://everywhere-data-app.onrender.com';
+  static const String baseUrl = 'https://api.amril.app';
 
   Dio _buildDio() {
     final dio = Dio(

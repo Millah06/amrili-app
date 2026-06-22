@@ -17,7 +17,7 @@
 //   • Full state coverage: skeleton while loading, friendly empty state with a
 //     single clear CTA, inline error with retry. No dead ends.
 //
-import 'package:everywhere/components/swicht.dart';
+import 'package:everywhere/components/tiny_switch.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -223,7 +223,7 @@ class _TableManagementPageState extends State<TableManagementPage> {
             style: GoogleFonts.inter(
                 color: Colors.white, fontWeight: FontWeight.w600)),
       ),
-      body: RefreshIndicator(
+      body: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 900), child: RefreshIndicator(
         color: VendorTheme.primary,
         backgroundColor: VendorTheme.surface,
         onRefresh: _load,
@@ -234,6 +234,8 @@ class _TableManagementPageState extends State<TableManagementPage> {
           ],
         ),
       ),
+      ),
+    ),
     );
   }
 

@@ -65,7 +65,7 @@ class _NewDeliveryAddressState extends State<NewDeliveryAddress> {
           child: const Icon(Icons.arrow_back, color: VendorTheme.textPrimary),
         ),
       ),
-      body: ListView(
+      body: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 640), child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           const SizedBox(height: 8),
@@ -131,6 +131,8 @@ class _NewDeliveryAddressState extends State<NewDeliveryAddress> {
           ),
         ],
       ),
+      ),
+    ),
     );
   }
 

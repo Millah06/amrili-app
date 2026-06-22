@@ -8,6 +8,7 @@ import '../providers/chat_provider.dart';
 import '../services/chat_room_service.dart';
 import '../theme/chat_theme.dart';
 import '../widgets/chat_avatar.dart';
+import '../widgets/chat_loading.dart';
 
 /// Group info & management: members list with roles, add/remove (admins only),
 /// and leave. Reads the room doc live so changes reflect immediately.
@@ -31,7 +32,7 @@ class GroupInfoScreen extends StatelessWidget {
         title: const Text('Group info',
             style: TextStyle(color: Colors.white, fontSize: 18)),
       ),
-      body: StreamBuilder<DocumentSnapshot>(
+      body: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 640), child: StreamBuilder<DocumentSnapshot>(
         stream: roomRef.snapshots(),
         builder: (context, snap) {
           if (!snap.hasData) {
@@ -105,10 +106,11 @@ class GroupInfoScreen extends StatelessWidget {
                       ? IconButton(
                           icon: const Icon(Icons.remove_circle_outline,
                               color: Color(0xFFF87171)),
-                          onPressed: () async {
-                            await ChatRoomService()
-                                .removeGroupMember(roomId, id);
-                          },
+                          onPressed: () => runWithChatLoader(
+                            context,
+                            () => ChatRoomService()
+                                .removeGroupMember(roomId, id),
+                          ),
                         )
                       : null,
                 );
@@ -120,7 +122,8 @@ class GroupInfoScreen extends StatelessWidget {
                 title: const Text('Leave group',
                     style: TextStyle(color: Color(0xFFF87171))),
                 onTap: () async {
-                  final ok = await ChatRoomService().leaveGroup(roomId);
+                  final ok = await runWithChatLoader(
+                      context, () => ChatRoomService().leaveGroup(roomId));
                   if (ok && context.mounted) {
                     Navigator.of(context)
                       ..pop() // info screen
@@ -132,6 +135,8 @@ class GroupInfoScreen extends StatelessWidget {
           );
         },
       ),
+      ),
+    ),
     );
   }
 
@@ -204,8 +209,11 @@ class GroupInfoScreen extends StatelessWidget {
                         Navigator.pop(sheetCtx);
                         return;
                       }
-                      await ChatRoomService()
-                          .addGroupMembers(roomId, selected.toList());
+                      await runWithChatLoader(
+                        sheetCtx,
+                        () => ChatRoomService()
+                            .addGroupMembers(roomId, selected.toList()),
+                      );
                       if (sheetCtx.mounted) Navigator.pop(sheetCtx);
                     },
                     child: const Text('Add',

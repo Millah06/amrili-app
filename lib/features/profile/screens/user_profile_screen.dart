@@ -99,7 +99,10 @@ class _UserProfileScreenState extends State<UserProfileScreen>
 
         return Scaffold(
           backgroundColor: const Color(0xFF0F172A),
-          body: NestedScrollView(
+          body: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 900),
+              child: NestedScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             headerSliverBuilder: (ctx, _) => [
               SliverPersistentHeader(
@@ -177,6 +180,8 @@ class _UserProfileScreenState extends State<UserProfileScreen>
               ],
             ),
           ),
+              ),
+            ),
         );
       },
     );

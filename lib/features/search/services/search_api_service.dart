@@ -10,7 +10,7 @@ import '../../social/models/post_model.dart'; // your existing Post model
 // Centralise your base URL (already done in your codebase presumably)
 // ─────────────────────────────────────────────────────────────────────────────
 
-const _kBaseUrl = 'https://everywhere-data-app.onrender.com'; // replace with your constant
+const _kBaseUrl = 'https://api.amril.app';
 
 class SearchApiService {
   final _client = http.Client();

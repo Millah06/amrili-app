@@ -107,7 +107,7 @@ class _SecurityStep2ScreenState extends State<SecurityStep2Screen> {
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A),
       body: SafeArea(
-        child: Form(
+        child: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 480), child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -255,6 +255,8 @@ class _SecurityStep2ScreenState extends State<SecurityStep2Screen> {
             ],
           ),
         ),
+        ),
+      ),
       ),
     );
   }

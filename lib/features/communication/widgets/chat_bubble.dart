@@ -1,5 +1,5 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:everywhere/constraints/constants.dart';
+import 'package:everywhere/shared/widgets/net_image.dart';
 import 'package:flutter/material.dart';
 import '../models/chat_model.dart';
 
@@ -180,18 +180,16 @@ class ChatCard extends StatelessWidget {
               shape: BoxShape.circle,
               color: Color(0xFF1E293B),
             ),
-            child: ClipOval(
-              child: chat.avatarUrl != null
-                  ? CachedNetworkImage(
-                imageUrl: chat.avatarUrl!,
-                fit: BoxFit.cover,
-                width: 50,
-                height: 50,
-                placeholder: (_, __) => _buildAvatarFallback(),
-                errorWidget: (_, __, ___) => _buildAvatarFallback(),
-              )
-                  : _buildAvatarFallback(),
-            ),
+            child: chat.avatarUrl != null
+                ? NetImage(
+              url: chat.avatarUrl!,
+              fit: BoxFit.cover,
+              width: 50,
+              height: 50,
+              borderRadius: BorderRadius.circular(25),
+              errorChild: _buildAvatarFallback(),
+            )
+                : _buildAvatarFallback(),
           ),
           if (chat.isOnline)
             Positioned(

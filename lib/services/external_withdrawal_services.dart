@@ -6,7 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:path/path.dart' as path;
 
 class WithdrawalApiServices {
-  static const String baseUrl = 'https://everywhere-data-app.onrender.com'; // Replace with your Render URL
+  static const String baseUrl = 'https://api.amril.app';
 
 
   Future<String> _getAuthToken() async {

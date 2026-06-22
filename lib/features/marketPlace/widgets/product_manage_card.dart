@@ -6,7 +6,7 @@ import 'package:everywhere/features/marketPlace/widgets/shared_widgets.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:share_plus/share_plus.dart';
-import '../../../components/swicht.dart';
+import '../../../components/tiny_switch.dart';
 import '../../../constraints/vendor_theme.dart';
 
 import '../../../core/constant/api_constants.dart';

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:everywhere/shared/widgets/net_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:smooth_page_indicator/smooth_page_indicator.dart';
@@ -290,77 +291,83 @@ class _PromoCarouselState extends State<PromoCarousel> {
 
                 return Container(
                   margin: EdgeInsets.symmetric(horizontal: 8, vertical: 10),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      colors: gradient,
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
+                  child: ClipRRect(
                     borderRadius: BorderRadius.circular(16),
-                    image: imageUrl != null
-                        ? DecorationImage(
-                      image: NetworkImage(imageUrl),
-                      fit: BoxFit.cover,
-                      colorFilter: ColorFilter.mode(
-                          Colors.black.withOpacity(0.3),
-                          BlendMode.darken),
-                    )
-                        : null,
-                  ),
-                  padding: EdgeInsets.only(left: 10, right: 10, top: 10, bottom: 10),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(card['title'],
-                              style: GoogleFonts.poppins(
-                                  color: Color(0xFF1E293B),
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.bold)),
-                          GestureDetector(
-                            onTap: () {handleAction(card);},
-                            child: Card(
-                              color: Color(0xFF177E85),
-                              elevation: 4,
-                              child: Container(
-                                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                                decoration: BoxDecoration(
-                                    color: buttonColor,
-                                    borderRadius: BorderRadius.circular(12),
-                                    boxShadow: [BoxShadow(color: Color(0xFF177E85).withOpacity(0.4),
-                                        blurRadius: 8, spreadRadius: 1, offset: Offset(0, 4))]
-                                ),
-                                child: Text(
-                                  card['buttonText'] ?? 'Explore',
-                                  style: TextStyle(
-                                      color: Colors.black, fontWeight: FontWeight.w900, fontSize: 10),
-                                ),
-                              ),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: gradient,
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
                             ),
                           ),
+                        ),
+                        if (imageUrl != null) ...[
+                          NetImage(url: imageUrl as String, fit: BoxFit.cover),
+                          const ColoredBox(color: Color(0x4D000000)),
                         ],
-                      ),
-                      SizedBox(height: 2),
-                      Text(card['subtitle'],
-                          style:
-                          GoogleFonts.poppins(color: Color(0xFF1E293B), fontSize: 10, fontWeight: FontWeight.bold)),
-                      Spacer(),
-                      Center(
-                        child: SmoothPageIndicator(
-                          controller: _pageController,
-                          count: cards.length,
-                          effect: ExpandingDotsEffect(
-                            dotColor: Colors.grey,
-                            activeDotColor: Colors.white,
-                            dotHeight: 6,
-                            dotWidth: 6,
+                        Padding(
+                          padding: const EdgeInsets.only(left: 10, right: 10, top: 10, bottom: 10),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(card['title'],
+                                      style: GoogleFonts.poppins(
+                                          color: Color(0xFF1E293B),
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.bold)),
+                                  GestureDetector(
+                                    onTap: () {handleAction(card);},
+                                    child: Card(
+                                      color: Color(0xFF177E85),
+                                      elevation: 4,
+                                      child: Container(
+                                        padding: EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                                        decoration: BoxDecoration(
+                                            color: buttonColor,
+                                            borderRadius: BorderRadius.circular(12),
+                                            boxShadow: [BoxShadow(color: Color(0xFF177E85).withOpacity(0.4),
+                                                blurRadius: 8, spreadRadius: 1, offset: Offset(0, 4))]
+                                        ),
+                                        child: Text(
+                                          card['buttonText'] ?? 'Explore',
+                                          style: TextStyle(
+                                              color: Colors.black, fontWeight: FontWeight.w900, fontSize: 10),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              SizedBox(height: 2),
+                              Text(card['subtitle'],
+                                  style: GoogleFonts.poppins(
+                                      color: Color(0xFF1E293B), fontSize: 10, fontWeight: FontWeight.bold)),
+                              Spacer(),
+                              Center(
+                                child: SmoothPageIndicator(
+                                  controller: _pageController,
+                                  count: cards.length,
+                                  effect: ExpandingDotsEffect(
+                                    dotColor: Colors.grey,
+                                    activeDotColor: Colors.white,
+                                    dotHeight: 6,
+                                    dotWidth: 6,
+                                  ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 );
               },

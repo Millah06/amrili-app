@@ -15,7 +15,7 @@ import 'package:shimmer/shimmer.dart';
 import '../../../../providers/user_provider.dart';
 import '../../../../shared/widgets/confirmation_page.dart';
 import '../../../../../components/order_frame.dart';
-import '../../../../../components/transacrtion_pin.dart';
+import '../../../../../components/transaction_pin.dart';
 import '../../../../../constraints/constants.dart';
 import '../../../../../features/utility/models/plan_model.dart';
 import '../../../../../services/brain.dart';

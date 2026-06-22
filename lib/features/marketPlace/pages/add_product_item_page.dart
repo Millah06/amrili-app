@@ -1,6 +1,4 @@
-import 'dart:io';
-
-import 'package:everywhere/components/swicht.dart';
+import 'package:everywhere/components/tiny_switch.dart';
 import 'package:everywhere/providers/user_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -9,6 +7,7 @@ import '../../../constraints/vendor_theme.dart';
 import '../../../features/marketPlace/providers/vendor_center_provider.dart';
 import '../../../shared/widgets/image_editor.dart';
 import '../../social/services/social_api_service.dart';
+import '../../verification/verification_gate.dart';
 import '../models/vendor_model.dart';
 import '../widgets/shared_widgets.dart';
 
@@ -25,8 +24,8 @@ class _AddMenuItemPageState extends State<AddMenuItemPage> {
 
   final SocialApiService _apiService = SocialApiService();
 
-  // Images newly picked from gallery (always XFile)
   List<XFile> _pickedImages = [];
+  List<String> _keptImageUrls = [];
 
   final _name  = TextEditingController();
   final _desc  = TextEditingController();
@@ -49,6 +48,7 @@ class _AddMenuItemPageState extends State<AddMenuItemPage> {
       _desc.text  = item.description;
       _price.text = item.price.toStringAsFixed(0);
       _isAvailable = item.isAvailable;
+      _keptImageUrls = List<String>.from(item.images);
     }
   }
 
@@ -77,12 +77,13 @@ class _AddMenuItemPageState extends State<AddMenuItemPage> {
       ),
       body: Consumer<VendorCenterProvider>(
         builder: (context, p, _) {
+          final userId = context.read<UserProvider>().user?.userId;
           final branches = p.myVendor?.branches.where((branch) {
-           return branch.managerId == context.read<UserProvider>().user!.userId;
+            return branch.managerId == userId;
           }).toList() ?? [];
           _selectedBranchId ??= branches.isNotEmpty ? branches.first.id : null;
 
-          return ListView(
+          return Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 640), child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
               // Image picker
@@ -90,9 +91,8 @@ class _AddMenuItemPageState extends State<AddMenuItemPage> {
               AppImagePicker(
                 existingImages: _isEditing ? widget.existingItem?.images ?? [] : [],
                 onChanged: (List<String> keptUrls, List<XFile> newImages) {
-
                   _pickedImages = newImages;
-
+                  _keptImageUrls = keptUrls;
                 },
               ),
 
@@ -175,11 +175,13 @@ class _AddMenuItemPageState extends State<AddMenuItemPage> {
               VButton(
                 label: _isEditing ? 'Save Changes' : 'Add Item',
                 loading: _loading,
-                onTap: _submit,
+                onTap: () {
+                  VerificationGate.ensureVerified(context, reason: 'to add products', action: _submit);
+                },
               ),
               const SizedBox(height: 40),
             ],
-          );
+          )));
         },
       ),
     );
@@ -201,19 +203,17 @@ class _AddMenuItemPageState extends State<AddMenuItemPage> {
       final p = context.read<VendorCenterProvider>();
 
       if (_isEditing) {
-
-        List<String>? imageUrls;
-
-        if (_pickedImages.isNotEmpty) {
-          imageUrls = await _apiService.uploadPostImages(_pickedImages);
-        }
+        final List<String> uploadedUrls = _pickedImages.isNotEmpty
+            ? await _apiService.uploadPostImages(_pickedImages)
+            : [];
+        final allImageUrls = [..._keptImageUrls, ...uploadedUrls];
 
         await p.updateMenuItem(widget.existingItem!.id, {
           'name': _name.text.trim(),
           'description': _desc.text.trim(),
           'price': double.tryParse(_price.text.trim()) ?? 0,
           'isAvailable': _isAvailable,
-          'imageUrls': imageUrls,
+          'imageUrls': allImageUrls,
         });
 
       } else {

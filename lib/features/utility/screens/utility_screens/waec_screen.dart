@@ -1,5 +1,5 @@
 import 'package:everywhere/shared/widgets/confirmation_page.dart';
-import 'package:everywhere/components/transacrtion_pin.dart';
+import 'package:everywhere/components/transaction_pin.dart';
 import 'package:everywhere/constraints/constants.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';

@@ -126,7 +126,7 @@ class _BuyCoinsScreenState extends State<BuyCoinsScreen> {
         elevation: 0,
         title: const Text('Buy Coins', style: TextStyle(fontWeight: FontWeight.bold)),
       ),
-      body: ListView(
+      body: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 640), child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           _BalanceHeader(
@@ -153,6 +153,8 @@ class _BuyCoinsScreenState extends State<BuyCoinsScreen> {
             _buildStorePacks(),
         ],
       ),
+      ),
+    ),
     );
   }
 

@@ -74,7 +74,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
             style: GoogleFonts.poppins(
                 fontWeight: FontWeight.w700, fontSize: 18, color: Colors.white)),
       ),
-      body: switch (_state) {
+      body: Center(child: ConstrainedBox(constraints: const BoxConstraints(maxWidth: 640), child: switch (_state) {
         _S.loading => const Center(
             child: CircularProgressIndicator(color: VendorTheme.primary)),
         _S.success => SingleChildScrollView(
@@ -97,7 +97,7 @@ class _PostDetailPageState extends State<PostDetailPage> {
           secondaryLabel: 'Go home',
           onSecondary: () => context.go('/'),
         ),
-      },
+      })),
     );
   }
 }

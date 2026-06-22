@@ -1,4 +1,4 @@
-import 'package:cached_network_image/cached_network_image.dart';
+import 'package:everywhere/shared/widgets/net_image.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -115,12 +115,15 @@ class _ChatUserLandingPageState extends State<ChatUserLandingPage> {
               color: ChatTheme.surface,
               border: Border.all(color: Colors.white24, width: 2),
             ),
-            child: ClipOval(
-              child: (avatarUrl != null && avatarUrl.isNotEmpty)
-                  ? CachedNetworkImage(
-                      imageUrl: avatarUrl, fit: BoxFit.cover)
-                  : Icon(Icons.person, size: 48, color: Colors.white38),
-            ),
+            child: (avatarUrl != null && avatarUrl.isNotEmpty)
+                ? NetImage(
+                    url: avatarUrl,
+                    fit: BoxFit.cover,
+                    width: 96,
+                    height: 96,
+                    borderRadius: BorderRadius.circular(48),
+                  )
+                : const Icon(Icons.person, size: 48, color: Colors.white38),
           ),
           const SizedBox(height: 16),
           Row(
