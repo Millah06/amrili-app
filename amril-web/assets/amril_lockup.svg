@@ -1,0 +1,31 @@
+<svg width="520" height="160" viewBox="0 0 520 160" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Amril">
+  <!--
+    Horizontal lockup: mark + wordmark. For website nav, email headers, etc.
+    Wordmark is set in Poppins (the app's display face) — on the web it loads
+    from Google Fonts; if Poppins is unavailable it falls back gracefully. For
+    fixed assets where you can't guarantee the font (e.g. an OG image), export
+    a PNG of this file once Poppins is installed, or outline the text.
+    Default colours assume a DARK background. For light backgrounds, override
+    .wm fill to #0F172A (the dot stays cyan).
+  -->
+  <defs>
+    <linearGradient id="lstroke" x1="20" y1="135" x2="120" y2="35" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#177E85"/><stop offset="0.55" stop-color="#21D3ED"/><stop offset="1" stop-color="#7CEEFF"/>
+    </linearGradient>
+    <radialGradient id="ldot" cx="0.5" cy="0.42" r="0.7">
+      <stop offset="0" stop-color="#D6FAFF"/><stop offset="0.45" stop-color="#21D3ED"/><stop offset="1" stop-color="#0FB8D4"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Mark -->
+  <g transform="translate(8,16) scale(0.52)">
+    <path d="M55 196 L112 70"  stroke="url(#lstroke)" stroke-width="28" stroke-linecap="round"/>
+    <path d="M185 196 L128 70" stroke="url(#lstroke)" stroke-width="28" stroke-linecap="round"/>
+    <path d="M86 150 L154 150" stroke="url(#lstroke)" stroke-width="23" stroke-linecap="round"/>
+    <circle cx="120" cy="58" r="20" fill="url(#ldot)"/>
+  </g>
+
+  <!-- Wordmark -->
+  <text x="150" y="103" class="wm" font-family="Poppins, 'Segoe UI', system-ui, sans-serif"
+        font-weight="700" font-size="86" letter-spacing="-1" fill="#FFFFFF">Amril<tspan fill="#21D3ED">.</tspan></text>
+</svg>

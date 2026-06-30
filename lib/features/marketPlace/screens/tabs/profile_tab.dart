@@ -3,11 +3,11 @@ import 'package:everywhere/shared/widgets/net_image.dart';
 import 'package:everywhere/features/wallet/pages/withdraw_bank_screen.dart';
 import 'package:everywhere/providers/user_provider.dart';
 import 'package:everywhere/screens/pages/notification_screen.dart';
-import 'package:everywhere/screens/privacy_policy.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../../constraints/constants.dart';
 import '../../../../constraints/vendor_theme.dart';
+import '../../../legal/legal_document_page.dart';
 import '../../../support/help_center.dart';
 import '../../pages/add_branch_page.dart';
 import '../../pages/edit_vendor_profile.dart';
@@ -225,9 +225,14 @@ class _ProfileTabState extends State<ProfileTab> {
             _tile(Icons.help_outline, 'Help & Support', () {
               Navigator.push(context, MaterialPageRoute(builder: (context) => HelpCenter()));
             }),
-            _tile(Icons.privacy_tip_outlined, 'Privacy Policy', () {
-              Navigator.push(context, MaterialPageRoute(builder: (context) => PrivacyPolicyPage()));
-            }),
+                  _tile(Icons.privacy_tip_outlined, 'Privacy Policy', () {
+                    Navigator.push(context, MaterialPageRoute(
+                        builder: (_) => LegalDocumentPage.of('privacy')));
+                  }),
+                  _tile(Icons.description_outlined, 'Terms of Service', () {
+                    Navigator.push(context, MaterialPageRoute(
+                        builder: (_) => LegalDocumentPage.of('terms')));
+                  }),
             if (user.myVendor == null)
             _tile(Icons.storefront_outlined, 'Become a vendor', () {
               vendorPush(context, const PreApplyView());

@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <!--
+    Amril — Flutter Web shell (Phase 3).
+    The <base href> is rewritten to "/" at build time by `flutter build web`.
+    Keep the literal token below; do NOT hardcode a path or deep links break.
+  -->
+  <base href="/app/">
+
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes, viewport-fit=cover">
+
+
+
+
+  <!-- Default Open Graph / Twitter tags. The Cloudflare worker REPLACES these
+       for /store, /product and /post so shared links preview richly. These
+       defaults cover the home page and any route the worker doesn't enrich. -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Amril">
+  <meta property="og:title" content="Amril">
+  <meta property="og:description" content="Shop, pay bills, and order from local merchants — all in one app.">
+  <meta property="og:image" content="https://amril.app/icons/og-default.png">
+  <meta property="og:url" content="https://amril.app">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Amril">
+  <meta name="twitter:description" content="Shop, pay bills, and order from local merchants — all in one app.">
+  <meta name="twitter:image" content="https://amril.app/icons/og-default.png">
+
+  <!-- iOS PWA -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+  <link rel="icon" type="image/png" href="favicon.png"/>
+  <link rel="manifest" href="manifest.json">
+
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+  <meta name="theme-color" content="#0F172A">
+  <meta name="description" content="Order, connect, and gift — built in Nigeria, made for everywhere.">
+  <title>Amril</title>
+  <meta name="apple-mobile-web-app-title" content="Amril">
+
+  <!-- Inter + Poppins, matching the native app's typography so the web load
+       screen feels like the same product. Preconnect keeps it fast. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Poppins:wght@600;700&display=swap"
+        rel="stylesheet">
+
+  <style>
+    /* ── Pre-Flutter splash ──────────────────────────────────────────────
+       Shown from first paint until the Flutter engine renders its first
+       frame, so the user never sees a white flash. Colours are the app's
+       own brand tokens (navy #0F172A, panel #1E293B, cyan #21D3ED) so the
+       transition into the app is seamless. Removed by main.dart once ready. */
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background-color: #0F172A;
+      font-family: 'Inter', -apple-system, system-ui, sans-serif;
+      overscroll-behavior: none;
+    }
+
+    #splash {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 22px;
+      background:
+        radial-gradient(120% 80% at 50% 0%, #16233d 0%, #0F172A 60%);
+      transition: opacity 0.45s ease;
+      z-index: 9999;
+    }
+
+    /* Wordmark — Poppins to echo the app's display font. */
+    #splash .wordmark {
+      font-family: 'Poppins', sans-serif;
+      font-weight: 700;
+      font-size: 30px;
+      letter-spacing: 0.5px;
+      color: #FFFFFF;
+    }
+    #splash .wordmark span { color: #21D3ED; } /* dot accent */
+
+    /* Slim indeterminate progress bar — subtler than a spinner, on-brand. */
+    #splash .bar {
+      width: 132px;
+      height: 3px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.08);
+      overflow: hidden;
+      position: relative;
+    }
+    #splash .bar::after {
+      content: '';
+      position: absolute;
+      left: -40%;
+      top: 0;
+      height: 100%;
+      width: 40%;
+      border-radius: 3px;
+      background: #21D3ED;
+      animation: slide 1.15s ease-in-out infinite;
+    }
+    @keyframes slide {
+      0%   { left: -40%; }
+      60%  { left: 100%; }
+      100% { left: 100%; }
+    }
+
+    /* Honour reduced-motion preferences. */
+    @media (prefers-reduced-motion: reduce) {
+      #splash .bar::after { animation: none; left: 0; width: 100%; opacity: 0.6; }
+      #splash { transition: none; }
+    }
+
+    .splash-hidden { opacity: 0 !important; pointer-events: none; }
+  </style>
+</head>
+<body>
+<!-- Branded splash; main.dart calls window.removeAmrilSplash() after first frame. -->
+<div id="splash" role="status" aria-label="Loading Amril">
+  <div class="wordmark">Amril<span>.</span></div>
+  <div class="bar"></div>
+</div>
+
+<script>
+  // Fade the splash out once the app has painted. Safe to call repeatedly.
+  window.removeAmrilSplash = function () {
+    var el = document.getElementById('splash');
+    if (!el) return;
+    el.classList.add('splash-hidden');
+    setTimeout(function () { if (el && el.parentNode) el.parentNode.removeChild(el); }, 500);
+  };
+
+  // THIS is what removes the splash: Flutter dispatches `flutter-first-frame`
+  // on the window the instant it paints its first frame. Without this listener
+  // the overlay covers the running app forever (the original bug).
+  window.addEventListener('flutter-first-frame', window.removeAmrilSplash);
+
+  // Safety net: never trap the user behind the splash. If the first frame is
+  // slow (cold start, slow network), reveal whatever has rendered after 8s.
+  setTimeout(window.removeAmrilSplash, 8000);
+</script>
+
+<!-- Flutter bootstrap (flutter.js is generated into build/web). -->
+<script src="flutter_bootstrap.js" async></script>
+</body>
+</html>

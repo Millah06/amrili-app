@@ -1,0 +1,133 @@
+/* ============================================================================
+   Amril — Legal pages stylesheet
+   Used by every /legal/*.html page. Light, high-readability theme that still
+   carries the brand (navy ink, cyan accent). Intentionally NOT the dark app
+   theme: legal text is read for comprehension, and a light page is easier on
+   the eyes for long documents — while reviewers and regulators get a clean,
+   fast, unambiguous page.
+   ========================================================================== */
+
+:root {
+  --navy: #0F172A;
+  --navy-soft: #1E293B;
+  --cyan: #21D3ED;
+  --teal: #177E85;
+  --ink: #1A2233;          /* body text */
+  --ink-muted: #5A6679;    /* secondary text */
+  --line: #E4E8EF;         /* hairlines */
+  --bg: #FBFCFE;           /* page background */
+  --card: #FFFFFF;
+  --radius: 14px;
+  --maxw: 760px;
+}
+
+* { box-sizing: border-box; }
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 17px;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* ── Top bar ─────────────────────────────────────────────────────────────── */
+.legal-topbar {
+  position: sticky; top: 0; z-index: 10;
+  background: var(--navy);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.legal-topbar .inner {
+  max-width: var(--maxw); margin: 0 auto;
+  padding: 14px 24px;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+}
+.legal-topbar a.brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; }
+.legal-topbar .brand img { height: 28px; display: block; }
+.legal-topbar .back {
+  color: #B7C2D6; text-decoration: none; font-size: 14px; font-weight: 600;
+  padding: 8px 14px; border-radius: 999px; border: 1px solid rgba(255,255,255,0.12);
+  transition: background .18s ease, color .18s ease;
+}
+.legal-topbar .back:hover { background: rgba(255,255,255,0.06); color: #fff; }
+
+/* When embedded inside the Flutter app (flutter_html), the topbar/footer are
+   stripped — only .legal-doc content ships in the in-app fragment. */
+
+/* ── Document ────────────────────────────────────────────────────────────── */
+.legal-doc {
+  max-width: var(--maxw); margin: 0 auto; padding: 48px 24px 96px;
+}
+.legal-doc .eyebrow {
+  display: inline-block; font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
+  font-weight: 700; color: var(--teal); margin: 0 0 10px;
+}
+.legal-doc h1 {
+  font-family: 'Poppins', 'Inter', sans-serif;
+  font-size: clamp(28px, 5vw, 40px); line-height: 1.15; letter-spacing: -0.02em;
+  color: var(--navy); margin: 0 0 8px; font-weight: 700;
+}
+.legal-doc .updated { color: var(--ink-muted); font-size: 14px; margin: 0 0 8px; }
+.legal-doc .entity { color: var(--ink-muted); font-size: 14px; margin: 0 0 32px; }
+.legal-doc .lead {
+  font-size: 18px; color: #2A3446; background: #F2F6FC;
+  border: 1px solid var(--line); border-left: 3px solid var(--cyan);
+  border-radius: var(--radius); padding: 18px 20px; margin: 0 0 36px;
+}
+
+/* Table of contents */
+.legal-toc {
+  background: var(--card); border: 1px solid var(--line); border-radius: var(--radius);
+  padding: 18px 22px; margin: 0 0 40px;
+}
+.legal-toc h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .1em; color: var(--ink-muted); margin: 0 0 12px; font-weight: 700; }
+.legal-toc ol { margin: 0; padding-left: 20px; columns: 2; column-gap: 28px; }
+.legal-toc li { margin: 4px 0; break-inside: avoid; }
+.legal-toc a { color: var(--ink); text-decoration: none; font-size: 15px; }
+.legal-toc a:hover { color: var(--teal); text-decoration: underline; }
+@media (max-width: 560px){ .legal-toc ol { columns: 1; } }
+
+.legal-doc h2.section {
+  font-family: 'Poppins', 'Inter', sans-serif;
+  font-size: 21px; color: var(--navy); margin: 44px 0 12px; padding-top: 8px;
+  font-weight: 700; scroll-margin-top: 80px;
+}
+.legal-doc h2.section .num { color: var(--cyan); font-weight: 700; margin-right: 10px; }
+.legal-doc h3 { font-size: 17px; color: var(--navy); margin: 24px 0 8px; font-weight: 700; }
+.legal-doc p { margin: 0 0 16px; }
+.legal-doc ul, .legal-doc ol.body { margin: 0 0 16px; padding-left: 22px; }
+.legal-doc li { margin: 7px 0; }
+.legal-doc strong { color: var(--navy); }
+.legal-doc a { color: var(--teal); }
+.legal-doc .note {
+  background: #FFF8EC; border: 1px solid #F2E2BE; border-left: 3px solid #E2A93B;
+  border-radius: 12px; padding: 14px 18px; margin: 0 0 18px; font-size: 15.5px; color: #5C4A1E;
+}
+.legal-doc table { width: 100%; border-collapse: collapse; margin: 0 0 24px; font-size: 15px; }
+.legal-doc th, .legal-doc td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.legal-doc th { color: var(--navy); font-weight: 700; background: #F6F9FD; }
+.legal-doc .contact-card {
+  background: var(--navy); color: #E8EEF8; border-radius: var(--radius); padding: 22px 24px; margin: 28px 0 0;
+}
+.legal-doc .contact-card h3 { color: #fff; margin-top: 0; }
+.legal-doc .contact-card a { color: var(--cyan); }
+
+/* ── Footer ──────────────────────────────────────────────────────────────── */
+.legal-footer {
+  border-top: 1px solid var(--line); background: #fff;
+}
+.legal-footer .inner {
+  max-width: var(--maxw); margin: 0 auto; padding: 28px 24px;
+  display: flex; flex-wrap: wrap; gap: 8px 22px; align-items: center; justify-content: center;
+}
+.legal-footer a { color: var(--ink-muted); text-decoration: none; font-size: 14px; }
+.legal-footer a:hover { color: var(--teal); }
+.legal-footer .copyright { width: 100%; text-align: center; color: var(--ink-muted); font-size: 13px; margin-top: 14px; }
+
+a:focus-visible, .back:focus-visible { outline: 3px solid var(--cyan); outline-offset: 2px; border-radius: 6px; }
+@media (prefers-reduced-motion: reduce){ html { scroll-behavior: auto; } }

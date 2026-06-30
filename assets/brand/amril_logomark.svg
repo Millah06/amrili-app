@@ -1,0 +1,35 @@
+<svg width="240" height="240" viewBox="0 0 240 240" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Amril">
+  <!--
+    Amril logomark — "the Node A".
+    Two ascending strokes converge at a luminous dot (the brand's signature dot,
+    carried over from the "Amril." wordmark). Reads as an A; symbolically a point
+    where things meet — people, branches, a scanned table. Pure geometry, no font
+    dependency, so it rasterises cleanly at any size (favicon → store icon).
+    Designed on a 240 grid with ~28px optical safe margin.
+  -->
+  <defs>
+    <linearGradient id="amrilStroke" x1="60" y1="200" x2="180" y2="40" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#177E85"/>
+      <stop offset="0.55" stop-color="#21D3ED"/>
+      <stop offset="1" stop-color="#5FE9FF"/>
+    </linearGradient>
+    <radialGradient id="amrilDot" cx="0.5" cy="0.42" r="0.7">
+      <stop offset="0" stop-color="#BDF6FF"/>
+      <stop offset="0.45" stop-color="#21D3ED"/>
+      <stop offset="1" stop-color="#0FB8D4"/>
+    </radialGradient>
+    <filter id="amrilGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="6" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+
+  <!-- Left + right legs of the A, meeting just below the dot apex. -->
+  <path d="M55 196 L112 70"  stroke="url(#amrilStroke)" stroke-width="26" stroke-linecap="round"/>
+  <path d="M185 196 L128 70" stroke="url(#amrilStroke)" stroke-width="26" stroke-linecap="round"/>
+  <!-- Offset crossbar — dynamic, not centred, so the mark feels like motion not a tent. -->
+  <path d="M86 150 L154 150" stroke="url(#amrilStroke)" stroke-width="22" stroke-linecap="round"/>
+
+  <!-- Signature dot at the apex (the scan-point / convergence node). -->
+  <circle cx="120" cy="58" r="20" fill="url(#amrilDot)" filter="url(#amrilGlow)"/>
+</svg>

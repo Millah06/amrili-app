@@ -36,10 +36,12 @@ class DeepLinkService {
 
   /// Call once, after the first frame, from `app.dart`.
   Future<void> init() async {
-    if (_started) return; // idempotent — safe to call again on hot reload
+    // App/Universal Links are a NATIVE concern. On web the browser URL + GoRouter
+    // already drive routing, and app_links emits the current page URL (e.g. "/app/"),
+    // which would wrongly route there. So: do nothing on web.
+    if (kIsWeb) return;                 // ← ADD THIS LINE (kIsWeb already imported)
+    if (_started) return;
     _started = true;
-
-    // 2) WARM/HOT: links arriving while the app is running.
     _sub = _appLinks.uriLinkStream.listen(
       _handleUri,
       onError: (Object e) => debugPrint('DeepLinkService: stream error — $e'),

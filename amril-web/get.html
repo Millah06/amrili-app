@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex">
+<title>Getting Amril…</title>
+<style>
+  html,body{height:100%;margin:0}
+  body{background:#0B1220;color:#C7D2E3;font-family:'Inter',system-ui,sans-serif;
+    display:flex;align-items:center;justify-content:center;text-align:center}
+  .b{max-width:340px;padding:24px}
+  .sp{width:34px;height:34px;border:3px solid rgba(124,238,255,.25);border-top-color:#21D3ED;
+    border-radius:50%;margin:0 auto 18px;animation:s 1s linear infinite}
+  @keyframes s{to{transform:rotate(360deg)}}
+  a{color:#21D3ED}
+</style>
+</head>
+<body>
+  <div class="b">
+    <div class="sp"></div>
+    <p>Taking you to Amril…</p>
+    <p style="font-size:13px;color:#7E8DA6">If nothing happens, <a id="fallback" href="/app">open Amril on the web</a>.</p>
+  </div>
+<script>
+/* Same placeholders as landing.js — keep them in sync (replace once live). */
+var STORE = {
+  play:  'PLAY_STORE_URL_PLACEHOLDER',
+  apple: 'APP_STORE_URL_PLACEHOLDER',
+  web:   '/app/'
+};
+(function () {
+  var ua = navigator.userAgent || '';
+  var target = STORE.web;
+  if (/android/i.test(ua)) target = STORE.play;
+  else if (/iPad|iPhone|iPod/.test(ua) || (/Macintosh/.test(ua) && navigator.maxTouchPoints > 1)) target = STORE.apple;
+  if (target.indexOf('PLACEHOLDER') !== -1) target = STORE.web; // not live yet → web
+  document.getElementById('fallback').setAttribute('href', target);
+  setTimeout(function () { window.location.replace(target); }, 600);
+})();
+</script>
+</body>
+</html>

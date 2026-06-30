@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="theme-color" content="#0B1220">
+<title>Amril — Scan the table. Order, connect, and gift in one app.</title>
+<meta name="description" content="Amril is the all-in-one app to order from your restaurant table by QR, discover and follow vendors, gift the people and posts you love, and pay for everyday essentials — built in Nigeria, for everywhere.">
+<meta name="robots" content="index,follow">
+
+<!-- Open Graph / social -->
+<meta property="og:type" content="website">
+<meta property="og:title" content="Amril — Scan the table. Order, connect, and gift.">
+<meta property="og:description" content="QR dine-in ordering, a social marketplace, gifting, and everyday payments — one app, built in Nigeria.">
+<meta property="og:url" content="https://amril.app/">
+<meta property="og:image" content="https://amril.app/assets/og-cover.png">
+<meta name="twitter:card" content="summary_large_image">
+
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/landing.css">
+<script>
+  // If a returning, already-signed-in user lands here, send them straight to
+  // the app before the page paints. Reads the hint Flutter writes to web
+  // localStorage (SharedPreferences prefixes keys with "flutter."). If the hint
+  // is stale, /app/ still resolves correctly (BottomBar or welcome), so this
+  // can never strand anyone. Verify the exact key in DevTools after a web login.
+  try { if (localStorage.getItem('flutter.isSetupDone') === 'true') location.replace('/app/'); } catch (e) {}
+</script>
+</head>
+<body>
+
+<!-- ════════════════════════ NAV ════════════════════════ -->
+<header class="nav">
+  <div class="wrap nav__in">
+    <a class="nav__brand" href="/" aria-label="Amril home"><img src="/assets/amril_lockup.svg" alt="Amril"></a>
+    <nav class="nav__links" aria-label="Primary">
+      <a href="#dinein">Dine-in</a>
+      <a href="#social">Social</a>
+      <a href="#gifting">Gifting</a>
+      <a href="#marketplace">Marketplace</a>
+      <a href="#vendors">For restaurants</a>
+    </nav>
+    <div class="nav__cta">
+      <a href="/app/" class="btn btn--ghost">Use on web</a>
+      <a href="#get" class="btn btn--primary">Get the app</a>
+      <button class="nav__toggle" id="navToggle" aria-label="Menu" aria-expanded="false">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+      </button>
+    </div>
+  </div>
+</header>
+<div class="navsheet" id="navSheet">
+  <a href="#dinein">Dine-in</a>
+  <a href="#social">Social</a>
+  <a href="#gifting">Gifting</a>
+  <a href="#marketplace">Marketplace</a>
+  <a href="#vendors">For restaurants</a>
+  <a href="/app/" class="btn btn--ghost">Use on web</a>
+  <a href="#get" class="btn btn--primary">Get the app</a>
+</div>
+
+<!-- ════════════════════════ HERO ════════════════════════ -->
+<section class="hero dotgrid">
+  <div class="wrap hero__grid">
+    <div class="hero__copy">
+      <span class="hero__tag">🇳🇬 Built in Nigeria · made for everywhere</span>
+      <h1>Scan the table.<br>Order in seconds<span class="dot">.</span></h1>
+      <p class="hero__sub">Amril turns a table QR into your whole order — then keeps going: a feed to follow the places you love, gifting to back them, a marketplace to shop, and one wallet for everyday life.</p>
+
+      <div class="hero__cta" id="cta-hero">
+        <div class="hero__row">
+          <!-- Store badges + web; landing.js narrows these to the user's device -->
+          <a class="store s-play" href="#" data-store="play" rel="noopener">
+            <svg width="22" height="24" viewBox="0 0 22 24" aria-hidden="true"><path d="M.6 1.2 12 12.4.6 23.6c-.3-.2-.5-.6-.5-1.1V2.3c0-.5.2-.9.5-1.1Z" fill="#21D3ED"/><path d="M16.4 8.8 12 12.4 1.6.9c.3-.2.7-.2 1.1 0L16.4 8.8Z" fill="#7CEEFF"/><path d="M16.4 16 2.7 23.9c-.4.2-.8.2-1.1 0L12 12.4 16.4 16Z" fill="#177E85"/><path d="m21 11.4-3.4-1.9-4 3.9 4 3.3 3.4-1.9c.8-.5.8-2.9 0-3.5Z" fill="#fff"/></svg>
+            <span class="l"><small>Get it on</small><b>Google Play</b></span>
+          </a>
+          <a class="store s-apple" href="#" data-store="apple" rel="noopener">
+            <svg width="20" height="24" viewBox="0 0 20 24" aria-hidden="true"><path d="M16.4 12.7c0-2.6 2.1-3.9 2.2-4-1.2-1.8-3.1-2-3.8-2-1.6-.2-3.1.9-3.9.9-.8 0-2-.9-3.4-.9-1.7 0-3.4 1-4.3 2.6-1.8 3.2-.5 7.9 1.3 10.5.9 1.3 1.9 2.7 3.3 2.6 1.3-.1 1.8-.8 3.4-.8 1.6 0 2 .8 3.4.8 1.4 0 2.3-1.3 3.2-2.5.6-.9.9-1.4 1.3-2.4-3.4-1.3-3-5.3-2.7-5.3Z" fill="#fff"/><path d="M13.9 3.6c.7-.9 1.2-2.1 1-3.3-1 0-2.3.7-3 1.6-.7.8-1.3 2-1.1 3.2 1.1.1 2.3-.6 3.1-1.5Z" fill="#fff"/></svg>
+            <span class="l"><small>Download on the</small><b>App Store</b></span>
+          </a>
+          <a class="btn btn--ghost s-web" href="/app/">Use on web →</a>
+        </div>
+        <span class="hero__note" id="cta-note">// available on iOS, Android &amp; web</span>
+      </div>
+    </div>
+
+    <!-- Signature visual: phone menu + table QR placard + live kitchen ticket -->
+    <div class="hero__visual">
+      <div class="stage" aria-hidden="true">
+        <div class="phone">
+          <span class="phone__notch"></span>
+          <!-- PLACEHOLDER: app menu screenshot -->
+          <div class="ph">
+            <div class="ph__in">
+              <span class="ph__icon">screenshot</span>
+              <div class="ph__t">App menu screen<br>(a vendor's dine-in menu)</div>
+              <div class="ph__d">portrait 1080×2340 · dark UI</div>
+            </div>
+          </div>
+        </div>
+        <!-- Table QR placard -->
+        <div class="placard">
+          <small>Scan to order</small>
+          <img class="qr" src="/assets/qr_get.svg" alt="">
+          <div class="tbl">TABLE 5</div>
+        </div>
+        <!-- Kitchen ticket -->
+        <div class="ticket">
+          <div class="top"><span class="no">#4827</span><span class="tb">TABLE 5</span></div>
+          <div class="li"><span>2× Jollof &amp; Chicken</span><b>×2</b></div>
+          <div class="li"><span>1× Chapman</span><b>×1</b></div>
+          <div class="li"><span>1× Puff-puff</span><b>×1</b></div>
+          <div class="st">● Sent to kitchen</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════ DINE-IN (the wedge) ════════════════════════ -->
+<section class="sec" id="dinein">
+  <div class="wrap">
+    <span class="eyebrow">The Amril table</span>
+    <h2 class="sec__title reveal">A QR on every table. A kitchen that keeps up<span class="dot">.</span></h2>
+    <p class="sec__lead reveal">No app to install for diners who don't want to, no waiting to flag down a server, no mixed-up orders. Scan, choose, and the right kitchen gets the right ticket — for one outlet or fifty.</p>
+
+    <div class="steps">
+      <div class="step reveal">
+        <span class="step__n">01</span>
+        <h3>Scan</h3>
+        <p>Each table has its own code. A guest scans and the vendor's live menu opens — tied to that table, that branch.</p>
+        <div class="ph step__art"><div class="ph__in"><span class="ph__icon">image</span><div class="ph__t">Hand scanning a table QR tent</div><div class="ph__d">photo 1000×600</div></div></div>
+      </div>
+      <div class="step reveal">
+        <span class="step__n">02</span>
+        <h3>Order from your seat</h3>
+        <p>Browse, customise, and send. Pay in-app or at the counter — dine-in carries no delivery fee.</p>
+        <div class="ph step__art"><div class="ph__in"><span class="ph__icon">screenshot</span><div class="ph__t">In-app cart / order review</div><div class="ph__d">crop 1000×600</div></div></div>
+      </div>
+      <div class="step reveal">
+        <span class="step__n">03</span>
+        <h3>Kitchen gets the ticket</h3>
+        <p>The order lands instantly as <b>#4827 · Table 5</b> on the branch's screen. Staff prepare and serve.</p>
+        <div class="ph step__art"><div class="ph__in"><span class="ph__icon">screenshot</span><div class="ph__t">Vendor kitchen / orders board</div><div class="ph__d">crop 1000×600</div></div></div>
+      </div>
+    </div>
+
+    <!-- multi-branch -->
+    <div class="branch">
+      <div class="ph branch__art reveal"><div class="ph__in"><span class="ph__icon">illustration / screenshot</span><div class="ph__t">One brand → many branches map<br>each branch with its own tables &amp; menu</div><div class="ph__d">1200×900</div></div></div>
+      <div class="reveal">
+        <span class="eyebrow">Multi-branch, by design</span>
+        <h2 class="sec__title" style="font-size:clamp(24px,3.4vw,34px)">Run one outlet or a whole chain<span class="dot">.</span></h2>
+        <div class="feat">
+          <div class="feat__ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-3"/></svg></div>
+          <div><h4>Every branch, its own menu &amp; tables</h4><p>Prices, availability, and table codes are set per branch — no cross-wires between outlets.</p></div>
+        </div>
+        <div class="feat">
+          <div class="feat__ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+          <div><h4>Orders routed to the right kitchen</h4><p>Table 5 at Lekki never shows up at Ikeja. Each branch sees only its own queue.</p></div>
+        </div>
+        <div class="feat">
+          <div class="feat__ic"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18M7 16l4-4 3 3 5-6"/></svg></div>
+          <div><h4>One view of the whole business</h4><p>See how every branch is performing, manage staff and menus, and grow without losing the thread.</p></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════ SOCIAL ════════════════════════ -->
+<section class="sec dotgrid" id="social">
+  <div class="wrap band">
+    <div class="band__media">
+      <div class="ph band__art reveal"><div class="ph__in"><span class="ph__icon">screenshot</span><div class="ph__t">Social feed — posts from vendors &amp; people you follow</div><div class="ph__d">portrait 1080×1080</div></div></div>
+    </div>
+    <div class="band__copy reveal">
+      <span class="eyebrow">More than a menu</span>
+      <h2 class="sec__title">A place to be, not just to buy<span class="dot">.</span></h2>
+      <p class="sec__lead">Follow your favourite spots and creators, see what's new, post, comment, and message. The businesses you love aren't a search result — they're part of your feed.</p>
+      <div class="chips">
+        <span class="chip">Personalised feed</span>
+        <span class="chip">Follow vendors &amp; people</span>
+        <span class="chip">Posts, comments &amp; reviews</span>
+        <span class="chip">Direct &amp; group messaging</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════ GIFTING / COINS (gold accent) ════════════════════════ -->
+<section class="sec gift" id="gifting">
+  <div class="wrap band band--rev">
+    <div class="band__media">
+      <div class="ph band__art reveal"><div class="ph__in"><span class="ph__icon">screenshot</span><div class="ph__t">Gifting a post with coins — animated gift overlay</div><div class="ph__d">portrait 1080×1080</div></div></div>
+    </div>
+    <div class="band__copy reveal">
+      <span class="eyebrow">Gifting &amp; coins</span>
+      <h2 class="sec__title">Back the people you believe in<span class="dot">.</span></h2>
+      <p class="sec__lead">Send coins to posts and creators to show real support, or boost your own. It's a small, joyful way to say "I see you" — and for creators, a way to feel it back.</p>
+      <div class="chips">
+        <span class="coinpill">◎ Send a gift</span>
+        <span class="chip">Support creators</span>
+        <span class="chip">Boost your posts</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════ MARKETPLACE ════════════════════════ -->
+<section class="sec" id="marketplace">
+  <div class="wrap band">
+    <div class="band__media">
+      <div class="ph band__art reveal"><div class="ph__in"><span class="ph__icon">screenshot</span><div class="ph__t">Marketplace — store &amp; product listings</div><div class="ph__d">portrait 1080×1080</div></div></div>
+    </div>
+    <div class="band__copy reveal">
+      <span class="eyebrow">Marketplace</span>
+      <h2 class="sec__title">Shop local, with protection built in<span class="dot">.</span></h2>
+      <p class="sec__lead">Discover stores near you, order for delivery, pickup, or dine-in, and pay with confidence — funds are held until your order is done, so buyers and sellers are both covered.</p>
+      <div class="chips">
+        <span class="chip">Delivery · pickup · dine-in</span>
+        <span class="chip">Payment held until completed</span>
+        <span class="chip">Honest reviews</span>
+        <span class="chip">Verified vendors</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════ WALLET / EVERYDAY ════════════════════════ -->
+<section class="sec dotgrid">
+  <div class="wrap band band--rev">
+    <div class="band__media">
+      <div class="ph band__art reveal"><div class="ph__in"><span class="ph__icon">screenshot</span><div class="ph__t">Wallet — balance, top-up, and everyday payments</div><div class="ph__d">portrait 1080×1080</div></div></div>
+    </div>
+    <div class="band__copy reveal">
+      <span class="eyebrow">One wallet</span>
+      <h2 class="sec__title">Everything settles in one place<span class="dot">.</span></h2>
+      <p class="sec__lead">Top up, pay, and check out across Amril with a single balance — powered by licensed payment partners. Handle airtime, data, electricity, and more when you need to, without leaving the app.</p>
+      <div class="chips">
+        <span class="chip">Secure top-ups &amp; payments</span>
+        <span class="chip">Airtime &amp; data</span>
+        <span class="chip">Electricity, cable &amp; more</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════ VENDOR CTA ════════════════════════ -->
+<section class="sec" id="vendors">
+  <div class="wrap">
+    <div class="vendor reveal">
+      <div>
+        <span class="eyebrow">For restaurants &amp; sellers</span>
+        <h2 class="sec__title">Get discovered. Take orders. Grow<span class="dot">.</span></h2>
+        <p class="sec__lead">Whether you run one kitchen or a chain, Amril gives you QR dine-in, a storefront with a following, and payouts — all in one place.</p>
+        <ul class="vendor__list">
+          <li><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 6 9 17l-5-5"/></svg> QR dine-in &amp; table ordering, per branch</li>
+          <li><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 6 9 17l-5-5"/></svg> A storefront people can follow, not just find</li>
+          <li><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 6 9 17l-5-5"/></svg> Held payments and clear payouts as you grow</li>
+          <li><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M20 6 9 17l-5-5"/></svg> One dashboard across every outlet</li>
+        </ul>
+        <div class="hero__row" style="margin-top:28px">
+          <a href="#get" class="btn btn--primary">Start selling on Amril</a>
+        </div>
+      </div>
+      <div class="ph band__art reveal" style="aspect-ratio:3/4"><div class="ph__in"><span class="ph__icon">screenshot</span><div class="ph__t">Vendor dashboard / store setup</div><div class="ph__d">portrait 1080×1440</div></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════ DIASPORA ════════════════════════ -->
+<section class="sec dotgrid diaspora">
+  <div class="wrap">
+    <span class="eyebrow" style="justify-content:center">Wherever you are</span>
+    <h2 class="sec__title reveal">Nigeria, in your pocket — anywhere in the world<span class="dot">.</span></h2>
+    <p class="sec__lead reveal">Living abroad? Stay close to home. Discover and support Nigerian businesses and creators, send gifts, and stay part of the community — from any country, on any device.</p>
+    <div class="ph diaspora__art reveal"><div class="ph__in"><span class="ph__icon">illustration / photo</span><div class="ph__t">Map / globe motif connecting the diaspora to Nigeria, or a warm lifestyle photo of someone using Amril abroad</div><div class="ph__d">wide 1680×720</div></div></div>
+  </div>
+</section>
+
+<!-- ════════════════════════ DOWNLOAD BAND ════════════════════════ -->
+<section class="sec dl" id="get">
+  <div class="wrap dl__in">
+    <div>
+      <span class="eyebrow">Get Amril</span>
+      <h2>Order, connect, and gift — in one app<span class="dot">.</span></h2>
+      <p class="sec__lead" id="dl-sub">Download Amril, or jump straight in on the web.</p>
+      <div class="dl__stores" id="cta-download">
+        <a class="store s-play" href="#" data-store="play" rel="noopener">
+          <svg width="22" height="24" viewBox="0 0 22 24" aria-hidden="true"><path d="M.6 1.2 12 12.4.6 23.6c-.3-.2-.5-.6-.5-1.1V2.3c0-.5.2-.9.5-1.1Z" fill="#21D3ED"/><path d="M16.4 8.8 12 12.4 1.6.9c.3-.2.7-.2 1.1 0L16.4 8.8Z" fill="#7CEEFF"/><path d="M16.4 16 2.7 23.9c-.4.2-.8.2-1.1 0L12 12.4 16.4 16Z" fill="#177E85"/><path d="m21 11.4-3.4-1.9-4 3.9 4 3.3 3.4-1.9c.8-.5.8-2.9 0-3.5Z" fill="#fff"/></svg>
+          <span class="l"><small>Get it on</small><b>Google Play</b></span>
+        </a>
+        <a class="store s-apple" href="#" data-store="apple" rel="noopener">
+          <svg width="20" height="24" viewBox="0 0 20 24" aria-hidden="true"><path d="M16.4 12.7c0-2.6 2.1-3.9 2.2-4-1.2-1.8-3.1-2-3.8-2-1.6-.2-3.1.9-3.9.9-.8 0-2-.9-3.4-.9-1.7 0-3.4 1-4.3 2.6-1.8 3.2-.5 7.9 1.3 10.5.9 1.3 1.9 2.7 3.3 2.6 1.3-.1 1.8-.8 3.4-.8 1.6 0 2 .8 3.4.8 1.4 0 2.3-1.3 3.2-2.5.6-.9.9-1.4 1.3-2.4-3.4-1.3-3-5.3-2.7-5.3Z" fill="#fff"/><path d="M13.9 3.6c.7-.9 1.2-2.1 1-3.3-1 0-2.3.7-3 1.6-.7.8-1.3 2-1.1 3.2 1.1.1 2.3-.6 3.1-1.5Z" fill="#fff"/></svg>
+          <span class="l"><small>Download on the</small><b>App Store</b></span>
+        </a>
+        <a class="btn btn--ghost s-web" href="/app/">Use on web →</a>
+      </div>
+    </div>
+    <!-- Desktop only: scan to get. QR encodes /get which redirects to the right store. -->
+    <div class="dl__qr">
+      <img src="/assets/qr_get.svg" alt="Scan to get Amril">
+      <div class="cap">Scan with your phone<br><span>to download Amril</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ════════════════════════ FOOTER ════════════════════════ -->
+<footer class="foot">
+  <div class="wrap">
+    <div class="foot__top">
+      <div class="foot__brand">
+        <img src="/assets/amril_lockup.svg" alt="Amril">
+        <p>The all-in-one app for ordering, connecting, and gifting — built in Nigeria, made for everywhere.</p>
+      </div>
+      <div class="foot__col">
+        <h5>Product</h5>
+        <a href="#dinein">Dine-in &amp; QR</a>
+        <a href="#social">Social</a>
+        <a href="#gifting">Gifting</a>
+        <a href="#marketplace">Marketplace</a>
+        <a href="/app/">Use on web</a>
+      </div>
+      <div class="foot__col">
+        <h5>Business</h5>
+        <a href="#vendors">For restaurants</a>
+        <a href="#vendors">Sell on Amril</a>
+        <a href="/legal/vendor-agreement">Vendor Agreement</a>
+        <a href="mailto:support@amril.app">Support</a>
+      </div>
+      <div class="foot__col">
+        <h5>Legal</h5>
+        <a href="/legal/privacy">Privacy Policy</a>
+        <a href="/legal/terms">Terms of Service</a>
+        <a href="/legal/cookies">Cookie Policy</a>
+        <a href="/legal/acceptable-use">Community Guidelines</a>
+        <a href="/legal/coins">Coins &amp; Gifting</a>
+      </div>
+    </div>
+    <div class="foot__bot">
+      <span>© <span id="yr">2026</span> Amrili Digital Services Limited. All rights reserved.</span>
+      <span>privacy@amril.app · support@amril.app</span>
+    </div>
+  </div>
+</footer>
+
+<script src="/landing.js" defer></script>
+</body>
+</html>

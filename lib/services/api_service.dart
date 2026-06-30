@@ -36,12 +36,30 @@ class ApiService {
     };
   }
 
+  Future<Map<String, String>> _refreshedHeaders() async {
+    final token = await FirebaseAuth.instance.currentUser?.getIdToken(true); // force refresh
+    return {
+      'Content-Type': 'application/json',
+      if (token != null && token.isNotEmpty) 'Authorization': 'Bearer $token',
+    };
+  }
+
   Future<dynamic> get(String path, {Map<String, String>? query, optionalHeader = false}) async {
     final uri = Uri.parse('$baseUrl$path').replace(queryParameters: query);
-    final res = await http.get(uri, headers:  optionalHeader ? await _getOptionalHeaders() : await _headers);
-    print(res.body);
+    var res = await http.get(uri, headers: optionalHeader ? await _getOptionalHeaders() : await _headers);
+    if (res.statusCode == 401 && !optionalHeader) {               // retry once with a fresh token
+      res = await http.get(uri, headers: await _refreshedHeaders());
+    }
     return _handle(res);
   }
+// apply the same 401-retry to post/put/patch/delete
+
+  // Future<dynamic> get(String path, {Map<String, String>? query, optionalHeader = false}) async {
+  //   final uri = Uri.parse('$baseUrl$path').replace(queryParameters: query);
+  //   final res = await http.get(uri, headers:  optionalHeader ? await _getOptionalHeaders() : await _headers);
+  //   print(res.body);
+  //   return _handle(res);
+  // }
 
   Future<dynamic> post(String path, Map<String, dynamic> body, {bool optionalHeader = false}) async {
     final res = await http.post(

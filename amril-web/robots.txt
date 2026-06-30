@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+Disallow: /get
+Sitemap: https://amril.app/sitemap.xml

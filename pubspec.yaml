@@ -123,6 +123,8 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
+    - assets/legal/        # ← ADD: all legal fragments
+    # - assets/privacy_policy.html   # OLD single file — remove after §4
     - images/
     - assets/
     - assets/fonts/DejaVuSans.ttf

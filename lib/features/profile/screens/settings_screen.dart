@@ -13,10 +13,11 @@ import '../../../components/formatters.dart';
 import '../../../components/tiny_switch.dart';
 import '../../../constraints/vendor_theme.dart';
 import '../../../models/notification_model.dart';
+import '../../legal/legal_document_page.dart';
+import '../../legal/legal_hub_screen.dart';
 import '../providers/my_profile_provider.dart';
 import '../../../screens/community_screen.dart';
 import '../../../screens/pages/notification_screen.dart';
-import '../../../screens/privacy_policy.dart';
 import '../../../screens/welcome_screen.dart';
 import '../../../services/brain.dart';
 import '../../../services/session_service.dart';
@@ -227,22 +228,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
             subtitle: _appVersion,
             onTap: null,
           ),
-          _SettingsTile(
-            icon: Icons.article,
-            title: 'Terms of Service',
-            onTap: () {
-              // Open terms
-            },
-          ),
-          _SettingsTile(
-            icon: Icons.privacy_tip,
-            title: 'Privacy Policy',
-            onTap: () {
-              // Open privacy policy
-              Navigator.push(context, MaterialPageRoute(builder: (context)=>
-                  PrivacyPolicyPage()));
-            },
-          ),
+            _SettingsTile(
+              icon: Icons.article,
+              title: 'Terms of Service',
+              onTap: () {
+                Navigator.push(context, MaterialPageRoute(
+                    builder: (_) => LegalDocumentPage.of('terms')));
+              },
+            ),
+            _SettingsTile(
+              icon: Icons.privacy_tip,
+              title: 'Privacy Policy',
+              onTap: () {
+                Navigator.push(context, MaterialPageRoute(
+                    builder: (_) => LegalDocumentPage.of('privacy')));
+              },
+            ),
+            _SettingsTile(
+              icon: Icons.gavel,
+              title: 'Legal & Policies',
+              subtitle: 'All terms, privacy, and community rules',
+              onTap: () {
+                Navigator.push(context, MaterialPageRoute(
+                    builder: (_) => const LegalHubScreen()));
+              },
+            ),
 
           const SizedBox(height: 32),
 

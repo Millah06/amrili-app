@@ -36,6 +36,9 @@ import '../../core/auth/auth_provider.dart';
 
 // Shell + entry screens
 import '../../components/bottom_bar.dart';
+import '../../features/legal/legal_docs.dart';
+import '../../features/legal/legal_document_page.dart';
+import '../../features/legal/legal_hub_screen.dart';
 import '../../features/marketPlace/pages/qr_scanner_screen.dart';
 import '../../features/communication/screens/chat_user_landing_page.dart';
 import '../../features/communication/screens/my_chat_qr_screen.dart';
@@ -71,20 +74,6 @@ import '../analytics/analytics.dart';
 /// Lets the very first routed frame be the deep-linked page (no '/' or welcome
 /// flash). Defaults to '/' for a normal launch.
 String bootDeepLinkLocation = '/';
-
-/// Paths a logged-out, non-guest visitor is allowed to land on directly.
-/// Everything here is either the entry shell, the welcome screen, or a
-/// public deep-link read surface (the backend gates the actual payload).
-bool _isPublicLocation(String location) {
-  if (location == '/' || location == '/welcome') return true;
-  // Deep-link reads are public by URL (guest-safe data comes from /web/* APIs).
-  return location.startsWith('/store/') ||
-      location.startsWith('/product/') ||
-      location.startsWith('/join/') ||
-      location.startsWith('/post/') ||   // ← add
-      location.startsWith('/u/') ||
-      location == '/checkout-success';   // ← add
-}
 
 /// Replicates the OLD `home:` decision as a router-wide redirect:
 ///   old: hasDone ? BottomBar : isGuest ? BottomBar : WelcomeScreen
@@ -224,6 +213,23 @@ final GoRouter appRouter = GoRouter(
       path: '/u/:userHandle',
       builder: (c, s) =>
           PublicProfilePage(userHandle: s.pathParameters['userHandle']!),
+    ),
+
+    // ── Legal (Phase 14) ───────────────────────────────────────────────────────
+// In-app legal screens, and the in-app targets for amril.app/legal/* app links
+// so those deep links resolve here instead of the 404 page.
+    GoRoute(
+      path: '/legal',
+      builder: (c, s) => const LegalHubScreen(),
+    ),
+    GoRoute(
+      path: '/legal/:slug',
+      builder: (c, s) {
+        final slug = s.pathParameters['slug']!;
+        final known = kLegalDocs.any((d) => d.slug == slug);
+        // Unknown slug → hub, not a red 404. (.of() throws on an unknown slug.)
+        return known ? LegalDocumentPage.of(slug) : const LegalHubScreen();
+      },
     ),
 
     // In-app QR scanner (pushed from the "Scan" buttons)

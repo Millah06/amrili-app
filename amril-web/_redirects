@@ -1,0 +1,20 @@
+# ─── Amril Cloudflare Pages routing ───────────────────────────────────────────
+# Static files (/, /legal/*, /get, /assets/*, /.well-known/*) serve automatically.
+# Cloudflare Pages also serves clean URLs, so /legal/privacy → legal/privacy.html.
+
+# Bare /app → add the trailing slash the Flutter base-href (/app/) requires.
+/app            /app/                  301
+
+# Root-level deep links open the Flutter app, which lives under /app/ on web.
+# Redirect so the app (base-href /app/) can parse them. (App Links open the
+# NATIVE app on mobile; this redirect only affects the web fallback.)
+/store/*        /app/store/:splat      302
+/product/*      /app/product/:splat    302
+/post/*         /app/post/:splat       302
+/u/*            /app/u/:splat          302
+/order/*        /app/order/:splat      302
+/join/*         /app/join/:splat       302
+
+# SPA fallback for everything under /app/. Real asset files (main.dart.js, etc.)
+# are served first; only unmatched routes fall back to the app shell.
+/app/*          /app/index.html        200
